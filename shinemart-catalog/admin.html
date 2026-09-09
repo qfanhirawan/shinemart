@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shinemart Admin - Kelola Data Produk & Katalog</title>
+  <meta name="description" content="Halaman manajemen produk minimarket Shinemart. Tambah, edit foto, harga, deskripsi, dan stok produk secara mudah.">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e8f7ff',
+              100: '#cceeff',
+              500: '#38b6ff',
+              600: '#0099ff',
+              700: '#0077d6',
+              800: '#005fa8',
+              900: '#003966',
+            },
+            accent: {
+              50: '#fff0f8',
+              100: '#ffe0f3',
+              500: '#ff66c4',
+              600: '#e043a5',
+              700: '#b82b82',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Styles System -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-[#38b6ff] selection:text-white">
+
+  <!-- ================= TOP ADMIN HEADER ================= -->
+  <header class="header-glass sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Official Brand Logo with Admin Badge -->
+        <a href="index.html" class="flex items-center gap-3 group">
+          <img src="assets/images/shinemart_logo.svg" alt="Shinemart Minimarket & Frozen Food" class="h-12 w-auto object-contain group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.src='assets/images/shinemart_logo.png';">
+          <span class="bg-slate-900 text-white text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full tracking-wider">Admin Panel</span>
+        </a>
+
+        <!-- Quick Link back to Catalog Page -->
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full text-xs md:text-sm flex items-center gap-2 transition">
+            <i class="fas fa-store text-[#38b6ff]"></i>
+            <span>Lihat Halaman Utama</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN ADMIN CONTENT ================= -->
+  <main class="py-8 px-4 max-w-7xl mx-auto">
+
+    <!-- KPI STATS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+      
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-xl shrink-0">
+          <i class="fas fa-boxes-stacked"></i>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 font-medium block">Total Produk Catalog</span>
+          <span class="text-2xl font-extrabold text-slate-900" id="statTotalProducts">0</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-xl shrink-0">
+          <i class="fas fa-tags"></i>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 font-medium block">Produk Diskon Promo</span>
+          <span class="text-2xl font-extrabold text-[#ff66c4]" id="statPromoProducts">0</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 font-medium block">Kategori Aktif</span>
+          <span class="text-2xl font-extrabold text-slate-900" id="statTotalCategories">0</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-xs text-slate-400 font-medium block">Reset Data</span>
+          <span class="text-xs font-bold text-slate-600 block mt-0.5">Kembalikan Sampel</span>
+        </div>
+        <button onclick="resetToDefaultData()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+          <i class="fas fa-undo mr-1"></i> Reset
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ACTION BAR & FILTERS -->
+    <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200 mb-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        
+        <!-- Left: Search & Filter -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-1">
+          <div class="relative w-full sm:w-72">
+            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="adminSearchInput" placeholder="Cari nama atau kata kunci produk..." class="w-full pl-10 pr-4 py-2.5 bg-slate-100 focus:bg-white text-slate-800 rounded-xl text-xs md:text-sm font-medium outline-none border border-transparent focus:border-[#38b6ff] transition">
+          </div>
+
+          <select id="adminCategoryFilter" class="w-full sm:w-48 py-2.5 px-3 bg-slate-100 focus:bg-white text-slate-800 rounded-xl text-xs md:text-sm font-medium outline-none border border-transparent focus:border-[#38b6ff] cursor-pointer">
+            <option value="all">Semua Kategori</option>
+            <option value="sembako">🌾 Sembako</option>
+            <option value="minuman">🥤 Minuman</option>
+            <option value="snack">🍿 Snacks</option>
+            <option value="kebersihan">🧼 Kebersihan</option>
+            <option value="fresh">🥩 Fresh Produce</option>
+            <option value="frozen">🧊 Frozen Food</option>
+            <option value="bayi">👶 Ibu & Bayi</option>
+            <option value="perawatan">🧴 Perawatan Diri</option>
+          </select>
+        </div>
+
+        <!-- Right: Add Product Button -->
+        <button onclick="openFormModal()" class="w-full md:w-auto px-5 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white font-extrabold rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-md shadow-sky-400/20 transition">
+          <i class="fas fa-plus-circle text-base"></i>
+          <span>Tambah Produk Baru</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- PRODUCTS TABLE (DESKTOP) -->
+    <div class="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 font-extrabold text-xs uppercase tracking-wider border-b border-slate-200">
+              <th class="py-3.5 px-4">Produk & Foto</th>
+              <th class="py-3.5 px-4">Kategori</th>
+              <th class="py-3.5 px-4">Harga Promo / Normal</th>
+              <th class="py-3.5 px-4">Diskon</th>
+              <th class="py-3.5 px-4">Status Stok</th>
+              <th class="py-3.5 px-4 text-center">Aksi Kelola</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRODUCTS CARDS (MOBILE) -->
+    <div id="adminMobileGrid" class="grid grid-cols-1 gap-4 md:hidden mb-8">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- EMPTY TABLE NOTICE -->
+    <div id="adminEmptyNotice" class="hidden text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 my-6">
+      <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-800 mb-1">Belum Ada Data Produk</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">Klik tombol di bawah untuk menambah produk baru ke dalam katalog Shinemart.</p>
+      <button onclick="openFormModal()" class="px-4 py-2 bg-[#38b6ff] text-white font-bold rounded-xl text-xs">
+        Tambah Produk Baru Sekarang
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ================= ADD / EDIT PRODUCT MODAL ================= -->
+  <div id="productFormModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 my-8">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-edit text-[#38b6ff] text-lg"></i>
+          <h3 id="formModalTitle" class="font-extrabold text-base md:text-lg">Tambah Produk Baru</h3>
+        </div>
+        <button onclick="closeFormModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form Body -->
+      <form id="productForm" class="p-6 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="productId">
+
+        <!-- 1. PHOTO SELECTION & PREVIEW -->
+        <div class="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <label class="block text-xs font-extrabold text-slate-800 mb-3 uppercase tracking-wider">
+            📸 Foto Produk (Upload Berkas / URL Image):
+          </label>
+
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            
+            <!-- Image Preview Box -->
+            <div class="w-28 h-28 rounded-2xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 relative group">
+              <img id="imagePreview" src="" alt="Pratinjau Foto" class="w-full h-full object-cover hidden">
+              <div id="imagePreviewPlaceholder" class="text-center p-2 text-slate-400">
+                <i class="fas fa-image text-2xl mb-1 block text-slate-300"></i>
+                <span class="text-[10px] font-semibold">Pratinjau</span>
+              </div>
+            </div>
+
+            <!-- Upload File & Link Inputs -->
+            <div class="flex-1 w-full space-y-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Upload Berkas Foto (Lokal HP/Laptop):</label>
+                <input type="file" id="productImageFile" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-100 file:text-[#0077d6] hover:file:bg-sky-200 cursor-pointer">
+              </div>
+
+              <div class="relative">
+                <span class="text-[10px] text-slate-400 font-semibold block mb-1">Atau Gunakan Link Web Image URL:</span>
+                <input type="url" id="productImageUrl" placeholder="https://images.unsplash.com/photo-..." class="w-full px-3 py-2 bg-white text-slate-800 text-xs rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 2. BASIC PRODUCT DETAILS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-pink-500">*</span></label>
+            <input type="text" id="productName" required placeholder="Contoh: Beras Pandan Wangi 5kg" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-semibold rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Kategori Produk <span class="text-pink-500">*</span></label>
+            <select id="productCategory" required class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-semibold rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+              <option value="sembako">🌾 Sembako</option>
+              <option value="minuman">🥤 Minuman</option>
+              <option value="snack">🍿 Snacks</option>
+              <option value="kebersihan">🧼 Kebersihan</option>
+              <option value="fresh">🥩 Fresh Produce</option>
+              <option value="frozen">🧊 Frozen Food</option>
+              <option value="bayi">👶 Ibu & Bayi</option>
+              <option value="perawatan">🧴 Perawatan Diri</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Satuan & Ukuran Kemasan</label>
+            <input type="text" id="productUnit" placeholder="Contoh: Pouch 2 Liter, 1 kg" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-semibold rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+        </div>
+
+        <!-- 3. PRICING & DISCOUNT DETAILS -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 bg-sky-50/50 p-4 rounded-2xl border border-sky-100">
+          
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Harga Promo (Rp) <span class="text-pink-500">*</span></label>
+            <input type="number" id="productPrice" required placeholder="34500" class="w-full px-3.5 py-2.5 bg-white text-slate-900 font-extrabold text-xs md:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Harga Asli (Sebelum Diskon)</label>
+            <input type="number" id="productOriginalPrice" placeholder="39500 (opsional)" class="w-full px-3.5 py-2.5 bg-white text-slate-600 text-xs md:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Teks Diskon (%)</label>
+            <input type="text" id="productDiscount" placeholder="Misal: 13% (otomatis)" class="w-full px-3.5 py-2.5 bg-white text-[#ff66c4] font-extrabold text-xs md:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+        </div>
+
+        <!-- 4. STOCK & BADGE TAGS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Status Ketersediaan Stok</label>
+            <input type="text" id="productStock" placeholder="Contoh: Ready Stock, Ready 20 sak" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-semibold rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Label Badge Promo</label>
+            <input type="text" id="productBadge" placeholder="Contoh: PROMO WEEKEND, BEST SELLER" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-semibold rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff]">
+          </div>
+
+        </div>
+
+        <!-- 5. PRODUCT DESCRIPTION -->
+        <div class="mb-6">
+          <label class="block text-xs font-bold text-slate-700 mb-1">Deskripsi Detail Produk</label>
+          <textarea id="productDescription" rows="3" placeholder="Tuliskan keunggulan produk, spesifikasi, atau rincian rasa/bahan..." class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff] resize-none"></textarea>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeFormModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs md:text-sm transition">
+            Batal
+          </button>
+          <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] text-white font-extrabold rounded-xl text-xs md:text-sm shadow-md shadow-sky-400/20 transition">
+            <i class="fas fa-save mr-1"></i> Simpan Data Produk
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Admin JavaScript Logic -->
+  <script src="js/admin.js"></script>
+</body>
+</html>
