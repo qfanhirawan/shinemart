@@ -141,7 +141,7 @@ const BANNERS = [
   }
 ];
 
-const STORE_WA_NUMBER = "6281234567890";
+const STORE_WA_NUMBER = "6287782603733";
 
 // Dynamic Products List State
 let productsList = [];
@@ -266,7 +266,7 @@ function goToBanner(index) {
 function updateBannerPosition() {
   const bannerWrapper = document.getElementById("bannerWrapper");
   if (!bannerWrapper) return;
-  
+
   bannerWrapper.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
 
   BANNERS.forEach((_, idx) => {
@@ -294,10 +294,10 @@ function renderProducts() {
 
   let filtered = productsList.filter((item) => {
     const matchesCategory = activeCategory === "all" || item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
-                          item.category.toLowerCase().includes(searchQuery) ||
-                          (item.badge && item.badge.toLowerCase().includes(searchQuery)) ||
-                          (item.description && item.description.toLowerCase().includes(searchQuery));
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
+      item.category.toLowerCase().includes(searchQuery) ||
+      (item.badge && item.badge.toLowerCase().includes(searchQuery)) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery));
     return matchesCategory && matchesSearch;
   });
 
@@ -377,7 +377,7 @@ function renderProducts() {
 // Update Category Count Badges
 function updateCategoryCounts() {
   const categories = ["all", "sembako", "minuman", "snack", "kebersihan", "fresh", "frozen", "bayi", "perawatan"];
-  
+
   categories.forEach((cat) => {
     const badgeEl = document.getElementById(`count-${cat}`);
     if (badgeEl) {
@@ -402,7 +402,7 @@ function openProductModal(productId) {
   document.getElementById("modalProductName").textContent = product.name;
   document.getElementById("modalProductPrice").textContent = formatRupiah(product.price);
   document.getElementById("modalProductUnit").textContent = product.unit || "1 Pcs";
-  
+
   const descEl = document.getElementById("modalProductDesc");
   if (descEl) {
     descEl.textContent = product.description || "Produk kualiatas super terjamin di Shinemart.";
@@ -435,8 +435,8 @@ function sendWhatsAppFromModal() {
   const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
   const totalPrice = formatRupiah(selectedProductForModal.price * qty);
 
-  const messageText = 
-`Halo Kasir *Shinemart*, saya ingin menanyakan stok / memesan produk berikut:
+  const messageText =
+    `Halo Kasir *Shinemart*, saya ingin menanyakan stok / memesan produk berikut:
 
 📌 *Detail Pesanan:*
 • *Produk:* ${selectedProductForModal.name}
