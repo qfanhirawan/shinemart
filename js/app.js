@@ -1,125 +1,142 @@
 /**
- * SHINEMART DIGITAL CATALOG - MAIN APPLICATION SCRIPT
- * Reads dynamically from LocalStorage (synced with admin.html management page).
+ * ==============================================================================
+ * SHINEMART DIGITAL CATALOG - VISITOR SCRIPT (app.js)
+ * Khusus untuk Halaman Pengunjung (index.html):
+ * 1. Fetch data katalog dinamis dari Google Sheets (doGet) dengan fallback offline
+ * 2. Render katalog produk, pencarian real-time, dan filter kategori
+ * 3. Keranjang belanja sementara (Multi-Item Cart) via LocalStorage
+ * 4. Checkout multi-item dengan tautan terformat rapi ke WhatsApp Kasir
+ * ==============================================================================
  */
 
-const STORAGE_KEY = "shinemart_products_data";
+// Konfigurasi Web App Google Apps Script
+// Ganti dengan Web App URL hasil deployment spreadsheet Anda
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz_sample_shinemart/exec";
+const LOCAL_STORAGE_KEY = "shinemart_products_data";
+const CART_STORAGE_KEY = "shinemart_shopping_cart";
+const STORE_WA_NUMBER = "6281234567890"; // Nomor WhatsApp Kasir (format 62xxx)
 
-// Fallback Default Products Data
+/**
+ * Otomatis mengonversi URL Google Drive standar / share link
+ * menjadi Direct Image URL agar dapat dirender oleh tag <img> di browser.
+ */
+function formatGoogleDriveImageUrl(url) {
+  if (!url || typeof url !== "string") return "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
+  const trimmed = url.trim();
+
+  // Pola 1: drive.google.com/file/d/FILE_ID/view...
+  let match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  }
+
+  // Pola 2: drive.google.com/open?id=FILE_ID atau uc?id=FILE_ID
+  match = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  }
+
+  // Pola 3: drive.google.com/uc?export=view&id=FILE_ID
+  match = trimmed.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  }
+
+  return trimmed;
+}
+
+// Data sampel awal jika Google Sheets belum terhubung
 const DEFAULT_PRODUCTS = [
   {
     id: 101,
     name: "Beras Pandan Wangi Super 5kg",
-    category: "sembako",
     price: 78500,
-    originalPrice: 89000,
-    discount: "12%",
-    unit: "5 kg / Sak",
-    badge: "PROMO WEEKEND",
+    category: "sembako",
+    imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop&q=80",
     stock: "Ready 45 sak",
-    description: "Beras Pandan Wangi kualitas unggul dengan aroma wangi alami, beras pulen, bersih, dan bebas pemutih.",
-    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop&q=80"
+    unit: "5 kg / Sak"
   },
   {
     id: 102,
     name: "Minyak Goreng Bimoli Spesial Refill 2L",
-    category: "sembako",
     price: 34500,
-    originalPrice: 39500,
-    discount: "13%",
-    unit: "Pouch 2 Liter",
-    badge: "BEST SELLER",
+    category: "sembako",
+    imageUrl: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Minyak goreng kelapa sawit pilihan kaya akan Vitamin E, membuat masakan renyah dan gurih.",
-    image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80"
+    unit: "Pouch 2 Liter"
   },
   {
     id: 103,
     name: "Gula Pasir Gulaku Premium Putih 1kg",
-    category: "sembako",
     price: 17500,
-    originalPrice: 18500,
-    discount: "5%",
-    unit: "1 kg",
-    badge: "",
+    category: "sembako",
+    imageUrl: "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Gula pasir putih murni terbuat dari tebu pilihan. Manis alami dan cepat larut.",
-    image: "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?w=500&auto=format&fit=crop&q=80"
+    unit: "1 kg"
   },
   {
     id: 104,
     name: "Telur Ayam Negeri Fresh Super 1kg",
-    category: "sembako",
     price: 28000,
-    originalPrice: 31000,
-    discount: "10%",
-    unit: "1 kg (~16 butir)",
-    badge: "FRESH TODAY",
+    category: "sembako",
+    imageUrl: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=500&auto=format&fit=crop&q=80",
     stock: "Stok Segar",
-    description: "Telur ayam negeri segar langsung dari peternakan terpercaya. Sumber protein lengkap.",
-    image: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=500&auto=format&fit=crop&q=80"
+    unit: "1 kg (~16 butir)"
   },
   {
     id: 201,
     name: "Susu UHT Ultra Milk Full Cream 1000ml",
-    category: "minuman",
     price: 18900,
-    originalPrice: 21500,
-    discount: "12%",
-    unit: "Kotak 1 Liter",
-    badge: "PROMO HEMAT",
+    category: "minuman",
+    imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Susu sapi segar UHT tinggi kalsium dan fosfor untuk nutrisi harian keluarga.",
-    image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=80"
+    unit: "Kotak 1 Liter"
   },
   {
     id: 202,
     name: "Kopi Nescafe Classic Jar 100g",
-    category: "minuman",
     price: 36000,
-    originalPrice: 42000,
-    discount: "14%",
-    unit: "Botol Kaca 100g",
-    badge: "FAVORIT KASIR",
+    category: "minuman",
+    imageUrl: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Kopi murni 100% Robusta tanpa gula dengan rasa dan aroma khas kopi mantap.",
-    image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&auto=format&fit=crop&q=80"
+    unit: "Botol Kaca 100g"
   },
   {
     id: 301,
     name: "Biskuit Khong Guan Assorted Biscuit 650g",
-    category: "snack",
     price: 52500,
-    originalPrice: 61000,
-    discount: "14%",
-    unit: "Kaleng 650g",
-    badge: "SPESIAL KELUARGA",
+    category: "snack",
+    imageUrl: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Aneka macam biskuit lezat renyah legendaris favorit keluarga Indonesia.",
-    image: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500&auto=format&fit=crop&q=80"
+    unit: "Kaleng 650g"
   },
   {
     id: 401,
     name: "Deterjen Rinso Anti Noda Molto Liquid 770ml",
-    category: "kebersihan",
     price: 22900,
-    originalPrice: 27500,
-    discount: "17%",
-    unit: "Refill Pouch 770ml",
-    badge: "SUPER DISKON",
+    category: "kebersihan",
+    imageUrl: "https://images.unsplash.com/photo-1585842378054-ee2e52f94ba2?w=500&auto=format&fit=crop&q=80",
     stock: "Ready Stock",
-    description: "Deterjen cair pembersih noda membandel 3x lebih cepat dengan wangi Molto tahan lama.",
-    image: "https://images.unsplash.com/photo-1585842378054-ee2e52f94ba2?w=500&auto=format&fit=crop&q=80"
+    unit: "Refill Pouch 770ml"
+  },
+  {
+    id: 601,
+    name: "Fiesta Chicken Nugget Crispy 500g",
+    price: 48500,
+    category: "frozen",
+    imageUrl: "https://images.unsplash.com/photo-1562967914-608f82629710?w=500&auto=format&fit=crop&q=80",
+    stock: "Ready di Freezer",
+    unit: "Pack 500g"
   }
 ];
 
-// Banner Data
+// Data Slider Banner Promosi
 const BANNERS = [
   {
     id: 1,
     title: "PROMO SPESIAL SHINEMART",
     subtitle: "Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!",
-    tag: "PROMO SUPER",
+    tag: "KATALOG ONLINE",
     bgGradient: "linear-gradient(135deg, #38b6ff 0%, #0077d6 100%)",
     image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80"
   },
@@ -134,47 +151,434 @@ const BANNERS = [
   {
     id: 3,
     title: "GRATIS ONGKIR AREA LOKAL",
-    subtitle: "Pesan via WhatsApp Kasir, Antar Cepat Dalam 30 Menit!",
-    tag: "CYAN & PINK EDITION",
+    subtitle: "Pesan Multi-Item via WhatsApp, Antar Cepat Dalam 30 Menit!",
+    tag: "PESAN VIA WA",
     bgGradient: "linear-gradient(135deg, #38b6ff 0%, #ff66c4 100%)",
     image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80"
   }
 ];
 
-const STORE_WA_NUMBER = "6287782603733";
-
-// Dynamic Products List State
+// Application State
 let productsList = [];
+let cartItems = [];
 let activeCategory = "all";
 let searchQuery = "";
 let currentBannerIndex = 0;
 let bannerInterval = null;
-let selectedProductForModal = null;
 
-// DOM Load Event
+// Initial Load
 document.addEventListener("DOMContentLoaded", () => {
-  loadProductsFromStorage();
+  loadCartFromStorage();
   initBannerSlider();
-  renderProducts();
   setupEventListeners();
-  updateCategoryCounts();
+  fetchProductsFromGoogleSheets();
 });
 
-// Load Active Products List from LocalStorage
-function loadProductsFromStorage() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
+// ==============================================================================
+// FETCH KATALOG PRODUK DARI GOOGLE SHEETS (doGet)
+// ==============================================================================
+async function fetchProductsFromGoogleSheets() {
+  const countDisplay = document.getElementById("productCountInfo");
+  if (countDisplay) {
+    countDisplay.innerHTML = `<span class="inline-flex items-center gap-2 text-sky-600 font-medium"><i class="fas fa-spinner fa-spin"></i> Memuat katalog produk dari Google Sheets...</span>`;
+  }
+
+  // Tampilkan data lokal/cache terlebih dahulu jika ada
+  const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (cached) {
     try {
-      productsList = JSON.parse(stored);
+      productsList = JSON.parse(cached);
+      renderProducts();
+      updateCategoryCounts();
     } catch (e) {
       productsList = [...DEFAULT_PRODUCTS];
     }
   } else {
     productsList = [...DEFAULT_PRODUCTS];
+    renderProducts();
+    updateCategoryCounts();
+  }
+
+  const activeUrl = getActiveApiUrl();
+  if (!activeUrl || activeUrl.includes("sample_shinemart")) {
+    if (countDisplay) {
+      countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
+    }
+    return;
+  }
+
+  try {
+    const response = await fetch(activeUrl, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result && result.status === "success" && Array.isArray(result.data)) {
+      if (result.data.length > 0) {
+        productsList = result.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price) || 0,
+          category: String(p.category || "sembako").toLowerCase(),
+          imageUrl: formatGoogleDriveImageUrl(p.imageUrl || p.image),
+          stock: p.stock !== undefined && p.stock !== "" ? p.stock : "Ready",
+          unit: p.unit || "1 Pcs"
+        }));
+
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(productsList));
+        renderProducts();
+        updateCategoryCounts();
+
+        if (countDisplay) {
+          countDisplay.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Data diperbarui dari Google Sheets (${productsList.length} produk).</span>`;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Gagal terhubung ke Google Sheets, menggunakan data lokal:", error);
+    if (countDisplay) {
+      countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
+    }
   }
 }
 
-// Setup Event Listeners
+function getActiveApiUrl() {
+  const customUrl = localStorage.getItem("shinemart_gas_api_url");
+  return customUrl ? customUrl.trim() : GAS_API_URL;
+}
+
+// ==============================================================================
+// SISTEM KERANJANG BELANJA (MULTI-ITEM CART)
+// ==============================================================================
+function loadCartFromStorage() {
+  const saved = localStorage.getItem(CART_STORAGE_KEY);
+  if (saved) {
+    try {
+      cartItems = JSON.parse(saved);
+    } catch (e) {
+      cartItems = [];
+    }
+  } else {
+    cartItems = [];
+  }
+  updateCartBadge();
+}
+
+function saveCartToStorage() {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+  updateCartBadge();
+}
+
+function addToCart(productId, qty = 1) {
+  const product = productsList.find(p => String(p.id) === String(productId));
+  if (!product) return;
+
+  const existingIdx = cartItems.findIndex(item => String(item.id) === String(productId));
+  if (existingIdx > -1) {
+    cartItems[existingIdx].qty += qty;
+  } else {
+    cartItems.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      unit: product.unit,
+      imageUrl: product.imageUrl || product.image,
+      qty: qty
+    });
+  }
+
+  saveCartToStorage();
+  showToast(`"${product.name}" masuk ke keranjang!`, "success");
+
+  // Animasi getar pada ikon keranjang header
+  const headerCartBtn = document.getElementById("headerCartBtn");
+  if (headerCartBtn) {
+    headerCartBtn.classList.add("scale-125");
+    setTimeout(() => headerCartBtn.classList.remove("scale-125"), 250);
+  }
+}
+
+function updateCartItemQty(productId, delta) {
+  const index = cartItems.findIndex(item => String(item.id) === String(productId));
+  if (index > -1) {
+    cartItems[index].qty += delta;
+    if (cartItems[index].qty <= 0) {
+      cartItems.splice(index, 1);
+    }
+    saveCartToStorage();
+    renderCartModal();
+  }
+}
+
+function removeCartItem(productId) {
+  cartItems = cartItems.filter(item => String(item.id) !== String(productId));
+  saveCartToStorage();
+  renderCartModal();
+  showToast("Produk dihapus dari keranjang.", "info");
+}
+
+function clearCart() {
+  if (cartItems.length === 0) return;
+  if (confirm("Kosongkan seluruh daftar belanjaan di keranjang?")) {
+    cartItems = [];
+    saveCartToStorage();
+    renderCartModal();
+    showToast("Keranjang telah dikosongkan.", "info");
+  }
+}
+
+function updateCartBadge() {
+  const totalCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
+
+  // Badge header
+  const headerBadge = document.getElementById("cartCountBadge");
+  if (headerBadge) {
+    headerBadge.textContent = totalCount;
+    if (totalCount > 0) {
+      headerBadge.classList.remove("hidden");
+    } else {
+      headerBadge.classList.add("hidden");
+    }
+  }
+
+  // Badge floating icon
+  const floatingBadge = document.getElementById("floatingCartCount");
+  if (floatingBadge) {
+    floatingBadge.textContent = totalCount;
+    if (totalCount > 0) {
+      floatingBadge.classList.remove("hidden");
+    } else {
+      floatingBadge.classList.add("hidden");
+    }
+  }
+}
+
+function openCartModal() {
+  renderCartModal();
+  const modal = document.getElementById("cartModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeCartModal() {
+  const modal = document.getElementById("cartModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function renderCartModal() {
+  const container = document.getElementById("cartItemsContainer");
+  const emptyNotice = document.getElementById("cartEmptyNotice");
+  const footerSection = document.getElementById("cartFooterSection");
+  const totalPriceEl = document.getElementById("cartTotalPrice");
+  const totalItemsEl = document.getElementById("cartTotalItemsCount");
+
+  if (!container) return;
+
+  if (cartItems.length === 0) {
+    container.innerHTML = "";
+    if (emptyNotice) emptyNotice.classList.remove("hidden");
+    if (footerSection) footerSection.classList.add("hidden");
+    if (totalItemsEl) totalItemsEl.textContent = "0 item";
+    return;
+  }
+
+  if (emptyNotice) emptyNotice.classList.add("hidden");
+  if (footerSection) footerSection.classList.remove("hidden");
+
+  let grandTotal = 0;
+  let totalQty = 0;
+
+  container.innerHTML = cartItems.map(item => {
+    const subtotal = item.price * item.qty;
+    grandTotal += subtotal;
+    totalQty += item.qty;
+
+    return `
+      <div class="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-sky-50/50 rounded-2xl border border-slate-100 transition-colors">
+        <div class="flex items-center gap-3">
+          <img src="${item.imageUrl}" alt="${item.name}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          <div>
+            <h4 class="font-bold text-slate-800 text-xs md:text-sm line-clamp-1">${item.name}</h4>
+            <span class="text-[11px] text-slate-400 block">${item.unit || '1 Pcs'} • ${formatRupiah(item.price)}</span>
+            <div class="text-xs font-extrabold text-[#0077d6] mt-0.5">${formatRupiah(subtotal)}</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-sm">
+            <button onclick="updateCartItemQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold text-xs">-</button>
+            <span class="w-7 text-center text-xs font-extrabold text-slate-800">${item.qty}</span>
+            <button onclick="updateCartItemQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold text-xs">+</button>
+          </div>
+          <button onclick="removeCartItem('${item.id}')" class="w-7 h-7 rounded-xl bg-pink-50 hover:bg-[#ff66c4] text-[#ff66c4] hover:text-white flex items-center justify-center text-xs transition" title="Hapus Item">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  if (totalPriceEl) totalPriceEl.textContent = formatRupiah(grandTotal);
+  if (totalItemsEl) totalItemsEl.textContent = `${totalQty} item terdaftar`;
+}
+
+// ==============================================================================
+// REDIRECT & FORMAT PESANAN OTOMATIS KE WHATSAPP KASIR
+// ==============================================================================
+function checkoutCartViaWhatsApp() {
+  if (cartItems.length === 0) {
+    showToast("Keranjang belanja masih kosong!", "info");
+    return;
+  }
+
+  let itemsText = "";
+  let totalPerkiraan = 0;
+
+  cartItems.forEach((item, index) => {
+    const subtotal = item.price * item.qty;
+    totalPerkiraan += subtotal;
+    itemsText += `${index + 1}. ${item.name} - ${item.qty} x ${formatRupiah(item.price)} = ${formatRupiah(subtotal)}\n`;
+  });
+
+  const fullMessage = 
+`Halo Shinemart, saya mau pesan barang berikut:
+
+${itemsText}
+Total Perkiraan: ${formatRupiah(totalPerkiraan)}
+
+Mohon konfirmasi ketersediaan stoknya. Terima kasih!`;
+
+  const waUrl = `https://wa.me/${STORE_WA_NUMBER}?text=${encodeURIComponent(fullMessage)}`;
+  window.open(waUrl, "_blank");
+  closeCartModal();
+}
+
+function orderSingleItemWA(productId) {
+  const product = productsList.find(p => String(p.id) === String(productId));
+  if (!product) return;
+
+  const message = 
+`Halo Shinemart, saya mau tanya / pesan barang ini:
+• ${product.name} (${product.unit || '1 Pcs'}) - ${formatRupiah(product.price)}
+
+Apakah ready untuk dikirim? Terima kasih!`;
+
+  window.open(`https://wa.me/${STORE_WA_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+}
+
+function openGeneralWhatsApp(topic = "") {
+  let text = "Halo Shinemart, saya mau bertanya tentang ketersediaan barang hari ini.";
+  if (topic === "lokasi") {
+    text = "Halo Shinemart, saya mau tanya petunjuk arah lokasi toko.";
+  } else if (topic === "kasir") {
+    text = "Halo Kasir Shinemart, saya ingin memesan barang.";
+  }
+
+  window.open(`https://wa.me/${STORE_WA_NUMBER}?text=${encodeURIComponent(text)}`, "_blank");
+}
+
+// ==============================================================================
+// RENDER KATALOG PRODUK & FILTER
+// ==============================================================================
+function renderProducts() {
+  const container = document.getElementById("productGridContainer");
+  const countDisplay = document.getElementById("productCountInfo");
+  const emptyState = document.getElementById("emptyStateContainer");
+
+  if (!container) return;
+
+  let filtered = productsList.filter((item) => {
+    const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
+      item.category.toLowerCase().includes(searchQuery);
+    return matchesCategory && matchesSearch;
+  });
+
+  if (countDisplay && !countDisplay.innerHTML.includes("Google Sheets")) {
+    countDisplay.textContent = `Menampilkan ${filtered.length} produk pilihan`;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = "";
+    if (emptyState) emptyState.classList.remove("hidden");
+    return;
+  } else {
+    if (emptyState) emptyState.classList.add("hidden");
+  }
+
+  container.innerHTML = filtered.map((product) => {
+    const formattedPrice = formatRupiah(product.price);
+    const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
+
+    return `
+      <div class="product-card rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between group">
+        <div>
+          <div class="product-image-wrap">
+            <img src="${imageSrc}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <span class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase shadow-sm">
+              ${product.category}
+            </span>
+          </div>
+
+          <div class="p-4">
+            <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+              <span class="capitalize font-bold text-[#0077d6] bg-[#e8f7ff] px-2 py-0.5 rounded-md">${product.category}</span>
+              <span class="badge-stock px-2 py-0.5 rounded-full text-[11px]">${product.stock || 'Ready'}</span>
+            </div>
+
+            <h3 class="font-bold text-slate-800 text-sm md:text-base mb-1 group-hover:text-[#38b6ff] transition-colors line-clamp-2" title="${product.name}">
+              ${product.name}
+            </h3>
+            
+            <p class="text-xs text-slate-400 mb-2">${product.unit || '1 Pcs'}</p>
+
+            <div class="mb-4">
+              <span class="text-lg md:text-xl font-extrabold text-[#0077d6]">${formattedPrice}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 pt-0 space-y-2">
+          <button onclick="addToCart('${product.id}', 1)" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm transition">
+            <i class="fas fa-cart-plus text-base"></i>
+            <span>+ Keranjang</span>
+          </button>
+          
+          <button onclick="orderSingleItemWA('${product.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+            <i class="fab fa-whatsapp text-emerald-600 text-sm"></i>
+            <span>Tanya Langsung via WA</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function updateCategoryCounts() {
+  const categories = ["all", "sembako", "minuman", "snack", "kebersihan", "fresh", "frozen", "bayi", "perawatan"];
+  categories.forEach((cat) => {
+    const badgeEl = document.getElementById(`count-${cat}`);
+    if (badgeEl) {
+      if (cat === "all") {
+        badgeEl.textContent = productsList.length;
+      } else {
+        const count = productsList.filter((p) => p.category === cat).length;
+        badgeEl.textContent = count;
+      }
+    }
+  });
+}
+
 function setupEventListeners() {
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
@@ -193,34 +597,12 @@ function setupEventListeners() {
       renderProducts();
     });
   });
-
-  const qtyMinusBtn = document.getElementById("qtyMinus");
-  const qtyPlusBtn = document.getElementById("qtyPlus");
-  const qtyInput = document.getElementById("qtyInput");
-
-  if (qtyMinusBtn && qtyPlusBtn && qtyInput) {
-    qtyMinusBtn.addEventListener("click", () => {
-      let val = parseInt(qtyInput.value) || 1;
-      if (val > 1) qtyInput.value = val - 1;
-    });
-
-    qtyPlusBtn.addEventListener("click", () => {
-      let val = parseInt(qtyInput.value) || 1;
-      if (val < 99) qtyInput.value = val + 1;
-    });
-  }
-
-  const btnConfirmWa = document.getElementById("btnConfirmWaModal");
-  if (btnConfirmWa) {
-    btnConfirmWa.addEventListener("click", sendWhatsAppFromModal);
-  }
 }
 
-// Banner Slider Initialization
+// Banner Slider
 function initBannerSlider() {
   const bannerWrapper = document.getElementById("bannerWrapper");
   const bannerDots = document.getElementById("bannerDots");
-
   if (!bannerWrapper || !bannerDots) return;
 
   bannerWrapper.innerHTML = BANNERS.map((banner) => `
@@ -232,7 +614,7 @@ function initBannerSlider() {
         <h2 class="text-2xl md:text-4xl font-extrabold mb-2 leading-tight drop-shadow-sm">${banner.title}</h2>
         <p class="text-sm md:text-lg opacity-95 mb-4 font-medium">${banner.subtitle}</p>
         <a href="#katalog" class="inline-flex items-center gap-2 bg-white text-slate-900 font-bold px-5 py-2.5 rounded-full hover:bg-slate-100 transition shadow-lg text-sm md:text-base">
-          <span>Lihat Promo Katalog</span>
+          <span>Lihat Katalog Produk</span>
           <i class="fas fa-arrow-right text-[#ff66c4]"></i>
         </a>
       </div>
@@ -281,189 +663,24 @@ function updateBannerPosition() {
   });
 }
 
-// Render Products Grid
-function renderProducts() {
-  const container = document.getElementById("productGridContainer");
-  const countDisplay = document.getElementById("productCountInfo");
-  const emptyState = document.getElementById("emptyStateContainer");
+function showToast(message, type = "success") {
+  const toast = document.createElement("div");
+  toast.className = `fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl text-white font-bold text-xs md:text-sm shadow-2xl transition-all duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 ${
+    type === 'success' ? 'bg-gradient-to-r from-[#38b6ff] to-[#0099ff]' : 'bg-slate-800'
+  }`;
+  
+  toast.innerHTML = `
+    <i class="${type === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle'} text-base"></i>
+    <span>${message}</span>
+  `;
 
-  if (!container) return;
+  document.body.appendChild(toast);
 
-  // Always re-read storage in case user returned from admin page
-  loadProductsFromStorage();
-
-  let filtered = productsList.filter((item) => {
-    const matchesCategory = activeCategory === "all" || item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
-      item.category.toLowerCase().includes(searchQuery) ||
-      (item.badge && item.badge.toLowerCase().includes(searchQuery)) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery));
-    return matchesCategory && matchesSearch;
-  });
-
-  if (countDisplay) {
-    countDisplay.textContent = `Menampilkan ${filtered.length} produk pilihan`;
-  }
-
-  if (filtered.length === 0) {
-    container.innerHTML = "";
-    if (emptyState) emptyState.classList.remove("hidden");
-    return;
-  } else {
-    if (emptyState) emptyState.classList.add("hidden");
-  }
-
-  container.innerHTML = filtered.map((product) => {
-    const formattedPrice = formatRupiah(product.price);
-    const formattedOrigPrice = product.originalPrice ? formatRupiah(product.originalPrice) : "";
-
-    return `
-      <div class="product-card rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between group">
-        <div>
-          <div class="product-image-wrap">
-            <img src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
-            
-            ${product.discount ? `
-              <span class="absolute top-3 left-3 badge-promo px-2.5 py-1 rounded-lg text-xs tracking-wider">
-                ${product.discount} OFF
-              </span>
-            ` : ""}
-
-            ${product.badge ? `
-              <span class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase shadow-sm">
-                ${product.badge}
-              </span>
-            ` : ""}
-          </div>
-
-          <div class="p-4">
-            <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span class="capitalize font-bold text-[#0077d6] bg-[#e8f7ff] px-2 py-0.5 rounded-md">${product.category}</span>
-              <span class="badge-stock px-2 py-0.5 rounded-full text-[11px]">${product.stock || 'Ready'}</span>
-            </div>
-
-            <h3 class="font-bold text-slate-800 text-sm md:text-base mb-1 group-hover:text-[#38b6ff] transition-colors line-clamp-2" title="${product.name}">
-              ${product.name}
-            </h3>
-            
-            <p class="text-xs text-slate-400 mb-2">${product.unit || '1 Pcs'}</p>
-
-            ${product.description ? `
-              <p class="text-[11px] text-slate-500 mb-3 line-clamp-2 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
-                ${product.description}
-              </p>
-            ` : ""}
-
-            <div class="mb-4">
-              <div class="flex items-baseline gap-2">
-                <span class="text-lg md:text-xl font-extrabold text-[#0077d6]">${formattedPrice}</span>
-                ${formattedOrigPrice ? `<span class="text-xs text-slate-400 line-through">${formattedOrigPrice}</span>` : ""}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4 pt-0">
-          <button onclick="openProductModal(${product.id})" class="w-full py-2.5 px-4 rounded-xl btn-wa-card text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
-            <i class="fab fa-whatsapp text-lg"></i>
-            <span>Tanyakan / Pesan WA</span>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-// Update Category Count Badges
-function updateCategoryCounts() {
-  const categories = ["all", "sembako", "minuman", "snack", "kebersihan", "fresh", "frozen", "bayi", "perawatan"];
-
-  categories.forEach((cat) => {
-    const badgeEl = document.getElementById(`count-${cat}`);
-    if (badgeEl) {
-      if (cat === "all") {
-        badgeEl.textContent = productsList.length;
-      } else {
-        const count = productsList.filter((p) => p.category === cat).length;
-        badgeEl.textContent = count;
-      }
-    }
-  });
-}
-
-// Open Order Modal
-function openProductModal(productId) {
-  const product = productsList.find((p) => p.id === productId);
-  if (!product) return;
-
-  selectedProductForModal = product;
-
-  document.getElementById("modalProductImg").src = product.image;
-  document.getElementById("modalProductName").textContent = product.name;
-  document.getElementById("modalProductPrice").textContent = formatRupiah(product.price);
-  document.getElementById("modalProductUnit").textContent = product.unit || "1 Pcs";
-
-  const descEl = document.getElementById("modalProductDesc");
-  if (descEl) {
-    descEl.textContent = product.description || "Produk kualiatas super terjamin di Shinemart.";
-  }
-
-  document.getElementById("qtyInput").value = 1;
-
-  const modal = document.getElementById("productModal");
-  if (modal) {
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-  }
-}
-
-// Close Product Modal
-function closeProductModal() {
-  const modal = document.getElementById("productModal");
-  if (modal) {
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-  }
-  selectedProductForModal = null;
-}
-
-// Send WhatsApp Message
-function sendWhatsAppFromModal() {
-  if (!selectedProductForModal) return;
-
-  const qtyInput = document.getElementById("qtyInput");
-  const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
-  const totalPrice = formatRupiah(selectedProductForModal.price * qty);
-
-  const messageText =
-    `Halo Kasir *Shinemart*, saya ingin menanyakan stok / memesan produk berikut:
-
-📌 *Detail Pesanan:*
-• *Produk:* ${selectedProductForModal.name}
-• *Satuan:* ${selectedProductForModal.unit || '1 Pcs'}
-• *Harga Satuan:* ${formatRupiah(selectedProductForModal.price)}
-• *Jumlah:* ${qty} pcs
-• *Total Estimasi:* ${totalPrice}
-
-Apakah produk ini ready untuk dikirim / diambil? Terima kasih!`;
-
-  const encodedMessage = encodeURIComponent(messageText);
-  const waUrl = `https://wa.me/${STORE_WA_NUMBER}?text=${encodedMessage}`;
-
-  window.open(waUrl, "_blank");
-  closeProductModal();
-}
-
-function openGeneralWhatsApp(topic = "") {
-  let text = "Halo Kasir *Shinemart*, saya mau bertanya tentang promo & ketersediaan barang hari ini.";
-  if (topic === "lokasi") {
-    text = "Halo *Shinemart*, saya mau tanya petunjuk arah lokasi toko & layanan pesan antar.";
-  } else if (topic === "promo") {
-    text = "Halo *Shinemart*, saya mau tanya promo spesial katalog minggu ini.";
-  }
-
-  const encodedMessage = encodeURIComponent(text);
-  window.open(`https://wa.me/${STORE_WA_NUMBER}?text=${encodedMessage}`, "_blank");
+  setTimeout(() => toast.classList.remove("translate-y-4", "opacity-0"), 50);
+  setTimeout(() => {
+    toast.classList.add("translate-y-4", "opacity-0");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function formatRupiah(amount) {

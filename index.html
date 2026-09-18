@@ -52,7 +52,7 @@
     <span
       class="bg-white/20 backdrop-blur-sm text-white text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border border-white/30">INFO
       TOKO</span>
-    <span>⚡ Jam Operasional: Setiap Hari 07.00 - 22.00 WIB | Pesan via WA dikirim cepat ke rumah!</span>
+    <span>⚡ Buka Setiap Hari 07.00 - 22.00 WIB | Pesan Multi-Item via WhatsApp dikirim cepat!</span>
   </div>
 
   <!-- ================= MAIN HEADER / NAVBAR ================= -->
@@ -83,17 +83,26 @@
           </div>
         </div>
 
-        <!-- Action Buttons: Admin Page Link & WhatsApp Kasir CTA -->
+        <!-- Action Buttons: Shopping Cart & WhatsApp Contact -->
         <div class="flex items-center gap-2.5">
-          <!-- <a href="admin.html" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition border border-slate-200" title="Update Data Produk">
-            <i class="fas fa-[#38b6ff] fa-cog text-slate-500"></i>
-            <span class="hidden sm:inline">Kelola Produk</span>
-          </a> -->
 
+          <!-- Shopping Cart Header Button -->
+          <button id="headerCartBtn" onclick="openCartModal()"
+            class="relative px-3.5 py-2.5 bg-sky-50 hover:bg-sky-100 text-[#0077d6] font-extrabold rounded-full text-xs md:text-sm flex items-center gap-2 transition border border-sky-200 shadow-sm">
+            <i class="fas fa-shopping-cart text-base text-[#0077d6]"></i>
+            <span class="hidden sm:inline font-bold">Keranjang</span>
+            <span id="cartCountBadge"
+              class="hidden absolute -top-1.5 -right-1.5 bg-[#ff66c4] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
+              0
+            </span>
+          </button>
+
+          <!-- WhatsApp Kasir CTA Button -->
           <button onclick="openGeneralWhatsApp('kasir')"
             class="brand-pulse-btn bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white font-extrabold px-4 md:px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-sky-400/30 transition-all text-xs md:text-sm">
             <i class="fab fa-whatsapp text-lg md:text-xl"></i>
-            <span>Chat Kasir WA</span>
+            <span class="hidden sm:inline">Chat Kasir WA</span>
+            <span class="sm:hidden">Kasir</span>
           </button>
         </div>
 
@@ -123,7 +132,8 @@
       <!-- Live Search Input -->
       <div class="relative w-full flex-1">
         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
-        <input type="text" id="searchInput" placeholder="Cari beras, minyak goreng, frozen food, susu, sabun, snack..."
+        <input type="text" id="searchInput"
+          placeholder="Cari beras, minyak goreng, frozen food, susu, sabun, snack..."
           class="w-full pl-11 pr-4 py-3 bg-slate-100 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl text-sm md:text-base font-medium outline-none border border-transparent focus:border-[#38b6ff] transition-all">
       </div>
 
@@ -248,16 +258,18 @@
       <div>
         <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
           <span>Katalog Produk Promo</span>
-          <span
-            class="text-xs font-semibold text-[#ff66c4] bg-pink-50 px-3 py-1 rounded-full border border-pink-200">Updated
-            Today</span>
+          <span class="text-xs font-semibold text-[#ff66c4] bg-pink-50 px-3 py-1 rounded-full border border-pink-200">Katalog
+            Digital</span>
         </h2>
         <p class="text-xs md:text-sm text-slate-500 mt-1" id="productCountInfo">Memuat produk katalog...</p>
       </div>
 
-      <div class="mt-3 sm:mt-0 flex items-center gap-2 text-xs font-medium text-slate-500">
-        <i class="fas fa-info-circle text-[#38b6ff] text-base"></i>
-        <span>Klik tombol WA pada kartu produk untuk cek ketersediaan stok kasir</span>
+      <div class="mt-3 sm:mt-0 flex items-center gap-3 text-xs font-medium text-slate-500">
+        <button onclick="openCartModal()"
+          class="px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#ff66c4] rounded-xl font-bold flex items-center gap-2 border border-pink-200 transition shadow-sm">
+          <i class="fas fa-shopping-bag text-sm"></i>
+          <span>Lihat Keranjang Belanja</span>
+        </button>
       </div>
     </div>
 
@@ -269,8 +281,7 @@
     <!-- Empty Search Results State -->
     <div id="emptyStateContainer"
       class="hidden text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 my-6">
-      <div
-        class="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+      <div class="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
         <i class="fas fa-search-minus"></i>
       </div>
       <h3 class="text-lg font-bold text-slate-800 mb-1">Produk Tidak Ditemukan</h3>
@@ -293,10 +304,10 @@
       <div class="text-center max-w-2xl mx-auto mb-10">
         <span
           class="text-[#ff66c4] text-xs font-extrabold uppercase tracking-widest bg-pink-950/80 border border-pink-500/30 px-3 py-1 rounded-full">Cara
-          Belanja Mudah</span>
-        <h2 class="text-2xl md:text-4xl font-extrabold mt-3 mb-2">Pesan Barang via WhatsApp Tanpa Ribet</h2>
-        <p class="text-sky-100 text-sm md:text-base">Tidak perlu install aplikasi belanja rumit! Cukup 3 langkah
-          praktis:</p>
+          Belanja Praktis</span>
+        <h2 class="text-2xl md:text-4xl font-extrabold mt-3 mb-2">Pesan Multi-Item via WhatsApp Kasir</h2>
+        <p class="text-sky-100 text-sm md:text-base">Pilih berbagai produk ke keranjang, pesan sekaligus dengan 1 klik:
+        </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -307,9 +318,9 @@
             class="w-14 h-14 rounded-2xl bg-[#38b6ff] text-white font-black text-2xl flex items-center justify-center mb-4 shadow-lg shadow-sky-500/30">
             1
           </div>
-          <h3 class="text-lg font-bold mb-2">Pilih & Cari Produk</h3>
-          <p class="text-xs md:text-sm text-slate-300">Jelajahi katalog promo mingguan Shinemart & gunakan fitur
-            pencarian cepat.</p>
+          <h3 class="text-lg font-bold mb-2">Klik "+ Keranjang"</h3>
+          <p class="text-xs md:text-sm text-slate-300">Pilih aneka sembako, minuman, dan frozen food kesukaan Anda ke
+            dalam keranjang belanja.</p>
         </div>
 
         <div
@@ -318,9 +329,9 @@
             class="w-14 h-14 rounded-2xl bg-[#ff66c4] text-white font-black text-2xl flex items-center justify-center mb-4 shadow-lg shadow-pink-500/30">
             2
           </div>
-          <h3 class="text-lg font-bold mb-2">Klik 'Pesan via WA'</h3>
-          <p class="text-xs md:text-sm text-slate-300">Sistem otomatis membuat format rincian pesan nama barang & harga
-            untuk kasir kami.</p>
+          <h3 class="text-lg font-bold mb-2">Cek Daftar Pesanan</h3>
+          <p class="text-xs md:text-sm text-slate-300">Buka modal keranjang, atur jumlah pembelian barang, dan pantau
+            total perkiraan harga.</p>
         </div>
 
         <div
@@ -329,9 +340,9 @@
             class="w-14 h-14 rounded-2xl bg-emerald-400 text-emerald-950 font-black text-2xl flex items-center justify-center mb-4 shadow-lg">
             3
           </div>
-          <h3 class="text-lg font-bold mb-2">Konfirmasi & Antar</h3>
-          <p class="text-xs md:text-sm text-slate-300">Kasir memproses pesanan dan mengonfirmasi pengiriman langsung ke
-            rumah Anda!</p>
+          <h3 class="text-lg font-bold mb-2">Pesan via WhatsApp</h3>
+          <p class="text-xs md:text-sm text-slate-300">Sistem otomatis menyusun format daftar pesanan lengkap dan
+            mengirimkannya langsung ke kasir!</p>
         </div>
 
       </div>
@@ -347,9 +358,8 @@
         <!-- Left Info Details -->
         <div class="lg:col-span-5 p-6 md:p-10 flex flex-col justify-between">
           <div>
-            <span
-              class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full uppercase tracking-wider">Lokasi
-              Toko Physical</span>
+            <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full uppercase tracking-wider">Lokasi
+              Toko Fisik</span>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-3 mb-4">Kunjungi Minimarket Shinemart</h2>
 
             <div class="space-y-4 text-sm text-slate-600">
@@ -360,7 +370,7 @@
                 </div>
                 <div>
                   <strong class="block text-slate-800 font-bold">Alamat Utama:</strong>
-                  <span>Jl. Utan Jati No.32A 3, RT.3/RW.11, Pegadungan, Kec. Kalideres, Kota Jakarta Barat</span>
+                  <span>Jl. Utan Jati No.32A, Pegadungan, Kec. Kalideres, Jakarta Barat</span>
                 </div>
               </div>
 
@@ -384,18 +394,23 @@
                 </div>
                 <div>
                   <strong class="block text-slate-800 font-bold">Layanan WhatsApp Kasir:</strong>
-                  <span>+62 877-8260-3733</span>
-                  <span class="block text-xs text-slate-400">Respon cepat dalam jam operasional toko</span>
+                  <span>+62 812-3456-7890</span>
+                  <span class="block text-xs text-slate-400">Pemesanan Multi-Item dilayani dengan cepat</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="mt-8 pt-6 border-t border-slate-100">
+          <div class="mt-8 pt-6 border-t border-slate-100 flex gap-3">
             <button onclick="openGeneralWhatsApp('lokasi')"
-              class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition">
+              class="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition">
               <i class="fas fa-directions text-[#38b6ff]"></i>
-              <span>Tanyakan Petunjuk Arah via WA</span>
+              <span>Petunjuk Arah</span>
+            </button>
+            <button onclick="openCartModal()"
+              class="flex-1 py-3 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <i class="fas fa-shopping-cart"></i>
+              <span>Buka Keranjang</span>
             </button>
           </div>
 
@@ -404,7 +419,7 @@
         <!-- Right Google Maps Embed -->
         <div class="lg:col-span-7 min-h-[340px] bg-slate-200 relative">
           <iframe title="Lokasi Shinemart Google Maps"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.9745137536967!2d106.7114056!3d-6.1476798!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f90012a40439%3A0x884f4a912dfc19b8!2sShine%20Mart!5e0!3m2!1sid!2sid!4v1726000000000!5m2!1sid!2sid"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.2731853683935!2d106.7972740758684!3d-6.227668660993183!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f14d3f58a3a1%3A0x7d67f1cf34f6bb27!2sKebayoran%20Baru%2C%20South%20Jakarta%20City%2C%20Jakarta!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid"
             width="100%" height="100%" style="border:0; min-height: 350px;" allowfullscreen="" loading="lazy"
             referrerpolicy="no-referrer-when-downgrade">
           </iframe>
@@ -468,15 +483,12 @@
           </ul>
         </div>
 
-        <!-- Col 3: Layanan & Admin Link -->
+        <!-- Col 3: Layanan Pelanggan -->
         <div>
-          <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Layanan & Admin</h4>
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Layanan Pelanggan</h4>
           <ul class="space-y-2 text-xs">
-            <!-- <li><a href="admin.html" class="text-[#38b6ff] font-bold hover:underline flex items-center gap-1.5"><i
-                  class="fas fa-cog text-xs"></i> <span>Halaman Update Produk (Admin)</span></a></li>
-            <li><a href="#lokasi" class="hover:text-[#38b6ff] transition">Lokasi Store & Peta</a></li> -->
-            <li><a href="javascript:void(0)" onclick="openGeneralWhatsApp('promo')"
-                class="hover:text-[#ff66c4] transition">Cek Promo Minggu Ini</a></li>
+            <li><a href="#lokasi" class="hover:text-[#38b6ff] transition">Lokasi Store & Peta</a></li>
+            <li><a href="#katalog" class="hover:text-[#ff66c4] transition">Cek Promo Hari Ini</a></li>
             <li><a href="javascript:void(0)" onclick="openGeneralWhatsApp('kasir')"
                 class="hover:text-[#38b6ff] transition">Kontak Layanan Kasir</a></li>
           </ul>
@@ -501,87 +513,103 @@
       <!-- Bottom Disclaimer -->
       <div class="mt-8 text-center text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-4">
         <p>© 2026 Minimarket Shinemart. Hak Cipta Dilindungi.</p>
-        <p class="text-[11px]">Website Katalog Digital Informasional • Tanpa Fitur Keranjang / Payment Gateway Direct
-        </p>
+        <p class="text-[11px]">Katalog Digital & Belanja Praktis Multi-Item via WhatsApp Kasir</p>
       </div>
 
     </div>
   </footer>
 
-  <!-- ================= FLOATING WHATSAPP BUTTON ================= -->
-  <button onclick="openGeneralWhatsApp('kasir')"
-    class="floating-wa-btn w-14 h-14 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl border-2 border-white focus:outline-none">
-    <i class="fab fa-whatsapp"></i>
-  </button>
+  <!-- ================= FLOATING ACTION BUTTONS ================= -->
+  <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+    <!-- Floating Cart Button -->
+    <button onclick="openCartModal()"
+      class="relative w-14 h-14 rounded-full bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white flex items-center justify-center text-2xl shadow-2xl border-2 border-white hover:scale-110 transition-transform"
+      title="Buka Keranjang Belanja">
+      <i class="fas fa-shopping-cart"></i>
+      <span id="floatingCartCount"
+        class="hidden absolute -top-1 -right-1 bg-[#38b6ff] text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+        0
+      </span>
+    </button>
 
-  <!-- ================= PRODUCT ORDER MODAL ================= -->
-  <div id="productModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="modal-content bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-slate-100">
+    <!-- Floating WhatsApp Button -->
+    <button onclick="openGeneralWhatsApp('kasir')"
+      class="w-14 h-14 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl border-2 border-white bg-[#25d366] hover:scale-110 transition-transform"
+      title="Hubungi Kasir WhatsApp">
+      <i class="fab fa-whatsapp"></i>
+    </button>
+  </div>
 
-      <!-- Modal Header -->
-      <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-        <span class="text-xs font-bold text-[#0077d6] bg-sky-100 px-3 py-1 rounded-full uppercase">
-          Tanyakan Stok / Pesan WA
-        </span>
-        <button onclick="closeProductModal()"
-          class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-sm transition">
-          <i class="fas fa-times"></i>
+  <!-- ================= MODAL KERANJANG BELANJA (MULTI-ITEM CART) ================= -->
+  <div id="cartModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div
+      class="modal-content bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#ff66c4] to-[#38b6ff] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Keranjang Belanja Shinemart</h3>
+            <span id="cartTotalItemsCount" class="text-[11px] text-sky-200">0 item terdaftar</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="clearCart()" class="text-xs text-pink-300 hover:text-pink-100 font-bold px-2 py-1"
+            title="Kosongkan Keranjang">
+            Kosongkan
+          </button>
+          <button onclick="closeCartModal()"
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body / Items List -->
+      <div class="p-4 overflow-y-auto flex-1 space-y-3" id="cartItemsContainer">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Empty State Notice -->
+      <div id="cartEmptyNotice" class="hidden p-10 text-center flex-1 flex flex-col items-center justify-center">
+        <div class="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-3xl mb-3">
+          <i class="fas fa-cart-arrow-down"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm mb-1">Keranjang Masih Kosong</h4>
+        <p class="text-xs text-slate-400 max-w-xs mb-4">Silakan pilih produk kebutuhan Anda pada katalog dengan menekan
+          tombol "+ Keranjang".</p>
+        <button onclick="closeCartModal()"
+          class="px-5 py-2 bg-[#38b6ff] text-white font-bold rounded-xl text-xs hover:bg-[#0099ff] transition">
+          Mulai Belanja Sekarang
         </button>
       </div>
 
-      <!-- Modal Body -->
-      <div class="p-6">
-
-        <div class="flex items-start gap-4 mb-4">
-          <div class="w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-            <img id="modalProductImg" src="" alt="Product" class="w-full h-full object-cover">
-          </div>
-          <div>
-            <h3 id="modalProductName" class="font-bold text-slate-900 text-base leading-tight mb-1"></h3>
-            <span id="modalProductUnit" class="text-xs text-slate-500 block mb-1"></span>
-            <span id="modalProductPrice" class="text-lg font-extrabold text-[#0077d6] block"></span>
-          </div>
+      <!-- Footer / Checkout Section -->
+      <div id="cartFooterSection" class="p-4 bg-slate-50 border-t border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Perkiraan:</span>
+          <span id="cartTotalPrice" class="text-xl font-black text-[#0077d6]">Rp 0</span>
         </div>
 
-        <!-- Description Box -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 mb-6 text-xs text-slate-600 leading-relaxed">
-          <span class="font-bold text-slate-800 block mb-0.5">Deskripsi Produk:</span>
-          <p id="modalProductDesc" class="text-slate-500"></p>
-        </div>
-
-        <!-- Quantity Selector -->
-        <div class="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
-          <label class="block text-xs font-bold text-slate-700 mb-2">Tentukan Jumlah (pcs):</label>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-slate-500">Berapa banyak yang dipesan?</span>
-            <div class="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden">
-              <button id="qtyMinus"
-                class="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition font-bold text-base">-</button>
-              <input type="number" id="qtyInput" value="1" min="1" max="99"
-                class="w-12 text-center text-sm font-bold text-slate-800 border-none outline-none">
-              <button id="qtyPlus"
-                class="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition font-bold text-base">+</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Button -->
-        <button id="btnConfirmWaModal"
-          class="w-full py-3.5 bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-400/30 transition text-sm">
+        <!-- Tombol Checkout WhatsApp Multi-Item -->
+        <button onclick="checkoutCartViaWhatsApp()"
+          class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition text-sm">
           <i class="fab fa-whatsapp text-xl"></i>
-          <span>Buka Chat WhatsApp Kasir</span>
+          <span>Pesan Sekarang via WhatsApp</span>
         </button>
-
-        <p class="text-[11px] text-center text-slate-400 mt-3">
-          Sistem akan otomatis membuka aplikasi WhatsApp dengan pesan rincian item di atas.
+        <p class="text-[11px] text-center text-slate-400 mt-2">
+          Format rincian seluruh produk akan otomatis tersusun rapi di chat WhatsApp kasir.
         </p>
-
       </div>
 
     </div>
   </div>
 
-  <!-- Application Logic JavaScript -->
+  <!-- Application Logic JavaScript Khusus Pengunjung -->
   <script src="js/app.js"></script>
 </body>
 
