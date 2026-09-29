@@ -40,6 +40,9 @@
   <!-- Font Awesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Custom Styles System -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -396,7 +399,7 @@
                 </div>
                 <div>
                   <strong class="block text-slate-800 font-bold">Layanan WhatsApp Kasir:</strong>
-                  <span>+62 812-3456-7890</span>
+                  <span>+62 851-9896-3411</span>
                   <span class="block text-xs text-slate-400">Pemesanan Multi-Item dilayani dengan cepat</span>
                 </div>
               </div>
@@ -606,6 +609,61 @@
         <p class="text-[11px] text-center text-slate-400 mt-2">
           Format rincian seluruh produk akan otomatis tersusun rapi di chat WhatsApp kasir.
         </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL PREVIEW DETAIL PRODUK (1:1 RATIO) ================= -->
+  <div id="productPreviewModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#38b6ff] to-[#0077d6] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-eye"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Detail Produk</h3>
+            <span class="text-[11px] text-sky-200">Pratinjau Foto & Informasi Produk</span>
+          </div>
+        </div>
+        <button onclick="closeProductPreview()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- 1:1 Square Image Container (No Cropping) -->
+        <div class="preview-image-wrap rounded-2xl border border-slate-200 shadow-inner bg-slate-50 relative">
+          <img id="previewImage" src="" alt="Preview Produk" class="w-full h-full object-contain p-3" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          <span id="previewCategory" class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[11px] font-extrabold px-2.5 py-1 rounded-md uppercase shadow-sm"></span>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span id="previewStock" class="badge-stock px-2.5 py-0.5 rounded-full text-xs font-bold">Ready</span>
+            <span id="previewUnit" class="text-xs text-slate-400 font-medium">1 Pcs</span>
+          </div>
+          <h2 id="previewName" class="text-lg md:text-xl font-extrabold text-slate-900 leading-snug"></h2>
+          <div class="mt-2">
+            <span id="previewPrice" class="text-2xl font-black text-[#0077d6]"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+        <button id="previewAddCartBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm transition">
+          <i class="fas fa-cart-plus text-base"></i>
+          <span>+ Tambahkan ke Keranjang</span>
+        </button>
+        <button id="previewWaBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition">
+          <i class="fab fa-whatsapp text-emerald-600 text-base"></i>
+          <span>Tanya / Beli Langsung via WhatsApp</span>
+        </button>
       </div>
 
     </div>

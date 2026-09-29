@@ -9,12 +9,28 @@
  * ==============================================================================
  */
 
-// Konfigurasi Web App Google Apps Script
-// Ganti dengan Web App URL hasil deployment spreadsheet Anda
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz_sample_shinemart/exec";
+// Konfigurasi Database Supabase
+const DEFAULT_SUPABASE_URL = "https://amuqgtdyecgdxclqwanj.supabase.co"; 
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_G-am3ojwBmpNqbZDi5qciA_6fn37rX9"; 
+
 const LOCAL_STORAGE_KEY = "shinemart_products_data";
 const CART_STORAGE_KEY = "shinemart_shopping_cart";
-const STORE_WA_NUMBER = "6281234567890"; // Nomor WhatsApp Kasir (format 62xxx)
+const STORE_WA_NUMBER = "6285198963411"; // Nomor WhatsApp Kasir (+62 851-9896-3411)
+
+// Helper Supabase Client
+function getSupabaseClient() {
+  const url = localStorage.getItem("shinemart_supabase_url") || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem("shinemart_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
+  if (typeof supabase !== "undefined" && url && key && !url.includes("xyzcompany")) {
+    try {
+      return supabase.createClient(url, key);
+    } catch (e) {
+      console.warn("Inisialisasi Supabase client gagal:", e);
+      return null;
+    }
+  }
+  return null;
+}
 
 /**
  * Otomatis mengonversi URL Google Drive standar / share link
@@ -45,88 +61,79 @@ function formatGoogleDriveImageUrl(url) {
   return trimmed;
 }
 
-// Data sampel awal jika Google Sheets belum terhubung
+// Data produk katalog Shinemart
 const DEFAULT_PRODUCTS = [
   {
-    id: 101,
-    name: "Beras Pandan Wangi Super 5kg",
-    price: 78500,
+    id: 1,
+    name: "ABC Bumbu Kacang Serbaguna (180g)",
+    price: 14900,
     category: "sembako",
-    imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready 45 sak",
-    unit: "5 kg / Sak"
+    imageUrl: "https://drive.google.com/thumbnail?id=1hBfvOJnVPLoQE6YrVNavzPsz7Jj4I3J3&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 102,
-    name: "Minyak Goreng Bimoli Spesial Refill 2L",
-    price: 34500,
+    id: 2,
+    name: "Mie Telur Cap 3 Ayam (200g)",
+    price: 4600,
     category: "sembako",
-    imageUrl: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "Pouch 2 Liter"
+    imageUrl: "https://drive.google.com/thumbnail?id=1nlcDSPZq9zov-s9PA_jZrwbr1FXpON6C&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 103,
-    name: "Gula Pasir Gulaku Premium Putih 1kg",
-    price: 17500,
+    id: 3,
+    name: "77 Lada Putih Bubuk (60g)",
+    price: 15900,
     category: "sembako",
-    imageUrl: "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "1 kg"
+    imageUrl: "https://drive.google.com/thumbnail?id=1KDqfYel1aLDN9pxW0NXT3SN55CNTDWY0&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 104,
-    name: "Telur Ayam Negeri Fresh Super 1kg",
-    price: 28000,
+    id: 4,
+    name: "ABC Minuman Sari Kacang Hijau (250ml)",
+    price: 21312,
     category: "sembako",
-    imageUrl: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=500&auto=format&fit=crop&q=80",
-    stock: "Stok Segar",
-    unit: "1 kg (~16 butir)"
+    imageUrl: "https://drive.google.com/thumbnail?id=1FMX8YSN3eFph4064w-Zg_jxXMxMmwqN7&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 201,
-    name: "Susu UHT Ultra Milk Full Cream 1000ml",
-    price: 18900,
-    category: "minuman",
-    imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "Kotak 1 Liter"
+    id: 5,
+    name: "77 Ketumbar Bubuk (60g)",
+    price: 82903,
+    category: "sembako",
+    imageUrl: "https://drive.google.com/thumbnail?id=1o9FAyrPB84EzELW5SVRqQDEh7D-nHMsc&sz=w1000",
+    stock: "202",
+    unit: "PCS"
   },
   {
-    id: 202,
-    name: "Kopi Nescafe Classic Jar 100g",
-    price: 36000,
-    category: "minuman",
-    imageUrl: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "Botol Kaca 100g"
+    id: 6,
+    name: "77 Kunyit Bubuk (60g)",
+    price: 83040,
+    category: "sembako",
+    imageUrl: "https://drive.google.com/thumbnail?id=1pv7eLz9yTsiy_PXdPUbfWppglQ2sAa_W&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 301,
-    name: "Biskuit Khong Guan Assorted Biscuit 650g",
-    price: 52500,
-    category: "snack",
-    imageUrl: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "Kaleng 650g"
+    id: 7,
+    name: "Masako Kaldu Spesial Daging Ayam (100g)",
+    price: 82934,
+    category: "sembako",
+    imageUrl: "https://drive.google.com/thumbnail?id=1Z2U2PZNWo3YeHFDuxrzxswo8RR1j_tQP&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   },
   {
-    id: 401,
-    name: "Deterjen Rinso Anti Noda Molto Liquid 770ml",
-    price: 22900,
-    category: "kebersihan",
-    imageUrl: "https://images.unsplash.com/photo-1585842378054-ee2e52f94ba2?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready Stock",
-    unit: "Refill Pouch 770ml"
-  },
-  {
-    id: 601,
-    name: "Fiesta Chicken Nugget Crispy 500g",
-    price: 48500,
-    category: "frozen",
-    imageUrl: "https://images.unsplash.com/photo-1562967914-608f82629710?w=500&auto=format&fit=crop&q=80",
-    stock: "Ready di Freezer",
-    unit: "Pack 500g"
+    id: 8,
+    name: "Sajiku Bumbu Praktis Nasi Goreng Rasa Ayam (20g)",
+    price: 94348,
+    category: "sembako",
+    imageUrl: "https://drive.google.com/thumbnail?id=1rU8N615rR_fptW0RSCPznb2Wsa3PEXHH&sz=w1000",
+    stock: "20",
+    unit: "PCS"
   }
 ];
 
@@ -171,16 +178,16 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCartFromStorage();
   initBannerSlider();
   setupEventListeners();
-  fetchProductsFromGoogleSheets();
+  fetchProductsFromDatabase();
 });
 
 // ==============================================================================
-// FETCH KATALOG PRODUK DARI GOOGLE SHEETS (doGet)
+// FETCH KATALOG PRODUK DARI SUPABASE DATABASE
 // ==============================================================================
-async function fetchProductsFromGoogleSheets() {
+async function fetchProductsFromDatabase() {
   const countDisplay = document.getElementById("productCountInfo");
   if (countDisplay) {
-    countDisplay.innerHTML = `<span class="inline-flex items-center gap-2 text-sky-600 font-medium"><i class="fas fa-spinner fa-spin"></i> Memuat katalog produk dari Google Sheets...</span>`;
+    countDisplay.innerHTML = `<span class="inline-flex items-center gap-2 text-sky-600 font-medium"><i class="fas fa-spinner fa-spin"></i> Memuat katalog produk dari database Supabase...</span>`;
   }
 
   // Tampilkan data lokal/cache terlebih dahulu jika ada
@@ -199,33 +206,24 @@ async function fetchProductsFromGoogleSheets() {
     updateCategoryCounts();
   }
 
-  const activeUrl = getActiveApiUrl();
-  if (!activeUrl || activeUrl.includes("sample_shinemart")) {
-    if (countDisplay) {
-      countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
-    }
-    return;
-  }
+  // Ambil langsung dari Supabase
+  const supabaseClient = getSupabaseClient();
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("*")
+        .order("id", { ascending: true });
 
-  try {
-    const response = await fetch(activeUrl, {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    });
+      if (error) throw error;
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result && result.status === "success" && Array.isArray(result.data)) {
-      if (result.data.length > 0) {
-        productsList = result.data.map(p => ({
+      if (data && data.length > 0) {
+        productsList = data.map(p => ({
           id: p.id,
           name: p.name,
           price: Number(p.price) || 0,
           category: String(p.category || "sembako").toLowerCase(),
-          imageUrl: formatGoogleDriveImageUrl(p.imageUrl || p.image),
+          imageUrl: formatGoogleDriveImageUrl(p.image_url || p.imageUrl || p.image),
           stock: p.stock !== undefined && p.stock !== "" ? p.stock : "Ready",
           unit: p.unit || "1 Pcs"
         }));
@@ -235,21 +233,21 @@ async function fetchProductsFromGoogleSheets() {
         updateCategoryCounts();
 
         if (countDisplay) {
-          countDisplay.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Data diperbarui dari Google Sheets (${productsList.length} produk).</span>`;
+          countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
         }
+        return;
+      }
+    } catch (sbError) {
+      console.warn("Koneksi Supabase error, menggunakan cache lokal:", sbError);
+      if (countDisplay) {
+        countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
       }
     }
-  } catch (error) {
-    console.warn("Gagal terhubung ke Google Sheets, menggunakan data lokal:", error);
+  } else {
     if (countDisplay) {
       countDisplay.textContent = `Menampilkan ${productsList.length} produk pilihan`;
     }
   }
-}
-
-function getActiveApiUrl() {
-  const customUrl = localStorage.getItem("shinemart_gas_api_url");
-  return customUrl ? customUrl.trim() : GAS_API_URL;
 }
 
 // ==============================================================================
@@ -522,7 +520,7 @@ function renderProducts() {
 
     return `
       <div class="product-card rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between group">
-        <div>
+        <div class="product-card-body" onclick="openProductPreview('${product.id}')">
           <div class="product-image-wrap">
             <img src="${imageSrc}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
             <span class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase shadow-sm">
@@ -661,6 +659,49 @@ function updateBannerPosition() {
       }
     }
   });
+}
+
+// ==============================================================================
+// PRODUCT DETAIL PREVIEW MODAL
+// ==============================================================================
+function openProductPreview(productId) {
+  const product = productsList.find(p => String(p.id) === String(productId));
+  if (!product) return;
+
+  const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
+  const formattedPrice = formatRupiah(product.price);
+
+  // Populate modal content
+  document.getElementById("previewImage").src = imageSrc;
+  document.getElementById("previewImage").alt = product.name;
+  document.getElementById("previewName").textContent = product.name;
+  document.getElementById("previewCategory").textContent = product.category;
+  document.getElementById("previewPrice").textContent = formattedPrice;
+  document.getElementById("previewStock").textContent = product.stock || "Ready";
+  document.getElementById("previewUnit").textContent = product.unit || "1 Pcs";
+
+  // Set button actions
+  document.getElementById("previewAddCartBtn").onclick = () => {
+    addToCart(product.id, 1);
+  };
+  document.getElementById("previewWaBtn").onclick = () => {
+    orderSingleItemWA(product.id);
+  };
+
+  // Show modal
+  const modal = document.getElementById("productPreviewModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeProductPreview() {
+  const modal = document.getElementById("productPreviewModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
 }
 
 function showToast(message, type = "success") {

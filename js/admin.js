@@ -40,35 +40,136 @@ function formatGoogleDriveImageUrl(url) {
 }
 
 let parsedExcelProducts = [];
+let liveSupabaseProducts = [];
+
+// Session Storage Key untuk Login Admin
+const ADMIN_SESSION_KEY = "shinemart_admin_authenticated";
+const ADMIN_CREDENTIALS = {
+  user: "admin",
+  pass: "shinemart2026"
+};
 
 document.addEventListener("DOMContentLoaded", () => {
-  initAdminSettings();
+  checkAdminAuth();
   setupAdminListeners();
 });
 
-function initAdminSettings() {
-  const inputUrl = document.getElementById("gasApiUrlInput");
-  if (inputUrl) {
-    inputUrl.value = getSavedGasApiUrl();
+/**
+ * Cek status autentikasi Admin
+ */
+function checkAdminAuth() {
+  const isAuth = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  const loginOverlay = document.getElementById("loginOverlaySection");
+  const mainContent = document.getElementById("adminMainContent");
+  const logoutBtn = document.getElementById("adminLogoutBtn");
+
+  if (isAuth) {
+    if (loginOverlay) loginOverlay.classList.add("hidden");
+    if (mainContent) mainContent.classList.remove("hidden");
+    if (logoutBtn) logoutBtn.classList.remove("hidden");
+    loadSupabaseProductsList();
+  } else {
+    if (loginOverlay) loginOverlay.classList.remove("hidden");
+    if (mainContent) mainContent.classList.add("hidden");
+    if (logoutBtn) logoutBtn.classList.add("hidden");
   }
 }
 
-function getSavedGasApiUrl() {
-  const saved = localStorage.getItem("shinemart_gas_api_url");
-  return saved ? saved.trim() : DEFAULT_GAS_API_URL;
+/**
+ * Handler Submit Form Login
+ */
+function handleAdminLogin(event) {
+  event.preventDefault();
+  const userInput = document.getElementById("adminUsernameInput");
+  const passInput = document.getElementById("adminPasswordInput");
+  const errorMsg = document.getElementById("loginErrorMsg");
+
+  const username = userInput ? userInput.value.trim() : "";
+  const password = passInput ? passInput.value.trim() : "";
+
+  if (username === ADMIN_CREDENTIALS.user && password === ADMIN_CREDENTIALS.pass) {
+    sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+    if (errorMsg) errorMsg.classList.add("hidden");
+    showAdminToast("Login berhasil! Selamat datang di Admin Panel.", "success");
+    checkAdminAuth();
+  } else {
+    if (errorMsg) errorMsg.classList.remove("hidden");
+    if (passInput) passInput.value = "";
+  }
 }
 
-function saveGasApiUrl() {
-  const inputUrl = document.getElementById("gasApiUrlInput");
-  const url = inputUrl ? inputUrl.value.trim() : "";
+/**
+ * Handler Logout Admin
+ */
+function handleAdminLogout() {
+  if (confirm("Apakah Anda yakin ingin keluar dari Admin Panel?")) {
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    showAdminToast("Anda telah keluar.", "info");
+    checkAdminAuth();
+  }
+}
 
-  if (url) {
-    localStorage.setItem("shinemart_gas_api_url", url);
-    showAdminToast("URL Google Apps Script berhasil disimpan!", "success");
+/**
+ * Toggle visibility password
+ */
+function togglePasswordVisibility() {
+  const passInput = document.getElementById("adminPasswordInput");
+  const icon = document.getElementById("passwordToggleIcon");
+  if (!passInput) return;
+
+  if (passInput.type === "password") {
+    passInput.type = "text";
+    if (icon) icon.className = "fas fa-eye-slash";
   } else {
-    localStorage.removeItem("shinemart_gas_api_url");
-    showAdminToast("Mengembalikan ke URL default.", "info");
-    if (inputUrl) inputUrl.value = DEFAULT_GAS_API_URL;
+    passInput.type = "password";
+    if (icon) icon.className = "fas fa-eye";
+  }
+}
+
+// Konfigurasi Database Supabase
+const DEFAULT_SUPABASE_URL = "https://amuqgtdyecgdxclqwanj.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_G-am3ojwBmpNqbZDi5qciA_6fn37rX9";
+
+function getAdminSupabaseClient() {
+  const url = localStorage.getItem("shinemart_supabase_url") || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem("shinemart_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
+  if (typeof supabase !== "undefined" && url && key) {
+    try {
+      return supabase.createClient(url, key);
+    } catch (e) {
+      console.warn("Gagal inisialisasi Supabase:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+function initAdminSettings() {
+  const sbUrlInput = document.getElementById("supabaseUrlInput");
+  const sbKeyInput = document.getElementById("supabaseKeyInput");
+  if (sbUrlInput) {
+    sbUrlInput.value = localStorage.getItem("shinemart_supabase_url") || DEFAULT_SUPABASE_URL;
+  }
+  if (sbKeyInput) {
+    sbKeyInput.value = localStorage.getItem("shinemart_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
+  }
+}
+
+function saveSupabaseConfig() {
+  const urlInput = document.getElementById("supabaseUrlInput");
+  const keyInput = document.getElementById("supabaseKeyInput");
+  const url = urlInput ? urlInput.value.trim() : "";
+  const key = keyInput ? keyInput.value.trim() : "";
+
+  if (url && key) {
+    localStorage.setItem("shinemart_supabase_url", url);
+    localStorage.setItem("shinemart_supabase_anon_key", key);
+    showAdminToast("Kredensial Supabase berhasil disimpan!", "success");
+    loadSupabaseProductsList();
+  } else {
+    localStorage.removeItem("shinemart_supabase_url");
+    localStorage.removeItem("shinemart_supabase_anon_key");
+    showAdminToast("Konfigurasi Supabase dihapus.", "info");
   }
 }
 
@@ -102,6 +203,19 @@ function setupAdminListeners() {
         processExcelBlob(files[0]);
       }
     }, false);
+  }
+
+  // Live search di daftar produk Supabase
+  const searchInput = document.getElementById("adminSearchInput");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = liveSupabaseProducts.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q))
+      );
+      renderSupabaseProductsTable(filtered);
+    });
   }
 }
 
@@ -141,28 +255,151 @@ function processExcelBlob(file) {
         const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
         const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
         const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
-        const unit = String(row["Satuan"] || row["unit"] || "1 Pcs").trim();
+        const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
         const stock = row["Stok"] || row["stock"] || "Ready";
 
+        // Kolom id di database Supabase bertipe BIGINT (angka)
+        const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
+        const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
+
         return {
-          id: `PRD-${Date.now()}-${idx + 1}`,
+          id: productId,
           name: String(name).trim(),
           price: price,
           category: category,
           imageUrl: formatGoogleDriveImageUrl(imageUrl),
-          stock: stock,
+          stock: String(stock),
           unit: unit
         };
       }).filter(p => p.name && p.price > 0);
 
       renderPreviewTable(parsedExcelProducts, file.name);
     } catch (err) {
-      console.error("Gagal membaca Excel:", err);
-      alert("Format file Excel/CSV tidak valid. Gunakan format file .xlsx, .xls, atau .csv.");
+      console.error("Gagal membaca Excel/CSV:", err);
+      // Fallback: Coba baca sebagai text / binary string jika format CSV/text
+      tryFallbackTextRead(file);
     }
   };
 
   reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Fallback pembacaan jika file berformat CSV / teks murni
+ */
+function tryFallbackTextRead(file) {
+  const textReader = new FileReader();
+  textReader.onload = function(e) {
+    try {
+      const textContent = e.target.result;
+      const workbook = XLSX.read(textContent, { type: "string" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      if (rawRows && rawRows.length > 0) {
+        parsedExcelProducts = rawRows.map((row, idx) => {
+          const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
+          const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
+          const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
+          const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
+          const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
+          const stock = row["Stok"] || row["stock"] || "Ready";
+          const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
+          const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
+
+          return {
+            id: productId,
+            name: String(name).trim(),
+            price: price,
+            category: category,
+            imageUrl: formatGoogleDriveImageUrl(imageUrl),
+            stock: String(stock),
+            unit: unit
+          };
+        }).filter(p => p.name && p.price > 0);
+
+        renderPreviewTable(parsedExcelProducts, file.name);
+        return;
+      }
+      throw new Error("Empty rows");
+    } catch (fallbackErr) {
+      console.error("Fallback error:", fallbackErr);
+      alert("Format file Excel/CSV tidak dapat dibaca. Pastikan file berformat .xlsx, .xls, atau .csv dengan kolom: Nama Produk, Harga, Kategori, Satuan, Stok.");
+    }
+  };
+  textReader.readAsText(file);
+}
+
+/**
+ * Modal Paste CSV / Text Handlers
+ */
+function openPasteModal() {
+  const modal = document.getElementById("pasteModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    const input = document.getElementById("pasteTextInput");
+    if (input) input.focus();
+  }
+}
+
+function closePasteModal() {
+  const modal = document.getElementById("pasteModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function processPastedText() {
+  const input = document.getElementById("pasteTextInput");
+  if (!input || !input.value.trim()) {
+    alert("Silakan tempel teks CSV/Excel terlebih dahulu.");
+    return;
+  }
+
+  try {
+    const textContent = input.value.trim();
+    const workbook = XLSX.read(textContent, { type: "string" });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    if (!rawRows || rawRows.length === 0) {
+      alert("Teks tidak dapat dibaca atau kolom tidak sesuai.");
+      return;
+    }
+
+    parsedExcelProducts = rawRows.map((row, idx) => {
+      const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
+      const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
+      const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
+      const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
+      const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
+      const stock = row["Stok"] || row["stock"] || "Ready";
+      const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
+      const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
+
+      return {
+        id: productId,
+        name: String(name).trim(),
+        price: price,
+        category: category,
+        imageUrl: formatGoogleDriveImageUrl(imageUrl),
+        stock: String(stock),
+        unit: unit
+      };
+    }).filter(p => p.name && p.price > 0);
+
+    closePasteModal();
+    renderPreviewTable(parsedExcelProducts, "Data Tempel CSV");
+    showAdminToast(`Berhasil membaca ${parsedExcelProducts.length} baris produk!`, "success");
+
+  } catch (err) {
+    console.error("Gagal memproses teks:", err);
+    alert("Gagal membaca teks. Pastikan baris pertama berisi nama kolom (Nama Produk,Harga,Kategori,Gambar URL,Satuan,Stok).");
+  }
 }
 
 /**
@@ -215,10 +452,13 @@ function renderPreviewTable(products, fileName) {
 }
 
 /**
- * Mengirim array produk ke Google Apps Script (doPost)
+ * Mengirim array produk hasil parsing Excel langsung ke Supabase
  */
-async function uploadToGoogleSheets() {
-  if (parsedExcelProducts.length === 0) return;
+async function uploadToSupabaseDatabase() {
+  if (parsedExcelProducts.length === 0) {
+    showAdminToast("Tidak ada produk untuk diunggah!", "info");
+    return;
+  }
 
   const uploadBtn = document.getElementById("btnUploadToSheets");
   const originalHtml = uploadBtn ? uploadBtn.innerHTML : "";
@@ -226,60 +466,214 @@ async function uploadToGoogleSheets() {
 
   if (uploadBtn) {
     uploadBtn.disabled = true;
-    uploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Sedang Menyimpan ke Google Sheets...`;
+    uploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Mengunggah ke Supabase...`;
   }
 
-  const apiUrl = getSavedGasApiUrl();
-  let successOnSheets = false;
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    showAdminToast("Client Supabase belum siap. Periksa Project URL & Key!", "error");
+    if (uploadBtn) {
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalHtml;
+    }
+    return;
+  }
 
-  if (apiUrl && !apiUrl.includes("sample_shinemart")) {
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // text/plain menghindari preflight CORS issue pada GAS
-        body: JSON.stringify({
-          action: uploadMode, // 'append' atau 'replace'
-          items: parsedExcelProducts
-        })
-      });
+  try {
+    if (uploadMode === "replace") {
+      // Hapus data lama jika mode replace
+      const { error: delError } = await supabaseClient.from("products").delete().neq("id", 0);
+      if (delError) console.warn("Peringatan saat menghapus produk lama:", delError);
+    }
 
-      const result = await response.json();
-      if (result && result.status === "success") {
-        successOnSheets = true;
-      }
-    } catch (err) {
-      console.warn("Gagal request ke Google Apps Script:", err);
+    // Format data untuk Supabase
+    const sbPayload = parsedExcelProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price) || 0,
+      category: p.category,
+      image_url: p.imageUrl,
+      stock: p.stock,
+      unit: p.unit
+    }));
+
+    const { data, error } = await supabaseClient.from("products").upsert(sbPayload);
+
+    if (error) {
+      throw error;
+    }
+
+    // Update offline cache
+    let currentLocal = [];
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      try { currentLocal = JSON.parse(stored); } catch (e) { currentLocal = []; }
+    }
+
+    if (uploadMode === "replace") {
+      currentLocal = [...parsedExcelProducts];
+    } else {
+      currentLocal = [...parsedExcelProducts, ...currentLocal];
+    }
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentLocal));
+
+    showAdminToast(`Sukses! ${parsedExcelProducts.length} produk tersimpan langsung di Supabase!`, "success");
+
+    // Sembunyikan preview upload dan reload list produk aktif
+    const previewSection = document.getElementById("previewSection");
+    if (previewSection) previewSection.classList.add("hidden");
+    parsedExcelProducts = [];
+
+    // Reset file input
+    const fileInput = document.getElementById("excelFileInput");
+    if (fileInput) fileInput.value = "";
+
+    // Refresh daftar produk di bawah
+    loadSupabaseProductsList();
+
+  } catch (err) {
+    console.error("Gagal upload ke Supabase:", err);
+    showAdminToast(`Gagal upload: ${err.message || 'Periksa koneksi Supabase'}`, "error");
+  } finally {
+    if (uploadBtn) {
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalHtml;
     }
   }
+}
 
-  // Update data lokal juga agar instan sinkron
-  let currentLocal = [];
-  const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (stored) {
-    try { currentLocal = JSON.parse(stored); } catch (e) { currentLocal = []; }
+// Backward compatibility alias
+const uploadToGoogleSheets = uploadToSupabaseDatabase;
+
+/**
+ * Memuat seluruh daftar produk live dari database Supabase
+ */
+async function loadSupabaseProductsList() {
+  const tbody = document.getElementById("supabaseProductsTableBody");
+  const countBadge = document.getElementById("supabaseProductCount");
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+        <i class="fas fa-spinner fa-spin mr-1.5"></i> Mengambil data dari Supabase...
+      </td>
+    </tr>
+  `;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-6 text-xs text-pink-500 font-bold">
+          Kredensial Supabase belum terkonfigurasi.
+        </td>
+      </tr>
+    `;
+    return;
   }
 
-  if (uploadMode === "replace") {
-    currentLocal = [...parsedExcelProducts];
-  } else {
-    currentLocal = [...parsedExcelProducts, ...currentLocal];
-  }
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentLocal));
+  try {
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .order("id", { ascending: true });
 
-  if (uploadBtn) {
-    uploadBtn.disabled = false;
-    uploadBtn.innerHTML = originalHtml;
+    if (error) throw error;
+
+    liveSupabaseProducts = data || [];
+    renderSupabaseProductsTable(liveSupabaseProducts);
+
+    if (countBadge) {
+      countBadge.textContent = `${liveSupabaseProducts.length} produk`;
+    }
+
+  } catch (err) {
+    console.warn("Gagal memuat list produk dari Supabase:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-6 text-xs text-slate-500">
+          Belum dapat terhubung ke tabel Supabase. Pastikan tabel <code class="bg-slate-100 px-1 py-0.5 rounded">products</code> telah dibuat.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Render tabel produk live Supabase
+ */
+function renderSupabaseProductsTable(items) {
+  const tbody = document.getElementById("supabaseProductsTableBody");
+  if (!tbody) return;
+
+  if (items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+          Belum ada produk di database Supabase. Silakan unggah produk melalui file Excel di atas.
+        </td>
+      </tr>
+    `;
+    return;
   }
 
-  if (successOnSheets) {
-    showAdminToast(`Berhasil menyimpan ${parsedExcelProducts.length} produk langsung ke Google Sheets!`, "success");
-  } else {
-    showAdminToast(`${parsedExcelProducts.length} produk tersimpan di katalog lokal. (Pastikan URL Google Apps Script valid).`, "info");
+  tbody.innerHTML = items.map((item, idx) => {
+    const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
+    return `
+      <tr class="hover:bg-sky-50/40 border-b border-slate-100 transition text-xs">
+        <td class="py-3 px-3 font-mono text-slate-400 text-center">${idx + 1}</td>
+        <td class="py-3 px-3">
+          <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+            <img src="${imgUrl}" alt="${item.name}" class="w-full h-full object-contain p-1" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-bold text-slate-800 text-xs md:text-sm">${item.name}</div>
+          <span class="text-[10px] text-slate-400 font-mono">ID: ${item.id}</span>
+        </td>
+        <td class="py-3 px-3">
+          <span class="capitalize font-semibold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded text-[11px]">${item.category || 'sembako'}</span>
+        </td>
+        <td class="py-3 px-3 font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</td>
+        <td class="py-3 px-3 text-slate-500">${item.unit || '1 Pcs'}</td>
+        <td class="py-3 px-3">
+          <span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">${item.stock || 'Ready'}</span>
+        </td>
+        <td class="py-3 px-3 text-center">
+          <button onclick="deleteProductFromSupabase('${item.id}', '${item.name.replace(/'/g, "\\'")}')"
+            class="px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-500 text-pink-600 hover:text-white transition font-bold text-xs"
+            title="Hapus Produk dari Supabase">
+            <i class="fas fa-trash-alt mr-1"></i> Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+/**
+ * Hapus produk dari database Supabase
+ */
+async function deleteProductFromSupabase(productId, productName) {
+  if (!confirm(`Hapus "${productName}" dari database Supabase?`)) {
+    return;
   }
 
-  // Reset file input
-  const fileInput = document.getElementById("excelFileInput");
-  if (fileInput) fileInput.value = "";
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient.from("products").delete().eq("id", productId);
+    if (error) throw error;
+
+    showAdminToast(`Produk "${productName}" berhasil dihapus dari Supabase.`, "success");
+    loadSupabaseProductsList();
+
+  } catch (err) {
+    console.error("Gagal menghapus produk:", err);
+    showAdminToast(`Gagal menghapus: ${err.message}`, "error");
+  }
 }
 
 /**

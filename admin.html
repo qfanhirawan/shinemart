@@ -43,6 +43,9 @@
   <!-- SheetJS CDN untuk membaca file Excel (.xlsx / .csv) di browser -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Custom Styles System -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -68,51 +71,71 @@
           </span>
         </div>
 
-        <!-- Link Navigasi ke Halaman Utama Pengunjung -->
-        <a href="index.html"
-          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full text-xs md:text-sm flex items-center gap-2 transition border border-slate-200">
-          <i class="fas fa-arrow-left text-[#38b6ff]"></i>
-          <span>Lihat Katalog Pengunjung</span>
-        </a>
+        <!-- Action Buttons: Logout & Link Katalog -->
+        <div class="flex items-center gap-2">
+          <a href="index.html"
+            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full text-xs md:text-sm flex items-center gap-1.5 transition border border-slate-200">
+            <i class="fas fa-arrow-left text-[#38b6ff]"></i>
+            <span class="hidden sm:inline">Katalog Pengunjung</span>
+          </a>
+          <button id="adminLogoutBtn" onclick="handleAdminLogout()"
+            class="hidden px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#ff66c4] font-bold rounded-full text-xs md:text-sm flex items-center gap-1.5 transition border border-pink-200">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Keluar</span>
+          </button>
+        </div>
 
       </div>
     </div>
   </header>
 
-  <!-- ================= MAIN ADMIN CONTENT ================= -->
-  <main class="py-8 px-4 max-w-7xl mx-auto space-y-8">
+  <!-- ================= LOGIN SCREEN OVERLAY ================= -->
+  <section id="loginOverlaySection" class="min-h-[80vh] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm">
+        <i class="fas fa-lock"></i>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">Login Admin Shinemart</h2>
+      <p class="text-xs text-slate-400 mb-6">Masukkan kredensial admin untuk mengakses panel produk</p>
 
-    <!-- 1. PENGATURAN KONEKSI GOOGLE APPS SCRIPT -->
-    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
-            <i class="fas fa-database"></i>
-          </div>
-          <div>
-            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Koneksi Database Google Sheets</h2>
-            <p class="text-xs text-slate-400">Hubungkan Web App Google Apps Script sebagai endpoint doGet & doPost</p>
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Username / Email</label>
+          <div class="relative">
+            <i class="fas fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="adminUsernameInput" required placeholder="admin"
+              class="w-full pl-10 pr-4 py-3 bg-slate-50 focus:bg-white text-slate-800 text-xs sm:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff] transition">
           </div>
         </div>
-        <span class="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full font-bold border border-emerald-200">
-          <i class="fas fa-check-circle mr-1"></i> API Ready
-        </span>
-      </div>
 
-      <div class="pt-4 flex flex-col sm:flex-row items-center gap-3">
-        <input type="url" id="gasApiUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
-          class="w-full flex-1 px-4 py-3 bg-slate-50 focus:bg-white text-slate-800 text-xs md:text-sm font-mono rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff] transition">
-        <button onclick="saveGasApiUrl()"
-          class="w-full sm:w-auto px-5 py-3 bg-[#38b6ff] hover:bg-[#0099ff] text-white font-extrabold rounded-xl text-xs md:text-sm transition shadow-sm shrink-0">
-          <i class="fas fa-save mr-1.5"></i> Simpan URL API
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
+          <div class="relative">
+            <i class="fas fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="password" id="adminPasswordInput" required placeholder="••••••••"
+              class="w-full pl-10 pr-10 py-3 bg-slate-50 focus:bg-white text-slate-800 text-xs sm:text-sm rounded-xl border border-slate-300 outline-none focus:border-[#38b6ff] transition">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+              <i class="fas fa-eye" id="passwordToggleIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginErrorMsg" class="hidden text-xs text-pink-600 bg-pink-50 p-2.5 rounded-xl border border-pink-200 font-bold text-center">
+          <i class="fas fa-exclamation-circle mr-1"></i> Username atau Password salah!
+        </div>
+
+        <button type="submit"
+          class="w-full py-3.5 bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white font-extrabold rounded-2xl text-xs sm:text-sm shadow-lg shadow-sky-400/25 transition">
+          Masuk ke Admin Panel
         </button>
-      </div>
-      <p class="text-[11px] text-slate-400 mt-2">
-        *Pastikan saat deploy Google Apps Script disetel: <strong>Execute as: Me</strong> dan <strong>Who has access: Anyone</strong>.
-      </p>
+      </form>
     </div>
+  </section>
 
-    <!-- 2. BULK UPLOAD EXCEL SECTION -->
+  <!-- ================= MAIN ADMIN CONTENT (HIDDEN UNTIL LOGIN) ================= -->
+  <main id="adminMainContent" class="hidden py-8 px-4 max-w-7xl mx-auto space-y-8">
+
+    <!-- 1. BULK UPLOAD EXCEL SECTION -->
     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -121,8 +144,8 @@
             <i class="fas fa-file-excel"></i>
           </div>
           <div>
-            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Bulk Upload Produk via Excel (.xlsx / .csv)</h2>
-            <p class="text-xs text-slate-400">Unggah puluhan produk baru sekaligus langsung ke Google Sheets</p>
+            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Bulk Upload Produk Excel ke Supabase</h2>
+            <p class="text-xs text-slate-400">Unggah puluhan produk baru sekaligus langsung ke tabel database Supabase</p>
           </div>
         </div>
 
@@ -136,7 +159,7 @@
 
       <!-- Panduan Format Kolom -->
       <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kolom Excel yang Didukung:</h3>
+        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Format Kolom Excel yang Didukung:</h3>
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
           <div class="bg-white p-2.5 rounded-xl border border-slate-200">
             <span class="block font-bold text-slate-800">Nama Produk</span>
@@ -148,15 +171,15 @@
           </div>
           <div class="bg-white p-2.5 rounded-xl border border-slate-200">
             <span class="block font-bold text-slate-800">Kategori</span>
-            <span class="text-[10px] text-slate-400">sembako, frozen, dll</span>
+            <span class="text-[10px] text-slate-400">sembako, frozen, snack, dll</span>
           </div>
           <div class="bg-white p-2.5 rounded-xl border border-slate-200">
             <span class="block font-bold text-slate-800">Satuan</span>
-            <span class="text-[10px] text-slate-400">Misal: 5 kg / Sak, Pouch 2L</span>
+            <span class="text-[10px] text-slate-400">Contoh: 5 kg / Sak, 2L, 500g</span>
           </div>
           <div class="bg-white p-2.5 rounded-xl border border-slate-200">
             <span class="block font-bold text-slate-800">Gambar URL / Stok</span>
-            <span class="text-[10px] text-slate-400">Link Foto & Ketersediaan</span>
+            <span class="text-[10px] text-slate-400">Link Foto (Drive didukung)</span>
           </div>
         </div>
       </div>
@@ -168,20 +191,27 @@
         <div class="w-16 h-16 rounded-full bg-sky-100 text-[#0077d6] flex items-center justify-center text-3xl mx-auto mb-3 shadow-sm">
           <i class="fas fa-cloud-arrow-up"></i>
         </div>
-        <h4 class="font-extrabold text-slate-800 text-sm md:text-base">Pilih atau Seret (Drag & Drop) File Excel ke Sini</h4>
-        <p class="text-xs text-slate-400 mt-1">Mendukung format .xlsx, .xls, atau .csv</p>
-        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden">
+        <p class="text-xs text-slate-400 mt-1">Mendukung format .xlsx, .xls, .csv, atau file spreadsheet lainnya</p>
+        <div class="mt-3 flex items-center justify-center gap-2">
+          <span class="px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-sm inline-block">
+            <i class="fas fa-folder-open text-[#38b6ff] mr-1.5"></i> Telusuri File
+          </span>
+          <button type="button" onclick="event.stopPropagation(); openPasteModal();" class="px-4 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077d6] text-xs font-bold rounded-xl border border-sky-200 shadow-sm inline-flex items-center gap-1.5 transition">
+            <i class="fas fa-paste text-sky-500"></i> Tempel Teks / CSV
+          </button>
+        </div>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain" class="hidden">
       </div>
 
     </div>
 
-    <!-- 3. PREVIEW TABLE HASIL PEMBACAAN EXCEL -->
+    <!-- 2. PREVIEW TABLE HASIL PEMBACAAN EXCEL SEBELUM UPLOAD -->
     <div id="previewSection" class="hidden bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <div class="flex items-center gap-2">
-            <h3 class="text-base font-extrabold text-slate-900">Pratinjau Data Produk</h3>
+            <h3 class="text-base font-extrabold text-slate-900">Pratinjau Data Excel Sebelum Masuk ke Supabase</h3>
             <span id="previewCountBadge" class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
               0 produk
             </span>
@@ -194,16 +224,16 @@
           <span class="text-slate-400">Metode:</span>
           <label class="flex items-center gap-1.5 cursor-pointer">
             <input type="radio" name="uploadMode" value="append" checked class="text-[#38b6ff]">
-            <span>Tambahkan (Append)</span>
+            <span>Tambahkan (Append/Upsert)</span>
           </label>
           <label class="flex items-center gap-1.5 cursor-pointer">
             <input type="radio" name="uploadMode" value="replace" class="text-pink-500">
-            <span>Ganti Semua</span>
+            <span>Ganti Semua (Replace)</span>
           </label>
         </div>
       </div>
 
-      <!-- Tabel Responsif -->
+      <!-- Tabel Responsif Preview Excel -->
       <div class="overflow-x-auto rounded-2xl border border-slate-200 max-h-96 overflow-y-auto">
         <table class="w-full text-left border-collapse">
           <thead>
@@ -222,22 +252,112 @@
         </table>
       </div>
 
-      <!-- Tombol Eksekusi Upload ke Google Sheets -->
+      <!-- Tombol Eksekusi Upload ke Supabase -->
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
         <p class="text-xs text-slate-400">
-          Periksa kembali tabel di atas sebelum mengirim data ke database Google Sheets.
+          Periksa kembali tabel di atas sebelum mengirim data langsung ke database Supabase.
         </p>
 
-        <button id="btnUploadToSheets" onclick="uploadToGoogleSheets()" disabled
+        <button id="btnUploadToSheets" onclick="uploadToSupabaseDatabase()" disabled
           class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold rounded-2xl text-xs md:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
           <i class="fas fa-cloud-arrow-up text-base"></i>
-          <span>Simpan / Upload ke Google Sheets</span>
+          <span>Simpan &amp; Upload ke Supabase</span>
         </button>
       </div>
 
     </div>
 
-  </main>
+    <!-- 3. DAFTAR LIST PRODUK LIVE DI SUPABASE -->
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Daftar Produk Aktif di Supabase</h2>
+            <span id="supabaseProductCount" class="bg-sky-50 text-[#0077d6] text-xs font-bold px-2.5 py-0.5 rounded-full border border-sky-200">
+              0 produk
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Kelola atau hapus produk yang tersimpan di database</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Live Search Admin -->
+          <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="adminSearchInput" placeholder="Cari produk..."
+              class="pl-8 pr-3 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <!-- Refresh Button -->
+          <button onclick="loadSupabaseProductsList()"
+            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5"
+            title="Refresh List Produk">
+            <i class="fas fa-sync-alt text-xs"></i>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabel List Produk Supabase -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-200 max-h-[500px] overflow-y-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
+              <th class="py-3 px-3">No</th>
+              <th class="py-3 px-3">Foto</th>
+              <th class="py-3 px-3">Nama Produk</th>
+              <th class="py-3 px-3">Kategori</th>
+              <th class="py-3 px-3">Harga</th>
+              <th class="py-3 px-3">Satuan</th>
+              <th class="py-3 px-3">Stok</th>
+              <th class="py-3 px-3 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="supabaseProductsTableBody">
+            <tr>
+              <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+                <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar produk dari database...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <!-- ================= MODAL TEMPEL CSV / TEKS ================= -->
+  <div id="pasteModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#38b6ff] to-[#0077d6] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-paste"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Tempel Data CSV / Excel</h3>
+            <span class="text-[11px] text-sky-200">Copy-Paste teks CSV atau baris data produk langsung ke sini</span>
+          </div>
+        </div>
+        <button onclick="closePasteModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="p-5 flex-1 space-y-3">
+        <p class="text-xs text-slate-500">
+          Tempelkan teks data berformat CSV atau baris tabel dari Excel Anda di bawah ini:
+        </p>
+        <textarea id="pasteTextInput" rows="8" placeholder="Nama Produk,Harga,Kategori,Gambar URL,Satuan,Stok&#10;ABC Bumbu Kacang Serbaguna (180g),14900,sembako,https://...,PCS,20" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition"></textarea>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closePasteModal()" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          Batal
+        </button>
+        <button onclick="processPastedText()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition shadow-sm flex items-center gap-1.5">
+          <i class="fas fa-check"></i> Proses Data
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Script Khusus Admin -->
   <script src="js/admin.js"></script>
