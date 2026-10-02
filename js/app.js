@@ -487,7 +487,12 @@ function openGeneralWhatsApp(topic = "") {
 
 // ==============================================================================
 // RENDER KATALOG PRODUK & FILTER
-// ==============================================================================
+// Helper normalisasi nama kategori
+function normalizeCategoryKey(cat) {
+  if (!cat) return "";
+  return String(cat).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function renderProducts() {
   const container = document.getElementById("productGridContainer");
   const countDisplay = document.getElementById("productCountInfo");
@@ -495,14 +500,17 @@ function renderProducts() {
 
   if (!container) return;
 
+  const activeNorm = normalizeCategoryKey(activeCategory);
+
   let filtered = productsList.filter((item) => {
-    const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+    const itemNorm = normalizeCategoryKey(item.category);
+    const matchesCategory = activeCategory === "all" || itemNorm === activeNorm || itemNorm.includes(activeNorm);
     const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
       item.category.toLowerCase().includes(searchQuery);
     return matchesCategory && matchesSearch;
   });
 
-  if (countDisplay && !countDisplay.innerHTML.includes("Google Sheets")) {
+  if (countDisplay) {
     countDisplay.textContent = `Menampilkan ${filtered.length} produk pilihan`;
   }
 
@@ -563,16 +571,36 @@ function renderProducts() {
 }
 
 function updateCategoryCounts() {
-  const categories = ["all", "sembako", "minuman", "snack", "kebersihan", "fresh", "frozen", "bayi", "perawatan"];
-  categories.forEach((cat) => {
-    const badgeEl = document.getElementById(`count-${cat}`);
+  const categoryKeys = [
+    { key: "bumbu-rempah", name: "bumbu & rempah" },
+    { key: "frozen-food", name: "frozen food" },
+    { key: "kebersihan-rumah", name: "kebersihan rumah" },
+    { key: "makanan-kaleng-olahan", name: "makanan kaleng & olahan" },
+    { key: "makanan-ringan-snack", name: "makanan ringan & snack" },
+    { key: "mi-pasta-makanan-instan", name: "mi, pasta & makanan instan" },
+    { key: "minuman", name: "minuman" },
+    { key: "obat-kesehatan", name: "obat & kesehatan" },
+    { key: "perawatan-pribadi", name: "perawatan pribadi" },
+    { key: "perawatan-rumah", name: "perawatan rumah" },
+    { key: "perlengkapan-rumah-tangga", name: "perlengkapan rumah tangga" },
+    { key: "rokok-tembakau", name: "rokok & tembakau" },
+    { key: "sembako", name: "sembako" },
+    { key: "susu-produk-bayi", name: "susu & produk bayi" },
+    { key: "tisu-produk-kertas", name: "tisu & produk kertas" }
+  ];
+
+  const totalEl = document.getElementById("count-all");
+  if (totalEl) totalEl.textContent = productsList.length;
+
+  categoryKeys.forEach((cat) => {
+    const badgeEl = document.getElementById(`count-${cat.key}`);
     if (badgeEl) {
-      if (cat === "all") {
-        badgeEl.textContent = productsList.length;
-      } else {
-        const count = productsList.filter((p) => p.category === cat).length;
-        badgeEl.textContent = count;
-      }
+      const targetNorm = normalizeCategoryKey(cat.name);
+      const count = productsList.filter((p) => {
+        const itemNorm = normalizeCategoryKey(p.category);
+        return itemNorm === targetNorm || itemNorm.includes(targetNorm);
+      }).length;
+      badgeEl.textContent = count;
     }
   });
 }

@@ -641,15 +641,188 @@ function renderSupabaseProductsTable(items) {
           <span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">${item.stock || 'Ready'}</span>
         </td>
         <td class="py-3 px-3 text-center">
-          <button onclick="deleteProductFromSupabase('${item.id}', '${item.name.replace(/'/g, "\\'")}')"
-            class="px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-500 text-pink-600 hover:text-white transition font-bold text-xs"
-            title="Hapus Produk dari Supabase">
-            <i class="fas fa-trash-alt mr-1"></i> Hapus
-          </button>
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openEditProductModal('${item.id}')"
+              class="px-2.5 py-1.5 rounded-xl bg-sky-50 hover:bg-[#38b6ff] text-[#0077d6] hover:text-white transition font-bold text-xs"
+              title="Edit Produk">
+              <i class="fas fa-edit mr-1"></i> Edit
+            </button>
+            <button onclick="deleteProductFromSupabase('${item.id}', '${item.name.replace(/'/g, "\\'")}')"
+              class="px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-500 text-pink-600 hover:text-white transition font-bold text-xs"
+              title="Hapus Produk dari Supabase">
+              <i class="fas fa-trash-alt mr-1"></i> Hapus
+            </button>
+          </div>
         </td>
       </tr>
     `;
   }).join("");
+}
+
+/**
+ * Buka modal edit produk dan populate nilai input
+ */
+function openEditProductModal(productId) {
+  const product = liveSupabaseProducts.find(p => String(p.id) === String(productId));
+  if (!product) {
+    showAdminToast("Data produk tidak ditemukan!", "error");
+    return;
+  }
+
+  const idInput = document.getElementById("editProductId");
+  const nameInput = document.getElementById("editProductName");
+  const catInput = document.getElementById("editProductCategory");
+  const priceInput = document.getElementById("editProductPrice");
+  const unitInput = document.getElementById("editProductUnit");
+  const stockInput = document.getElementById("editProductStock");
+  const imgInput = document.getElementById("editProductImageUrl");
+  const imgPreview = document.getElementById("editImagePreview");
+
+  if (idInput) idInput.value = product.id;
+  if (nameInput) nameInput.value = product.name || "";
+  
+  if (catInput) {
+    // Cari opsi kategori yang cocok (case-insensitive)
+    const options = Array.from(catInput.options);
+    const prodCatLower = (product.category || "").toLowerCase().trim();
+    const matched = options.find(o => o.value.toLowerCase().trim() === prodCatLower);
+    if (matched) {
+      catInput.value = matched.value;
+    } else {
+      catInput.value = product.category || "Sembako";
+    }
+  }
+
+  if (priceInput) priceInput.value = product.price || 0;
+  if (unitInput) unitInput.value = product.unit || "";
+  if (stockInput) stockInput.value = product.stock || "Ready";
+  
+  const currentImg = product.image_url || product.imageUrl || "";
+  if (imgInput) imgInput.value = currentImg;
+  if (imgPreview) imgPreview.src = formatGoogleDriveImageUrl(currentImg);
+
+  const modal = document.getElementById("editProductModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+/**
+ * Tutup modal edit produk
+ */
+function closeEditProductModal() {
+  const modal = document.getElementById("editProductModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+/**
+ * Update pratinjau gambar saat link URL diubah di modal edit
+ */
+function updateEditImagePreview(url) {
+  const imgPreview = document.getElementById("editImagePreview");
+  if (imgPreview) {
+    imgPreview.src = formatGoogleDriveImageUrl(url);
+  }
+}
+
+/**
+ * Simpan hasil edit produk langsung ke Supabase
+ */
+async function handleSaveEditedProduct(event) {
+  event.preventDefault();
+
+  const id = document.getElementById("editProductId")?.value;
+  const name = document.getElementById("editProductName")?.value?.trim();
+  const category = document.getElementById("editProductCategory")?.value?.trim();
+  const price = Number(document.getElementById("editProductPrice")?.value) || 0;
+  const unit = document.getElementById("editProductUnit")?.value?.trim() || "1 Pcs";
+  const stock = document.getElementById("editProductStock")?.value?.trim() || "Ready";
+  const imageUrl = document.getElementById("editProductImageUrl")?.value?.trim() || "";
+
+  if (!id || !name) {
+    showAdminToast("Nama produk tidak boleh kosong!", "error");
+    return;
+  }
+
+  const btnSave = document.getElementById("btnSaveEditProduct");
+  const originalBtnHtml = btnSave ? btnSave.innerHTML : "";
+  if (btnSave) {
+    btnSave.disabled = true;
+    btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan...`;
+  }
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    showAdminToast("Client Supabase tidak tersedia!", "error");
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.innerHTML = originalBtnHtml;
+    }
+    return;
+  }
+
+  try {
+    const updatedPayload = {
+      name: name,
+      category: category,
+      price: price,
+      unit: unit,
+      stock: stock,
+      image_url: imageUrl
+    };
+
+    const { data, error } = await supabaseClient
+      .from("products")
+      .update(updatedPayload)
+      .eq("id", id);
+
+    if (error) throw error;
+
+    // Update data di cache lokal / memori
+    const idx = liveSupabaseProducts.findIndex(p => String(p.id) === String(id));
+    if (idx !== -1) {
+      liveSupabaseProducts[idx] = {
+        ...liveSupabaseProducts[idx],
+        ...updatedPayload
+      };
+    }
+
+    // Perbarui localStorage jika ada
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      try {
+        let localData = JSON.parse(stored);
+        const lIdx = localData.findIndex(p => String(p.id) === String(id));
+        if (lIdx !== -1) {
+          localData[lIdx] = {
+            ...localData[lIdx],
+            ...updatedPayload,
+            imageUrl: imageUrl
+          };
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
+        }
+      } catch (e) {
+        console.warn("Gagal update localStorage cache:", e);
+      }
+    }
+
+    showAdminToast(`Produk "${name}" berhasil diperbarui!`, "success");
+    closeEditProductModal();
+    renderSupabaseProductsTable(liveSupabaseProducts);
+
+  } catch (err) {
+    console.error("Gagal update produk:", err);
+    showAdminToast(`Gagal menyimpan: ${err.message || 'Periksa koneksi Supabase'}`, "error");
+  } finally {
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.innerHTML = originalBtnHtml;
+    }
+  }
 }
 
 /**

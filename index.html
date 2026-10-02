@@ -168,85 +168,204 @@
     <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Kategori Produk</h2>
-        <p class="text-xs md:text-sm text-slate-500">Pilih kategori untuk memfilter produk catalog minimarket</p>
+        <p class="text-xs md:text-sm text-slate-500">Pilih kategori untuk memfilter produk katalog minimarket</p>
       </div>
-      <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full border border-sky-100">8 Kategori
-        Lengkap</span>
+      <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full border border-sky-100">14 Kategori Lengkap</span>
     </div>
 
     <!-- Category Buttons Grid -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3">
 
+      <!-- Semua -->
       <button data-category="all"
-        class="category-tab-btn category-card active p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-xl mb-2">
+        class="category-tab-btn category-card active p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
           <i class="fas fa-th-large"></i>
         </div>
-        <span class="text-xs font-bold block mb-1">Semua</span>
-        <span class="text-[10px] text-slate-400" id="count-all">0</span>
-      </button>
-
-      <button data-category="sembako"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mb-2">
-          <i class="fas fa-wheat-awn"></i>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800">Semua Produk</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-all">0</span>
         </div>
-        <span class="text-xs font-bold block mb-1">Sembako</span>
-        <span class="text-[10px] text-slate-400" id="count-sembako">0</span>
       </button>
 
-      <button data-category="minuman"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-xl mb-2">
-          <i class="fas fa-glass-water"></i>
+      <!-- 1. Bumbu & Rempah -->
+      <button data-category="bumbu & rempah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-mortar-pestle"></i>
         </div>
-        <span class="text-xs font-bold block mb-1">Minuman</span>
-        <span class="text-[10px] text-slate-400" id="count-minuman">0</span>
-      </button>
-
-      <button data-category="snack"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-xl mb-2">
-          <i class="fas fa-cookie-bite"></i>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Bumbu & Rempah">Bumbu & Rempah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-bumbu-rempah">0</span>
         </div>
-        <span class="text-xs font-bold block mb-1">Snacks</span>
-        <span class="text-[10px] text-slate-400" id="count-snack">0</span>
       </button>
 
-      <button data-category="kebersihan"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl mb-2">
-          <i class="fas fa-soap"></i>
-        </div>
-        <span class="text-xs font-bold block mb-1">Kebersihan</span>
-        <span class="text-[10px] text-slate-400" id="count-kebersihan">0</span>
-      </button>
-
-      <button data-category="fresh"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl mb-2">
-          <i class="fas fa-apple-whole"></i>
-        </div>
-        <span class="text-xs font-bold block mb-1">Fresh</span>
-        <span class="text-[10px] text-slate-400" id="count-fresh">0</span>
-      </button>
-
-      <button data-category="frozen"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-xl mb-2">
+      <!-- 2. Frozen Food -->
+      <button data-category="frozen food"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-lg shrink-0">
           <i class="fas fa-snowflake"></i>
         </div>
-        <span class="text-xs font-bold block mb-1">Frozen</span>
-        <span class="text-[10px] text-slate-400" id="count-frozen">0</span>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Frozen Food">Frozen Food</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-frozen-food">0</span>
+        </div>
       </button>
 
-      <button data-category="bayi"
-        class="category-tab-btn category-card p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center text-xl mb-2">
+      <!-- 3. Kebersihan Rumah -->
+      <button data-category="kebersihan rumah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-broom"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Kebersihan Rumah">Kebersihan Rumah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-kebersihan-rumah">0</span>
+        </div>
+      </button>
+
+      <!-- 4. Makanan Kaleng & Olahan -->
+      <button data-category="makanan kaleng & olahan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-fish"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Makanan Kaleng & Olahan">Makanan Kaleng</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-makanan-kaleng-olahan">0</span>
+        </div>
+      </button>
+
+      <!-- 5. Makanan Ringan & Snack -->
+      <button data-category="makanan ringan & snack"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-cookie-bite"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Makanan Ringan & Snack">Snack & Ringan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-makanan-ringan-snack">0</span>
+        </div>
+      </button>
+
+      <!-- 6. Mi, Pasta & Makanan Instan -->
+      <button data-category="mi, pasta & makanan instan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-bowl-food"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Mi, Pasta & Makanan Instan">Mi & Makanan Instan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-mi-pasta-makanan-instan">0</span>
+        </div>
+      </button>
+
+      <!-- 7. Minuman -->
+      <button data-category="minuman"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-glass-water"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Minuman">Minuman</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-minuman">0</span>
+        </div>
+      </button>
+
+      <!-- 8. Obat & Kesehatan -->
+      <button data-category="obat & kesehatan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-prescription-bottle-medical"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Obat & Kesehatan">Obat & Kesehatan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-obat-kesehatan">0</span>
+        </div>
+      </button>
+
+      <!-- 9. Perawatan Pribadi -->
+      <button data-category="perawatan pribadi"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-spa"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perawatan Pribadi">Perawatan Pribadi</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perawatan-pribadi">0</span>
+        </div>
+      </button>
+
+      <!-- 10. Perawatan Rumah -->
+      <button data-category="perawatan rumah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-pump-soap"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perawatan Rumah">Perawatan Rumah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perawatan-rumah">0</span>
+        </div>
+      </button>
+
+      <!-- 11. Perlengkapan Rumah Tangga -->
+      <button data-category="perlengkapan rumah tangga"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-kitchen-set"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perlengkapan Rumah Tangga">Alat Rumah Tangga</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perlengkapan-rumah-tangga">0</span>
+        </div>
+      </button>
+
+      <!-- 12. Rokok & Tembakau -->
+      <button data-category="rokok & tembakau"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-stone-200 text-stone-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-smoking"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Rokok & Tembakau">Rokok & Tembakau</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-rokok-tembakau">0</span>
+        </div>
+      </button>
+
+      <!-- 13. Sembako -->
+      <button data-category="sembako"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-yellow-100 text-yellow-800 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-wheat-awn"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Sembako">Sembako</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-sembako">0</span>
+        </div>
+      </button>
+
+      <!-- 14. Susu & Produk Bayi -->
+      <button data-category="susu & produk bayi"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center text-lg shrink-0">
           <i class="fas fa-baby"></i>
         </div>
-        <span class="text-xs font-bold block mb-1">Ibu & Bayi</span>
-        <span class="text-[10px] text-slate-400" id="count-bayi">0</span>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Susu & Produk Bayi">Susu & Bayi</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-susu-produk-bayi">0</span>
+        </div>
+      </button>
+
+      <!-- 15. Tisu & Produk Kertas -->
+      <button data-category="tisu & produk kertas"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-scroll"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Tisu & Produk Kertas">Tisu & Kertas</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-tisu-produk-kertas">0</span>
+        </div>
       </button>
 
     </div>
