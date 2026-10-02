@@ -574,14 +574,33 @@ async function loadSupabaseProductsList() {
   }
 
   try {
-    const { data, error } = await supabaseClient
-      .from("products")
-      .select("*")
-      .order("id", { ascending: true });
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
 
-    if (error) throw error;
+    while (hasMore) {
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("*")
+        .order("id", { ascending: true })
+        .range(from, from + step - 1);
 
-    liveSupabaseProducts = data || [];
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          hasMore = false;
+        } else {
+          from += step;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    liveSupabaseProducts = allData || [];
     renderSupabaseProductsTable(liveSupabaseProducts);
 
     if (countBadge) {

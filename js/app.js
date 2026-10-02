@@ -172,6 +172,8 @@ let activeCategory = "all";
 let searchQuery = "";
 let currentBannerIndex = 0;
 let bannerInterval = null;
+let currentPage = 1;
+const ITEMS_PER_PAGE = 50;
 
 // Initial Load
 document.addEventListener("DOMContentLoaded", () => {
@@ -206,19 +208,38 @@ async function fetchProductsFromDatabase() {
     updateCategoryCounts();
   }
 
-  // Ambil langsung dari Supabase
+  // Ambil langsung dari Supabase (dengan pagination batching agar bisa mengambil lebih dari batas default 1.000 row)
   const supabaseClient = getSupabaseClient();
   if (supabaseClient) {
     try {
-      const { data, error } = await supabaseClient
-        .from("products")
-        .select("*")
-        .order("id", { ascending: true });
+      let allData = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data, error } = await supabaseClient
+          .from("products")
+          .select("*")
+          .order("id", { ascending: true })
+          .range(from, from + step - 1);
 
-      if (data && data.length > 0) {
-        productsList = data.map(p => ({
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = allData.concat(data);
+          if (data.length < step) {
+            hasMore = false;
+          } else {
+            from += step;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allData.length > 0) {
+        productsList = allData.map(p => ({
           id: p.id,
           name: p.name,
           price: Number(p.price) || 0,
@@ -497,6 +518,7 @@ function renderProducts() {
   const container = document.getElementById("productGridContainer");
   const countDisplay = document.getElementById("productCountInfo");
   const emptyState = document.getElementById("emptyStateContainer");
+  const paginationContainer = document.getElementById("paginationContainer");
 
   if (!container) return;
 
@@ -510,19 +532,39 @@ function renderProducts() {
     return matchesCategory && matchesSearch;
   });
 
-  if (countDisplay) {
-    countDisplay.textContent = `Menampilkan ${filtered.length} produk pilihan`;
+  const totalFiltered = filtered.length;
+  const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE) || 1;
+
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
+  }
+  if (currentPage < 1) {
+    currentPage = 1;
   }
 
-  if (filtered.length === 0) {
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalFiltered);
+  const paginatedProducts = filtered.slice(startIndex, endIndex);
+
+  if (countDisplay) {
+    if (totalFiltered > ITEMS_PER_PAGE) {
+      countDisplay.textContent = `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalFiltered} produk pilihan (Halaman ${currentPage}/${totalPages})`;
+    } else {
+      countDisplay.textContent = `Menampilkan ${totalFiltered} produk pilihan`;
+    }
+  }
+
+  if (totalFiltered === 0) {
     container.innerHTML = "";
     if (emptyState) emptyState.classList.remove("hidden");
+    if (paginationContainer) paginationContainer.classList.add("hidden");
     return;
   } else {
     if (emptyState) emptyState.classList.add("hidden");
+    if (paginationContainer) paginationContainer.classList.remove("hidden");
   }
 
-  container.innerHTML = filtered.map((product) => {
+  container.innerHTML = paginatedProducts.map((product) => {
     const formattedPrice = formatRupiah(product.price);
     const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
 
@@ -531,43 +573,150 @@ function renderProducts() {
         <div class="product-card-body" onclick="openProductPreview('${product.id}')">
           <div class="product-image-wrap">
             <img src="${imageSrc}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
-            <span class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase shadow-sm">
+            <span class="absolute top-2 right-2 bg-[#38b6ff] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md uppercase shadow-sm">
               ${product.category}
             </span>
           </div>
 
-          <div class="p-4">
-            <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span class="capitalize font-bold text-[#0077d6] bg-[#e8f7ff] px-2 py-0.5 rounded-md">${product.category}</span>
-              <span class="badge-stock px-2 py-0.5 rounded-full text-[11px]">${product.stock || 'Ready'}</span>
+          <div class="p-2.5 sm:p-4">
+            <div class="flex items-center justify-between text-[10px] sm:text-xs text-slate-500 mb-1 gap-1">
+              <span class="capitalize font-bold text-[#0077d6] bg-[#e8f7ff] px-1.5 py-0.5 rounded text-[10px] sm:text-xs truncate max-w-[65%]">${product.category}</span>
+              <span class="badge-stock px-1.5 py-0.5 rounded-full text-[9px] sm:text-[11px] shrink-0">${product.stock || 'Ready'}</span>
             </div>
 
-            <h3 class="font-bold text-slate-800 text-sm md:text-base mb-1 group-hover:text-[#38b6ff] transition-colors line-clamp-2" title="${product.name}">
+            <h3 class="font-bold text-slate-800 text-xs sm:text-base mb-1 group-hover:text-[#38b6ff] transition-colors line-clamp-2 leading-snug sm:leading-normal" title="${product.name}">
               ${product.name}
             </h3>
             
-            <p class="text-xs text-slate-400 mb-2">${product.unit || '1 Pcs'}</p>
+            <p class="text-[10px] sm:text-xs text-slate-400 mb-1.5 sm:mb-2 truncate">${product.unit || '1 Pcs'}</p>
 
-            <div class="mb-4">
-              <span class="text-lg md:text-xl font-extrabold text-[#0077d6]">${formattedPrice}</span>
+            <div class="mb-2 sm:mb-4">
+              <span class="text-sm sm:text-xl font-extrabold text-[#0077d6]">${formattedPrice}</span>
             </div>
           </div>
         </div>
 
-        <div class="p-4 pt-0 space-y-2">
-          <button onclick="addToCart('${product.id}', 1)" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm transition">
-            <i class="fas fa-cart-plus text-base"></i>
+        <div class="p-2.5 sm:p-4 pt-0 space-y-1.5 sm:space-y-2">
+          <button onclick="addToCart('${product.id}', 1)" class="w-full py-1.5 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white text-[11px] sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm transition">
+            <i class="fas fa-cart-plus text-xs sm:text-base"></i>
             <span>+ Keranjang</span>
           </button>
           
-          <button onclick="orderSingleItemWA('${product.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition">
-            <i class="fab fa-whatsapp text-emerald-600 text-sm"></i>
-            <span>Tanya Langsung via WA</span>
+          <button onclick="orderSingleItemWA('${product.id}')" class="w-full py-1 sm:py-2 px-2 sm:px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition">
+            <i class="fab fa-whatsapp text-emerald-600 text-xs sm:text-sm"></i>
+            <span class="truncate">Tanya WA</span>
           </button>
         </div>
       </div>
     `;
   }).join("");
+
+  renderPaginationControls(totalPages, totalFiltered, startIndex, endIndex);
+}
+
+/**
+ * Render tombol navigasi halaman (Pagination)
+ */
+function renderPaginationControls(totalPages, totalFiltered, startIndex, endIndex) {
+  const paginationContainer = document.getElementById("paginationContainer");
+  const paginationInfo = document.getElementById("paginationInfo");
+  const paginationButtons = document.getElementById("paginationButtons");
+
+  if (!paginationContainer || !paginationButtons) return;
+
+  if (totalFiltered <= ITEMS_PER_PAGE) {
+    paginationContainer.classList.add("hidden");
+    return;
+  }
+
+  paginationContainer.classList.remove("hidden");
+
+  if (paginationInfo) {
+    paginationInfo.textContent = `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalFiltered} produk`;
+  }
+
+  let btnsHtml = "";
+
+  // Tombol Prev
+  btnsHtml += `
+    <button onclick="goToCatalogPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}
+      class="px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${
+        currentPage <= 1
+          ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
+          : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-[#0077d6] border-slate-300 shadow-sm'
+      }">
+      <i class="fas fa-chevron-left text-[10px]"></i>
+      <span class="hidden sm:inline">Sebelumnya</span>
+    </button>
+  `;
+
+  // Nomor halaman
+  const maxButtonsToShow = 5;
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, startPage + maxButtonsToShow - 1);
+  if (endPage - startPage < maxButtonsToShow - 1) {
+    startPage = Math.max(1, endPage - maxButtonsToShow + 1);
+  }
+
+  if (startPage > 1) {
+    btnsHtml += `
+      <button onclick="goToCatalogPage(1)" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition">1</button>
+    `;
+    if (startPage > 2) {
+      btnsHtml += `<span class="px-1 text-slate-400 text-xs">...</span>`;
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const isActive = i === currentPage;
+    btnsHtml += `
+      <button onclick="goToCatalogPage(${i})"
+        class="w-8 h-8 rounded-xl text-xs font-bold transition ${
+          isActive
+            ? 'bg-gradient-to-r from-[#38b6ff] to-[#0099ff] text-white shadow-sm shadow-sky-400/30'
+            : 'border border-slate-200 bg-white text-slate-700 hover:bg-sky-50 hover:text-[#0077d6]'
+        }">
+        ${i}
+      </button>
+    `;
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      btnsHtml += `<span class="px-1 text-slate-400 text-xs">...</span>`;
+    }
+    btnsHtml += `
+      <button onclick="goToCatalogPage(${totalPages})" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition">${totalPages}</button>
+    `;
+  }
+
+  // Tombol Next
+  btnsHtml += `
+    <button onclick="goToCatalogPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}
+      class="px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${
+        currentPage >= totalPages
+          ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
+          : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-[#0077d6] border-slate-300 shadow-sm'
+      }">
+      <span class="hidden sm:inline">Selanjutnya</span>
+      <i class="fas fa-chevron-right text-[10px]"></i>
+    </button>
+  `;
+
+  paginationButtons.innerHTML = btnsHtml;
+}
+
+/**
+ * Pindah ke halaman tertentu dan scroll ke atas katalog
+ */
+function goToCatalogPage(page) {
+  currentPage = page;
+  renderProducts();
+
+  const grid = document.getElementById("productGridContainer");
+  if (grid) {
+    grid.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function updateCategoryCounts() {
@@ -610,6 +759,7 @@ function setupEventListeners() {
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       searchQuery = e.target.value.toLowerCase().trim();
+      currentPage = 1;
       renderProducts();
     });
   }
@@ -620,6 +770,7 @@ function setupEventListeners() {
       categoryBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       activeCategory = btn.getAttribute("data-category");
+      currentPage = 1;
       renderProducts();
     });
   });
