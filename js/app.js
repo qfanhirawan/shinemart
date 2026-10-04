@@ -61,6 +61,74 @@ function formatGoogleDriveImageUrl(url) {
   return trimmed;
 }
 
+/**
+ * Ekstraksi info promo dari string stok (misal: "Ready [PROMO:percent:20]")
+ */
+function parsePromo(stockStr) {
+  if (!stockStr || typeof stockStr !== "string") {
+    return { cleanStock: stockStr || "Ready", promo: null };
+  }
+  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)\]/i);
+  if (match) {
+    const type = match[1].toLowerCase();
+    const value = Number(match[2]) || 0;
+    const cleanStock = stockStr.replace(match[0], "").trim() || "Ready";
+    return {
+      cleanStock: cleanStock,
+      promo: {
+        type: type, // 'percent', 'b1g1', 'nominal'
+        value: value
+      }
+    };
+  }
+  return { cleanStock: stockStr.trim() || "Ready", promo: null };
+}
+
+/**
+ * Hitung kalkulasi promo (harga asli, diskon, harga akhir, label)
+ */
+function getPromoDetails(originalPrice, promo) {
+  const basePrice = Number(originalPrice) || 0;
+  if (!promo || !promo.type || promo.type === "none") {
+    return {
+      hasPromo: false,
+      promoType: "none",
+      promoValue: 0,
+      finalPrice: basePrice,
+      originalPrice: basePrice,
+      discountAmount: 0,
+      label: ""
+    };
+  }
+  let finalPrice = basePrice;
+  let discountAmount = 0;
+  let label = "";
+
+  if (promo.type === "percent") {
+    const percent = Math.min(Math.max(Number(promo.value) || 0, 1), 99);
+    discountAmount = Math.round((basePrice * percent) / 100);
+    finalPrice = Math.max(0, basePrice - discountAmount);
+    label = `Diskon ${percent}%`;
+  } else if (promo.type === "nominal") {
+    discountAmount = Math.min(basePrice, Number(promo.value) || 0);
+    finalPrice = Math.max(0, basePrice - discountAmount);
+    label = `Hemat ${formatRupiah(discountAmount)}`;
+  } else if (promo.type === "b1g1") {
+    finalPrice = basePrice;
+    label = "Buy 1 Get 1";
+  }
+
+  return {
+    hasPromo: true,
+    promoType: promo.type,
+    promoValue: promo.value,
+    finalPrice: finalPrice,
+    originalPrice: basePrice,
+    discountAmount: discountAmount,
+    label: label
+  };
+}
+
 // Data produk katalog Shinemart
 const DEFAULT_PRODUCTS = [
   {
@@ -183,6 +251,25 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchProductsFromDatabase();
 });
 
+function mapProductWithPromo(p) {
+  const promoInfo = parsePromo(p.stock);
+  const originalPrice = Number(p.price) || 0;
+  const promoDetails = getPromoDetails(originalPrice, promoInfo.promo);
+
+  return {
+    id: p.id,
+    name: p.name,
+    price: originalPrice,
+    category: String(p.category || "sembako").toLowerCase(),
+    imageUrl: formatGoogleDriveImageUrl(p.image_url || p.imageUrl || p.image),
+    stock: promoInfo.cleanStock || "Ready",
+    unit: p.unit || "1 Pcs",
+    rawStock: p.stock,
+    promo: promoInfo.promo,
+    promoDetails: promoDetails
+  };
+}
+
 // ==============================================================================
 // FETCH KATALOG PRODUK DARI SUPABASE DATABASE
 // ==============================================================================
@@ -196,14 +283,15 @@ async function fetchProductsFromDatabase() {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (cached) {
     try {
-      productsList = JSON.parse(cached);
+      const rawCached = JSON.parse(cached);
+      productsList = Array.isArray(rawCached) ? rawCached.map(mapProductWithPromo) : DEFAULT_PRODUCTS.map(mapProductWithPromo);
       renderProducts();
       updateCategoryCounts();
     } catch (e) {
-      productsList = [...DEFAULT_PRODUCTS];
+      productsList = DEFAULT_PRODUCTS.map(mapProductWithPromo);
     }
   } else {
-    productsList = [...DEFAULT_PRODUCTS];
+    productsList = DEFAULT_PRODUCTS.map(mapProductWithPromo);
     renderProducts();
     updateCategoryCounts();
   }
@@ -239,15 +327,7 @@ async function fetchProductsFromDatabase() {
       }
 
       if (allData.length > 0) {
-        productsList = allData.map(p => ({
-          id: p.id,
-          name: p.name,
-          price: Number(p.price) || 0,
-          category: String(p.category || "sembako").toLowerCase(),
-          imageUrl: formatGoogleDriveImageUrl(p.image_url || p.imageUrl || p.image),
-          stock: p.stock !== undefined && p.stock !== "" ? p.stock : "Ready",
-          unit: p.unit || "1 Pcs"
-        }));
+        productsList = allData.map(mapProductWithPromo);
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(productsList));
         renderProducts();
@@ -297,6 +377,10 @@ function addToCart(productId, qty = 1) {
   const product = productsList.find(p => String(p.id) === String(productId));
   if (!product) return;
 
+  const effectivePrice = product.promoDetails && product.promoDetails.hasPromo
+    ? product.promoDetails.finalPrice
+    : product.price;
+
   const existingIdx = cartItems.findIndex(item => String(item.id) === String(productId));
   if (existingIdx > -1) {
     cartItems[existingIdx].qty += qty;
@@ -304,7 +388,9 @@ function addToCart(productId, qty = 1) {
     cartItems.push({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: effectivePrice,
+      originalPrice: product.price,
+      promoDetails: product.promoDetails || null,
       unit: product.unit,
       imageUrl: product.imageUrl || product.image,
       qty: qty
@@ -317,8 +403,8 @@ function addToCart(productId, qty = 1) {
   // Animasi getar pada ikon keranjang header
   const headerCartBtn = document.getElementById("headerCartBtn");
   if (headerCartBtn) {
-    headerCartBtn.classList.add("scale-125");
-    setTimeout(() => headerCartBtn.classList.remove("scale-125"), 250);
+    headerCartBtn.classList.add("scale-110");
+    setTimeout(() => headerCartBtn.classList.remove("scale-110"), 200);
   }
 }
 
@@ -331,6 +417,8 @@ function updateCartItemQty(productId, delta) {
     }
     saveCartToStorage();
     renderCartModal();
+  } else if (delta > 0) {
+    addToCart(productId, delta);
   }
 }
 
@@ -422,13 +510,26 @@ function renderCartModal() {
     grandTotal += subtotal;
     totalQty += item.qty;
 
+    const promoBadge = item.promoDetails && item.promoDetails.hasPromo ? `
+      <span class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-pink-100 text-pink-600 border border-pink-200">
+        <i class="fas fa-bolt text-rose-500"></i> ${item.promoDetails.label}
+      </span>
+    ` : "";
+
+    const priceSubtext = item.promoDetails && item.promoDetails.hasPromo && item.originalPrice !== item.price
+      ? `${item.unit || '1 Pcs'} • <span class="line-through text-slate-400">${formatRupiah(item.originalPrice)}</span> <span class="text-rose-600 font-bold">${formatRupiah(item.price)}</span>`
+      : `${item.unit || '1 Pcs'} • ${formatRupiah(item.price)}`;
+
     return `
       <div class="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-sky-50/50 rounded-2xl border border-slate-100 transition-colors">
         <div class="flex items-center gap-3">
           <img src="${item.imageUrl}" alt="${item.name}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
           <div>
-            <h4 class="font-bold text-slate-800 text-xs md:text-sm line-clamp-1">${item.name}</h4>
-            <span class="text-[11px] text-slate-400 block">${item.unit || '1 Pcs'} • ${formatRupiah(item.price)}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-bold text-slate-800 text-xs md:text-sm line-clamp-1">${item.name}</h4>
+              ${promoBadge}
+            </div>
+            <span class="text-[11px] text-slate-400 block">${priceSubtext}</span>
             <div class="text-xs font-extrabold text-[#0077d6] mt-0.5">${formatRupiah(subtotal)}</div>
           </div>
         </div>
@@ -466,7 +567,8 @@ function checkoutCartViaWhatsApp() {
   cartItems.forEach((item, index) => {
     const subtotal = item.price * item.qty;
     totalPerkiraan += subtotal;
-    itemsText += `${index + 1}. ${item.name} - ${item.qty} x ${formatRupiah(item.price)} = ${formatRupiah(subtotal)}\n`;
+    const promoNote = item.promoDetails && item.promoDetails.hasPromo ? ` [PROMO: ${item.promoDetails.label}]` : "";
+    itemsText += `${index + 1}. ${item.name}${promoNote} - ${item.qty} x ${formatRupiah(item.price)} = ${formatRupiah(subtotal)}\n`;
   });
 
   const fullMessage = 
@@ -486,9 +588,17 @@ function orderSingleItemWA(productId) {
   const product = productsList.find(p => String(p.id) === String(productId));
   if (!product) return;
 
+  const effectivePrice = product.promoDetails && product.promoDetails.hasPromo
+    ? product.promoDetails.finalPrice
+    : product.price;
+
+  const promoNote = product.promoDetails && product.promoDetails.hasPromo
+    ? ` [PROMO: ${product.promoDetails.label} - dari ${formatRupiah(product.price)} jadi ${formatRupiah(effectivePrice)}]`
+    : ` - ${formatRupiah(product.price)}`;
+
   const message = 
 `Halo Shinemart, saya mau tanya / pesan barang ini:
-• ${product.name} (${product.unit || '1 Pcs'}) - ${formatRupiah(product.price)}
+• ${product.name} (${product.unit || '1 Pcs'})${promoNote}
 
 Apakah ready untuk dikirim? Terima kasih!`;
 
@@ -514,22 +624,157 @@ function normalizeCategoryKey(cat) {
   return String(cat).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// ==============================================================================
+// RENDER SECTION PROMO KHUSUS (1 BARIS HORIZONTAL SCROLL)
+// ==============================================================================
+function renderPromoSection() {
+  const promoSection = document.getElementById("promoSection");
+  const promoCarousel = document.getElementById("promoCarouselContainer");
+  const promoBadgeCount = document.getElementById("promoBadgeCount");
+
+  if (!promoSection || !promoCarousel) return;
+
+  // Filter semua produk yang memiliki promo aktif
+  const promoProducts = productsList.filter(p => p.promoDetails && p.promoDetails.hasPromo);
+
+  if (promoProducts.length === 0) {
+    promoSection.classList.add("hidden");
+    return;
+  }
+
+  promoSection.classList.remove("hidden");
+  if (promoBadgeCount) {
+    promoBadgeCount.textContent = `${promoProducts.length} Promo`;
+  }
+
+  promoCarousel.innerHTML = promoProducts.map((product) => {
+    const promo = product.promoDetails;
+    const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
+
+    let ribbonText = promo.label;
+    let ribbonIcon = "fa-bolt";
+    let ribbonBg = "bg-gradient-to-r from-pink-500 to-rose-600";
+
+    if (promo.promoType === "percent") {
+      ribbonText = `Diskon ${promo.promoValue}%`;
+      ribbonIcon = "fa-bolt";
+      ribbonBg = "bg-gradient-to-r from-pink-500 to-rose-600";
+    } else if (promo.promoType === "b1g1") {
+      ribbonText = "Buy 1 Get 1";
+      ribbonIcon = "fa-gift";
+      ribbonBg = "bg-gradient-to-r from-purple-600 to-pink-600";
+    } else if (promo.promoType === "nominal") {
+      ribbonText = `Hemat ${formatRupiah(promo.discountAmount)}`;
+      ribbonIcon = "fa-tag";
+      ribbonBg = "bg-gradient-to-r from-rose-500 to-red-600";
+    }
+
+    let priceHtml = "";
+    if (promo.promoType === "percent" || promo.promoType === "nominal") {
+      priceHtml = `
+        <div class="flex flex-col">
+          <span class="text-[9px] sm:text-[11px] text-slate-400 line-through font-semibold leading-tight">${formatRupiah(product.price)}</span>
+          <span class="text-xs sm:text-base font-black text-rose-600 leading-tight">${formatRupiah(promo.finalPrice)}</span>
+        </div>
+      `;
+    } else if (promo.promoType === "b1g1") {
+      priceHtml = `
+        <div class="flex flex-col">
+          <span class="text-xs sm:text-base font-black text-[#0077d6] leading-tight">${formatRupiah(product.price)}</span>
+          <span class="text-[8px] sm:text-[10px] font-extrabold text-purple-700 bg-purple-100 px-1 py-0.5 rounded w-fit mt-0.5">Beli 1 Gratis 1</span>
+        </div>
+      `;
+    } else {
+      priceHtml = `<span class="text-xs sm:text-base font-black text-[#0077d6]">${formatRupiah(product.price)}</span>`;
+    }
+
+    return `
+      <div class="promo-carousel-card shrink-0 bg-white rounded-2xl shadow-sm border-2 border-pink-300 hover:border-pink-500 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
+        <div class="product-card-body" onclick="openProductPreview('${product.id}')">
+          <div class="product-image-wrap relative">
+            <div class="absolute top-1.5 left-1.5 z-10 ${ribbonBg} text-white text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded uppercase shadow-sm flex items-center gap-1">
+              <i class="fas ${ribbonIcon} text-yellow-300"></i> ${ribbonText}
+            </div>
+            <img src="${imageSrc}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <span class="absolute top-1.5 right-1.5 bg-[#38b6ff] text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+              ${product.category}
+            </span>
+          </div>
+
+          <div class="p-2 sm:p-3">
+            <div class="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-500 mb-0.5">
+              <span class="capitalize font-bold text-[#0077d6] truncate max-w-[65%]">${product.category}</span>
+              <span class="badge-stock px-1 rounded-full text-[8px] sm:text-[9px] shrink-0">${product.stock || 'Ready'}</span>
+            </div>
+
+            <h3 class="font-bold text-slate-800 text-[11px] sm:text-xs mb-1 line-clamp-2 leading-tight group-hover:text-pink-600 transition-colors" title="${product.name}">
+              ${product.name}
+            </h3>
+
+            <p class="text-[9px] sm:text-[10px] text-slate-400 mb-1 truncate">${product.unit || '1 Pcs'}</p>
+
+            <div>
+              ${priceHtml}
+            </div>
+          </div>
+        </div>
+
+        <div class="p-2 sm:p-3 pt-0 space-y-1">
+          <button onclick="addToCart('${product.id}', 1)" class="w-full py-1.5 px-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 text-white text-[10px] sm:text-xs font-black flex items-center justify-center gap-1 shadow-sm transition active:scale-95">
+            <i class="fas fa-cart-plus text-[10px]"></i>
+            <span>+ Keranjang</span>
+          </button>
+          <button onclick="orderSingleItemWA('${product.id}')" class="w-full py-1 px-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition">
+            <i class="fab fa-whatsapp text-emerald-600 text-xs"></i>
+            <span class="truncate">Tanya WA</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function scrollPromoCarousel(direction) {
+  const container = document.getElementById("promoCarouselContainer");
+  if (!container) return;
+  const scrollDistance = 240 * direction;
+  container.scrollBy({ left: scrollDistance, behavior: "smooth" });
+}
+
+// ==============================================================================
+// RENDER KATALOG PRODUK REGULER & FILTER
+// ==============================================================================
 function renderProducts() {
   const container = document.getElementById("productGridContainer");
   const countDisplay = document.getElementById("productCountInfo");
   const emptyState = document.getElementById("emptyStateContainer");
   const paginationContainer = document.getElementById("paginationContainer");
 
+  // Selalu perbarui section promo horizontal
+  renderPromoSection();
+
   if (!container) return;
 
   const activeNorm = normalizeCategoryKey(activeCategory);
 
+  // Filter produk:
+  // - Pisahkan produk yang sedang promo dari katalog reguler (kecuali user sengaja mencari kata 'promo' / 'diskon')
+  const isPromoSearch = searchQuery === "promo" || searchQuery === "diskon" || searchQuery === "b1g1";
+
   let filtered = productsList.filter((item) => {
     const itemNorm = normalizeCategoryKey(item.category);
     const matchesCategory = activeCategory === "all" || itemNorm === activeNorm || itemNorm.includes(activeNorm);
+
+    if (isPromoSearch) {
+      return matchesCategory && item.promoDetails && item.promoDetails.hasPromo;
+    }
+
+    // Katalog reguler hanya menampilkan produk non-promo agar terpisah jelas dari carousel promo di atas
+    const isRegularItem = !(item.promoDetails && item.promoDetails.hasPromo);
     const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
       item.category.toLowerCase().includes(searchQuery);
-    return matchesCategory && matchesSearch;
+
+    return matchesCategory && matchesSearch && isRegularItem;
   });
 
   const totalFiltered = filtered.length;
@@ -569,7 +814,7 @@ function renderProducts() {
     const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
 
     return `
-      <div class="product-card rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between group">
+      <div class="product-card rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between group bg-white">
         <div class="product-card-body" onclick="openProductPreview('${product.id}')">
           <div class="product-image-wrap">
             <img src="${imageSrc}" alt="${product.name}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
@@ -847,17 +1092,47 @@ function openProductPreview(productId) {
   const product = productsList.find(p => String(p.id) === String(productId));
   if (!product) return;
 
+  const isPromo = product.promoDetails && product.promoDetails.hasPromo;
+  const promo = product.promoDetails;
   const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
-  const formattedPrice = formatRupiah(product.price);
 
   // Populate modal content
   document.getElementById("previewImage").src = imageSrc;
   document.getElementById("previewImage").alt = product.name;
   document.getElementById("previewName").textContent = product.name;
   document.getElementById("previewCategory").textContent = product.category;
-  document.getElementById("previewPrice").textContent = formattedPrice;
   document.getElementById("previewStock").textContent = product.stock || "Ready";
   document.getElementById("previewUnit").textContent = product.unit || "1 Pcs";
+
+  const priceEl = document.getElementById("previewPrice");
+  if (priceEl) {
+    if (isPromo && promo.promoType === "percent") {
+      priceEl.innerHTML = `
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <span class="text-2xl font-black text-rose-600">${formatRupiah(promo.finalPrice)}</span>
+          <span class="text-sm text-slate-400 line-through font-semibold">${formatRupiah(product.price)}</span>
+          <span class="text-xs font-extrabold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-md uppercase">Diskon ${promo.promoValue}%</span>
+        </div>
+      `;
+    } else if (isPromo && promo.promoType === "nominal") {
+      priceEl.innerHTML = `
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <span class="text-2xl font-black text-rose-600">${formatRupiah(promo.finalPrice)}</span>
+          <span class="text-sm text-slate-400 line-through font-semibold">${formatRupiah(product.price)}</span>
+          <span class="text-xs font-extrabold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-md uppercase">${promo.label}</span>
+        </div>
+      `;
+    } else if (isPromo && promo.promoType === "b1g1") {
+      priceEl.innerHTML = `
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <span class="text-2xl font-black text-[#0077d6]">${formatRupiah(product.price)}</span>
+          <span class="text-xs font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md uppercase">Buy 1 Get 1 Free</span>
+        </div>
+      `;
+    } else {
+      priceEl.textContent = formatRupiah(product.price);
+    }
+  }
 
   // Set button actions
   document.getElementById("previewAddCartBtn").onclick = () => {

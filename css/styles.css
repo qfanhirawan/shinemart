@@ -262,3 +262,64 @@ body {
   object-fit: contain;
   padding: 12px;
 }
+
+/* ==========================================================================
+   PROMO PRODUCT STYLES (Diskon %, Buy 1 Get 1, Diskon Nominal)
+   ========================================================================== */
+.promo-card {
+  position: relative;
+  border: 2px solid #ff66c4 !important;
+  box-shadow: 0 6px 20px rgba(255, 102, 196, 0.16) !important;
+  background: #ffffff;
+  transition: all 0.25s ease-in-out;
+}
+
+.promo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(255, 102, 196, 0.25) !important;
+  border-color: #e043a5 !important;
+}
+
+.promo-badge-glow {
+  box-shadow: 0 2px 8px rgba(255, 102, 196, 0.35);
+  animation: promoPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes promoPulse {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.03);
+  }
+}
+
+/* Horizontal Promo Carousel Card */
+.promo-carousel-card {
+  flex: 0 0 170px;
+  max-width: 170px;
+}
+
+@media (min-width: 640px) {
+  .promo-carousel-card {
+    flex: 0 0 210px;
+    max-width: 210px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .promo-carousel-card {
+    flex: 0 0 230px;
+    max-width: 230px;
+  }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

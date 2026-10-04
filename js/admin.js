@@ -620,6 +620,74 @@ async function loadSupabaseProductsList() {
 }
 
 /**
+ * Ekstraksi info promo dari string stok (misal: "Ready [PROMO:percent:20]")
+ */
+function parsePromo(stockStr) {
+  if (!stockStr || typeof stockStr !== "string") {
+    return { cleanStock: stockStr || "Ready", promo: null };
+  }
+  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)\]/i);
+  if (match) {
+    const type = match[1].toLowerCase();
+    const value = Number(match[2]) || 0;
+    const cleanStock = stockStr.replace(match[0], "").trim() || "Ready";
+    return {
+      cleanStock: cleanStock,
+      promo: {
+        type: type, // 'percent', 'b1g1', 'nominal'
+        value: value
+      }
+    };
+  }
+  return { cleanStock: stockStr.trim() || "Ready", promo: null };
+}
+
+/**
+ * Hitung kalkulasi promo (harga asli, diskon, harga akhir, label)
+ */
+function getPromoDetails(originalPrice, promo) {
+  const basePrice = Number(originalPrice) || 0;
+  if (!promo || !promo.type || promo.type === "none") {
+    return {
+      hasPromo: false,
+      promoType: "none",
+      promoValue: 0,
+      finalPrice: basePrice,
+      originalPrice: basePrice,
+      discountAmount: 0,
+      label: ""
+    };
+  }
+  let finalPrice = basePrice;
+  let discountAmount = 0;
+  let label = "";
+
+  if (promo.type === "percent") {
+    const percent = Math.min(Math.max(Number(promo.value) || 0, 1), 99);
+    discountAmount = Math.round((basePrice * percent) / 100);
+    finalPrice = Math.max(0, basePrice - discountAmount);
+    label = `Diskon ${percent}%`;
+  } else if (promo.type === "nominal") {
+    discountAmount = Math.min(basePrice, Number(promo.value) || 0);
+    finalPrice = Math.max(0, basePrice - discountAmount);
+    label = `Hemat ${formatRupiah(discountAmount)}`;
+  } else if (promo.type === "b1g1") {
+    finalPrice = basePrice;
+    label = "Buy 1 Get 1";
+  }
+
+  return {
+    hasPromo: true,
+    promoType: promo.type,
+    promoValue: promo.value,
+    finalPrice: finalPrice,
+    originalPrice: basePrice,
+    discountAmount: discountAmount,
+    label: label
+  };
+}
+
+/**
  * Render tabel produk live Supabase
  */
 function renderSupabaseProductsTable(items) {
@@ -639,6 +707,43 @@ function renderSupabaseProductsTable(items) {
 
   tbody.innerHTML = items.map((item, idx) => {
     const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
+    const promoInfo = parsePromo(item.stock);
+    const promoDetails = getPromoDetails(item.price, promoInfo.promo);
+
+    let priceHtml = `<div class="font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</div>`;
+    if (promoDetails.hasPromo) {
+      if (promoDetails.promoType === "b1g1") {
+        priceHtml = `
+          <div>
+            <div class="font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</div>
+            <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 font-extrabold text-[9px] px-1.5 py-0.5 rounded mt-0.5">
+              <i class="fas fa-gift text-amber-600"></i> BUY 1 GET 1
+            </span>
+          </div>
+        `;
+      } else if (promoDetails.promoType === "percent") {
+        priceHtml = `
+          <div>
+            <span class="text-[10px] text-slate-400 line-through">${formatRupiah(item.price)}</span>
+            <div class="font-extrabold text-pink-600">${formatRupiah(promoDetails.finalPrice)}</div>
+            <span class="inline-flex items-center gap-1 bg-pink-100 text-[#ff66c4] font-black text-[9px] px-1.5 py-0.5 rounded mt-0.5">
+              <i class="fas fa-fire"></i> DISKON ${promoDetails.promoValue}%
+            </span>
+          </div>
+        `;
+      } else if (promoDetails.promoType === "nominal") {
+        priceHtml = `
+          <div>
+            <span class="text-[10px] text-slate-400 line-through">${formatRupiah(item.price)}</span>
+            <div class="font-extrabold text-emerald-600">${formatRupiah(promoDetails.finalPrice)}</div>
+            <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 font-black text-[9px] px-1.5 py-0.5 rounded mt-0.5">
+              <i class="fas fa-tags"></i> -${formatRupiah(promoDetails.discountAmount)}
+            </span>
+          </div>
+        `;
+      }
+    }
+
     return `
       <tr class="hover:bg-sky-50/40 border-b border-slate-100 transition text-xs">
         <td class="py-3 px-3 font-mono text-slate-400 text-center">${idx + 1}</td>
@@ -654,10 +759,10 @@ function renderSupabaseProductsTable(items) {
         <td class="py-3 px-3">
           <span class="capitalize font-semibold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded text-[11px]">${item.category || 'sembako'}</span>
         </td>
-        <td class="py-3 px-3 font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</td>
+        <td class="py-3 px-3">${priceHtml}</td>
         <td class="py-3 px-3 text-slate-500">${item.unit || '1 Pcs'}</td>
         <td class="py-3 px-3">
-          <span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">${item.stock || 'Ready'}</span>
+          <span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">${promoInfo.cleanStock || 'Ready'}</span>
         </td>
         <td class="py-3 px-3 text-center">
           <div class="flex items-center justify-center gap-1.5">
@@ -679,6 +784,91 @@ function renderSupabaseProductsTable(items) {
 }
 
 /**
+ * Handle perubahan jenis promo pada dropdown edit produk
+ */
+function handlePromoTypeChange() {
+  const type = document.getElementById("editProductPromoType")?.value || "none";
+  const valWrapper = document.getElementById("promoValueWrapper");
+  const valLabel = document.getElementById("promoValueLabel");
+  const valUnit = document.getElementById("promoValueUnit");
+  const valInput = document.getElementById("editProductPromoValue");
+  const summaryBox = document.getElementById("promoSummaryBox");
+  const b1g1Notice = document.getElementById("promoB1G1Notice");
+
+  if (type === "none") {
+    if (valWrapper) valWrapper.classList.add("hidden");
+    if (summaryBox) summaryBox.classList.add("hidden");
+    if (b1g1Notice) b1g1Notice.classList.add("hidden");
+    return;
+  }
+
+  if (summaryBox) summaryBox.classList.remove("hidden");
+
+  if (type === "percent") {
+    if (valWrapper) valWrapper.classList.remove("hidden");
+    if (valLabel) valLabel.textContent = "Besar Diskon (%)";
+    if (valUnit) valUnit.textContent = "%";
+    if (valInput) {
+      valInput.placeholder = "20";
+      valInput.max = "99";
+      valInput.step = "1";
+    }
+    if (b1g1Notice) b1g1Notice.classList.add("hidden");
+  } else if (type === "nominal") {
+    if (valWrapper) valWrapper.classList.remove("hidden");
+    if (valLabel) valLabel.textContent = "Nominal Potongan (Rp)";
+    if (valUnit) valUnit.textContent = "Rp";
+    if (valInput) {
+      valInput.placeholder = "5000";
+      valInput.removeAttribute("max");
+      valInput.step = "100";
+    }
+    if (b1g1Notice) b1g1Notice.classList.add("hidden");
+  } else if (type === "b1g1") {
+    if (valWrapper) valWrapper.classList.add("hidden");
+    if (b1g1Notice) b1g1Notice.classList.remove("hidden");
+  }
+
+  updatePromoCalculationPreview();
+}
+
+/**
+ * Live kalkulasi harga promo pada modal edit produk
+ */
+function updatePromoCalculationPreview() {
+  const price = Number(document.getElementById("editProductPrice")?.value) || 0;
+  const type = document.getElementById("editProductPromoType")?.value || "none";
+  const val = Number(document.getElementById("editProductPromoValue")?.value) || 0;
+
+  const summaryBox = document.getElementById("promoSummaryBox");
+  if (!summaryBox) return;
+
+  if (type === "none") {
+    summaryBox.classList.add("hidden");
+    return;
+  }
+  summaryBox.classList.remove("hidden");
+
+  const details = getPromoDetails(price, { type, value: val });
+
+  const origEl = document.getElementById("promoOriginalPricePreview");
+  const discLabel = document.getElementById("promoDiscountLabelPreview");
+  const discEl = document.getElementById("promoDiscountAmountPreview");
+  const finalEl = document.getElementById("promoFinalPricePreview");
+
+  if (origEl) origEl.textContent = formatRupiah(details.originalPrice);
+  if (finalEl) finalEl.textContent = formatRupiah(details.finalPrice);
+
+  if (type === "b1g1") {
+    if (discLabel) discLabel.textContent = "Bonus Tambahan:";
+    if (discEl) discEl.textContent = "+1 Pcs Gratis (Total 2 Pcs)";
+  } else {
+    if (discLabel) discLabel.textContent = "Potongan Diskon:";
+    if (discEl) discEl.textContent = `-${formatRupiah(details.discountAmount)}`;
+  }
+}
+
+/**
  * Buka modal edit produk dan populate nilai input
  */
 function openEditProductModal(productId) {
@@ -696,12 +886,13 @@ function openEditProductModal(productId) {
   const stockInput = document.getElementById("editProductStock");
   const imgInput = document.getElementById("editProductImageUrl");
   const imgPreview = document.getElementById("editImagePreview");
+  const promoTypeSelect = document.getElementById("editProductPromoType");
+  const promoValueInput = document.getElementById("editProductPromoValue");
 
   if (idInput) idInput.value = product.id;
   if (nameInput) nameInput.value = product.name || "";
   
   if (catInput) {
-    // Cari opsi kategori yang cocok (case-insensitive)
     const options = Array.from(catInput.options);
     const prodCatLower = (product.category || "").toLowerCase().trim();
     const matched = options.find(o => o.value.toLowerCase().trim() === prodCatLower);
@@ -714,11 +905,24 @@ function openEditProductModal(productId) {
 
   if (priceInput) priceInput.value = product.price || 0;
   if (unitInput) unitInput.value = product.unit || "";
-  if (stockInput) stockInput.value = product.stock || "Ready";
+  
+  // Parse info promo yang tersimpan di field stock
+  const promoInfo = parsePromo(product.stock);
+  if (stockInput) stockInput.value = promoInfo.cleanStock || "Ready";
+
+  if (promoTypeSelect) {
+    promoTypeSelect.value = promoInfo.promo ? promoInfo.promo.type : "none";
+  }
+  if (promoValueInput) {
+    promoValueInput.value = promoInfo.promo && promoInfo.promo.value ? promoInfo.promo.value : "";
+  }
   
   const currentImg = product.image_url || product.imageUrl || "";
   if (imgInput) imgInput.value = currentImg;
   if (imgPreview) imgPreview.src = formatGoogleDriveImageUrl(currentImg);
+
+  handlePromoTypeChange();
+  updatePromoCalculationPreview();
 
   const modal = document.getElementById("editProductModal");
   if (modal) {
@@ -759,12 +963,26 @@ async function handleSaveEditedProduct(event) {
   const category = document.getElementById("editProductCategory")?.value?.trim();
   const price = Number(document.getElementById("editProductPrice")?.value) || 0;
   const unit = document.getElementById("editProductUnit")?.value?.trim() || "1 Pcs";
-  const stock = document.getElementById("editProductStock")?.value?.trim() || "Ready";
+  const cleanStock = document.getElementById("editProductStock")?.value?.trim() || "Ready";
   const imageUrl = document.getElementById("editProductImageUrl")?.value?.trim() || "";
+
+  // Ambil data promo
+  const promoType = document.getElementById("editProductPromoType")?.value || "none";
+  const promoValue = Number(document.getElementById("editProductPromoValue")?.value) || 0;
 
   if (!id || !name) {
     showAdminToast("Nama produk tidak boleh kosong!", "error");
     return;
+  }
+
+  // Bentuk format stock dengan tag promo
+  let finalStock = cleanStock;
+  if (promoType === "percent" && promoValue > 0) {
+    finalStock = `${cleanStock} [PROMO:percent:${promoValue}]`;
+  } else if (promoType === "nominal" && promoValue > 0) {
+    finalStock = `${cleanStock} [PROMO:nominal:${promoValue}]`;
+  } else if (promoType === "b1g1") {
+    finalStock = `${cleanStock} [PROMO:b1g1:1]`;
   }
 
   const btnSave = document.getElementById("btnSaveEditProduct");
@@ -790,7 +1008,7 @@ async function handleSaveEditedProduct(event) {
       category: category,
       price: price,
       unit: unit,
-      stock: stock,
+      stock: finalStock,
       image_url: imageUrl
     };
 
@@ -801,7 +1019,7 @@ async function handleSaveEditedProduct(event) {
 
     if (error) throw error;
 
-    // Update data di cache lokal / memori
+    // Update data di cache lokal / memori admin
     const idx = liveSupabaseProducts.findIndex(p => String(p.id) === String(id));
     if (idx !== -1) {
       liveSupabaseProducts[idx] = {
@@ -829,7 +1047,8 @@ async function handleSaveEditedProduct(event) {
       }
     }
 
-    showAdminToast(`Produk "${name}" berhasil diperbarui!`, "success");
+    const promoLabel = promoType !== "none" ? " dan status promo diaktifkan" : "";
+    showAdminToast(`Produk "${name}" berhasil diperbarui${promoLabel}!`, "success");
     closeEditProductModal();
     renderSupabaseProductsTable(liveSupabaseProducts);
 
