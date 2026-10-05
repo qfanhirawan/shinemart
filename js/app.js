@@ -205,32 +205,61 @@ const DEFAULT_PRODUCTS = [
   }
 ];
 
-// Data Slider Banner Promosi
-const BANNERS = [
+// Data Slider Banner Promosi (Default Fallback jika Supabase belum terhubung)
+const DEFAULT_BANNERS = [
   {
-    id: 1,
+    id: "default-1",
     title: "PROMO SPESIAL SHINEMART",
     subtitle: "Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!",
+    description: "Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!",
     tag: "KATALOG ONLINE",
+    badge_text: "KATALOG ONLINE",
+    button_text: "Lihat Katalog Produk",
+    button_url: "#katalog",
     bgGradient: "linear-gradient(135deg, #38b6ff 0%, #0077d6 100%)",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80",
+    sort_order: 1
   },
   {
-    id: 2,
+    id: "default-2",
     title: "BELI BUNDLE LEBIH HEMAT",
     subtitle: "Paket Snack & Minuman Segar Spesial Warna Favorit",
+    description: "Paket Snack & Minuman Segar Spesial Warna Favorit",
     tag: "HOT DEAL",
+    badge_text: "HOT DEAL",
+    button_text: "Lihat Katalog Produk",
+    button_url: "#katalog",
     bgGradient: "linear-gradient(135deg, #ff66c4 0%, #d81b8e 100%)",
-    image: "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&auto=format&fit=crop&q=80",
+    sort_order: 2
   },
   {
-    id: 3,
+    id: "default-3",
     title: "GRATIS ONGKIR AREA LOKAL",
     subtitle: "Pesan Multi-Item via WhatsApp, Antar Cepat Dalam 30 Menit!",
+    description: "Pesan Multi-Item via WhatsApp, Antar Cepat Dalam 30 Menit!",
     tag: "PESAN VIA WA",
+    badge_text: "PESAN VIA WA",
+    button_text: "Lihat Katalog Produk",
+    button_url: "#katalog",
     bgGradient: "linear-gradient(135deg, #38b6ff 0%, #ff66c4 100%)",
-    image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80",
+    sort_order: 3
   }
+];
+
+const BANNERS = DEFAULT_BANNERS;
+let bannersList = [...DEFAULT_BANNERS];
+const BANNER_GRADIENT_PALETTES = [
+  "linear-gradient(135deg, #38b6ff 0%, #0077d6 100%)",
+  "linear-gradient(135deg, #ff66c4 0%, #d81b8e 100%)",
+  "linear-gradient(135deg, #38b6ff 0%, #ff66c4 100%)",
+  "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+  "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+  "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)"
 ];
 
 // Application State
@@ -1021,47 +1050,102 @@ function setupEventListeners() {
   });
 }
 
-// Banner Slider
+// ==============================================================================
+// BANNER SLIDER PROMOSI (DINAMIS SUPABASE + AUTOPLAY + FALLBACK)
+// ==============================================================================
+async function fetchBannersFromDatabase() {
+  const supabaseClient = getSupabaseClient();
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("banners")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        bannersList = data.map((b, idx) => ({
+          id: b.id,
+          title: b.title,
+          subtitle: b.description || "",
+          description: b.description || "",
+          tag: b.badge_text || "KATALOG ONLINE",
+          badge_text: b.badge_text || "KATALOG ONLINE",
+          button_text: b.button_text || "Lihat Katalog Produk",
+          button_url: b.button_url || "#katalog",
+          bgGradient: BANNER_GRADIENT_PALETTES[idx % BANNER_GRADIENT_PALETTES.length],
+          image: formatGoogleDriveImageUrl(b.image_url),
+          image_url: formatGoogleDriveImageUrl(b.image_url),
+          sort_order: b.sort_order || idx + 1
+        }));
+        renderBannerSlider();
+        return;
+      }
+    } catch (err) {
+      console.warn("Gagal memuat banner dari Supabase, menggunakan banner default:", err);
+    }
+  }
+
+  // Gunakan banner default jika tabel belum ada atau kosong
+  bannersList = [...DEFAULT_BANNERS];
+  renderBannerSlider();
+}
+
 function initBannerSlider() {
+  // Render awal dengan data lokal / default dahulu agar tidak ada jeda kosong
+  renderBannerSlider();
+  // Ambil data terbaru secara dinamis dari Supabase
+  fetchBannersFromDatabase();
+}
+
+function renderBannerSlider() {
   const bannerWrapper = document.getElementById("bannerWrapper");
   const bannerDots = document.getElementById("bannerDots");
-  if (!bannerWrapper || !bannerDots) return;
+  if (!bannerWrapper || !bannerDots || bannersList.length === 0) return;
 
-  bannerWrapper.innerHTML = BANNERS.map((banner) => `
-    <div class="banner-slide flex-shrink-0 w-full relative rounded-2xl overflow-hidden p-6 md:p-10 text-white min-h-[200px] md:min-h-[260px] flex items-center justify-between" style="background: ${banner.bgGradient}">
-      <div class="z-10 max-w-xl">
-        <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 text-white border border-white/30">
-          ${banner.tag}
-        </span>
-        <h2 class="text-2xl md:text-4xl font-extrabold mb-2 leading-tight drop-shadow-sm">${banner.title}</h2>
-        <p class="text-sm md:text-lg opacity-95 mb-4 font-medium">${banner.subtitle}</p>
-        <a href="#katalog" class="inline-flex items-center gap-2 bg-white text-slate-900 font-bold px-5 py-2.5 rounded-full hover:bg-slate-100 transition shadow-lg text-sm md:text-base">
-          <span>Lihat Katalog Produk</span>
-          <i class="fas fa-arrow-right text-[#ff66c4]"></i>
-        </a>
+  currentBannerIndex = 0;
+
+  bannerWrapper.innerHTML = bannersList.map((banner) => {
+    const imgSrc = formatGoogleDriveImageUrl(banner.image_url || banner.image);
+    return `
+      <div class="banner-slide flex-shrink-0 w-full relative rounded-2xl overflow-hidden p-6 md:p-10 text-white min-h-[200px] md:min-h-[260px] flex items-center justify-between" style="background: ${banner.bgGradient}">
+        <div class="z-10 max-w-xl">
+          <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 text-white border border-white/30">
+            ${banner.badge_text || banner.tag}
+          </span>
+          <h2 class="text-2xl md:text-4xl font-extrabold mb-2 leading-tight drop-shadow-sm">${banner.title}</h2>
+          <p class="text-sm md:text-lg opacity-95 mb-4 font-medium">${banner.description || banner.subtitle}</p>
+          <a href="${banner.button_url || '#katalog'}" class="inline-flex items-center gap-2 bg-white text-slate-900 font-bold px-5 py-2.5 rounded-full hover:bg-slate-100 transition shadow-lg text-sm md:text-base">
+            <span>${banner.button_text || 'Lihat Katalog Produk'}</span>
+            <i class="fas fa-arrow-right text-[#ff66c4]"></i>
+          </a>
+        </div>
+        <div class="hidden md:block w-64 h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-white/30 transform rotate-2">
+          <img src="${imgSrc}" alt="${banner.title}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+        </div>
       </div>
-      <div class="hidden md:block w-64 h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-white/30 transform rotate-2">
-        <img src="${banner.image}" alt="${banner.title}" class="w-full h-full object-cover">
-      </div>
-    </div>
+    `;
+  }).join("");
+
+  bannerDots.innerHTML = bannersList.map((_, idx) => `
+    <button onclick="goToBanner(${idx})" class="w-3 h-3 rounded-full transition-all duration-300 ${idx === 0 ? 'bg-[#38b6ff] w-8' : 'bg-slate-300'}" id="dot-${idx}" aria-label="Slide ${idx + 1}"></button>
   `).join("");
 
-  bannerDots.innerHTML = BANNERS.map((_, idx) => `
-    <button onclick="goToBanner(${idx})" class="w-3 h-3 rounded-full transition-all duration-300 ${idx === 0 ? 'bg-[#38b6ff] w-8' : 'bg-slate-300'}" id="dot-${idx}"></button>
-  `).join("");
-
+  updateBannerPosition();
   startBannerAutoPlay();
 }
 
 function startBannerAutoPlay() {
   clearInterval(bannerInterval);
+  if (bannersList.length <= 1) return;
   bannerInterval = setInterval(() => {
-    currentBannerIndex = (currentBannerIndex + 1) % BANNERS.length;
+    currentBannerIndex = (currentBannerIndex + 1) % bannersList.length;
     updateBannerPosition();
   }, 4500);
 }
 
 function goToBanner(index) {
+  if (index < 0 || index >= bannersList.length) return;
   currentBannerIndex = index;
   updateBannerPosition();
   startBannerAutoPlay();
@@ -1069,11 +1153,11 @@ function goToBanner(index) {
 
 function updateBannerPosition() {
   const bannerWrapper = document.getElementById("bannerWrapper");
-  if (!bannerWrapper) return;
+  if (!bannerWrapper || bannersList.length === 0) return;
 
   bannerWrapper.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
 
-  BANNERS.forEach((_, idx) => {
+  bannersList.forEach((_, idx) => {
     const dot = document.getElementById(`dot-${idx}`);
     if (dot) {
       if (idx === currentBannerIndex) {

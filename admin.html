@@ -7,6 +7,9 @@
   <title>Shinemart Admin - Bulk Upload Produk Excel ke Google Sheets</title>
   <meta name="description"
     content="Halaman Khusus Admin Shinemart untuk upload dan kelola produk secara massal (Bulk Upload) via file Excel (.xlsx / .csv) langsung ke Google Sheets.">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -133,7 +136,42 @@
   </section>
 
   <!-- ================= MAIN ADMIN CONTENT (HIDDEN UNTIL LOGIN) ================= -->
-  <main id="adminMainContent" class="hidden py-8 px-4 max-w-7xl mx-auto space-y-8">
+  <main id="adminMainContent" class="hidden py-8 px-4 max-w-7xl mx-auto space-y-6">
+
+    <!-- ================= ADMIN NAVIGATION TABS ================= -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 sm:p-4 rounded-3xl border border-slate-200/90 shadow-sm">
+      <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-auto">
+        <button id="tabBtnProducts" onclick="switchAdminTab('products')"
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]">
+          <i class="fas fa-box"></i>
+          <span>Kelola Produk</span>
+        </button>
+        <button id="tabBtnBanners" onclick="switchAdminTab('banners')"
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          <i class="fas fa-images text-[#ff66c4]"></i>
+          <span>Banner Promosi Homepage</span>
+          <span id="adminBannerCountBadge" class="bg-pink-100 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
+        </button>
+      </div>
+
+      <!-- Quick Action Buttons on Top Bar -->
+      <div class="flex items-center gap-2 justify-end">
+        <button onclick="openSqlGuideModal()"
+          class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200"
+          title="Petunjuk Setup Supabase">
+          <i class="fas fa-database text-[#38b6ff]"></i>
+          <span class="hidden md:inline">Setup Supabase</span>
+        </button>
+        <button id="btnTopAddBanner" onclick="openAddBannerModal()"
+          class="hidden px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+          <i class="fas fa-plus"></i>
+          <span>Tambah Banner Baru</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= 1. PRODUCTS TAB SECTION ================= -->
+    <div id="productsTabSection" class="space-y-8">
 
     <!-- 1. BULK UPLOAD EXCEL SECTION -->
     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
@@ -323,7 +361,106 @@
       </div>
     </div>
 
-  <!-- ================= MODAL TEMPEL CSV / TEKS ================= -->
+    </div>
+    <!-- END PRODUCTS TAB SECTION -->
+
+    <!-- ================= 2. BANNERS TAB SECTION ================= -->
+    <div id="bannersTabSection" class="hidden space-y-6">
+
+      <!-- Header Banner Management Card -->
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-images"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base md:text-lg font-extrabold text-slate-900">Kelola Banner Promosi Homepage</h2>
+                <span id="supabaseBannersCount" class="bg-pink-50 text-[#ff66c4] text-xs font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                  0 banner
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">Atur konten slide promo (judul, badge, deskripsi, tombol, foto, dan urutan) yang tampil di homepage</p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button onclick="loadSupabaseBannersList()"
+              class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0"
+              title="Refresh Data Banner">
+              <i class="fas fa-sync-alt text-xs"></i>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+            <button onclick="openAddBannerModal()"
+              class="px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition shrink-0">
+              <i class="fas fa-plus"></i>
+              <span>Tambah Banner Baru</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Tips & Setup Info -->
+        <div class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50/70 to-pink-50/70 border border-sky-100 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <i class="fas fa-info-circle text-[#0077d6] text-base shrink-0"></i>
+            <span class="text-slate-600">
+              Banner diurutkan otomatis berdasarkan <strong>Urutan Slide</strong>. Hanya banner dengan status <strong>Aktif</strong> yang akan tayang di homepage pengunjung.
+            </span>
+          </div>
+          <button onclick="openSqlGuideModal()" class="text-[#0077d6] hover:underline font-bold shrink-0">
+            Panduan SQL Tabel &amp; Storage Supabase &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Banners Table Card -->
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Daftar Banner Slider</h3>
+            <span id="activeBannersSummary" class="text-xs text-slate-500 font-medium"></span>
+          </div>
+
+          <!-- Filter & Search Banner -->
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="bannerSearchInput" oninput="filterBannersTable()" placeholder="Cari banner..."
+                class="pl-8 pr-3 py-1.5 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#ff66c4] transition">
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
+                <th class="py-3 px-3 text-center w-16">Urutan</th>
+                <th class="py-3 px-3 w-32">Foto Slide</th>
+                <th class="py-3 px-3">Badge &amp; Judul Promo</th>
+                <th class="py-3 px-3">Tombol Aksi (CTA)</th>
+                <th class="py-3 px-3 text-center w-32">Status Tayang</th>
+                <th class="py-3 px-3 text-center w-28">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="supabaseBannersTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+                  <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar banner dari database Supabase...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+    <!-- END BANNERS TAB SECTION -->
+
+  </main>
   <div id="pasteModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
     <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
       <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
@@ -519,6 +656,191 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL TAMBAH & EDIT BANNER PROMOSI ================= -->
+  <div id="bannerModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+      
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#ff66c4] to-[#e043a5] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-image"></i>
+          </div>
+          <div>
+            <h3 id="bannerModalTitle" class="font-extrabold text-sm md:text-base leading-none">Tambah Banner Baru</h3>
+            <span class="text-[11px] text-pink-200">Kelola slider banner promosi homepage</span>
+          </div>
+        </div>
+        <button onclick="closeBannerModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <form id="bannerForm" onsubmit="handleSaveBanner(event)" class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="bannerId">
+        <input type="hidden" id="bannerExistingImageUrl">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block font-bold text-slate-700 mb-1">Judul Banner <span class="text-pink-500">*</span></label>
+            <input type="text" id="bannerTitleInput" required placeholder="Contoh: PROMO SPESIAL SHINEMART"
+              oninput="updateBannerLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Badge Tag</label>
+            <input type="text" id="bannerBadgeInput" placeholder="KATALOG ONLINE"
+              oninput="updateBannerLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Deskripsi / Subtitle</label>
+          <textarea id="bannerDescriptionInput" rows="2" placeholder="Contoh: Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!"
+            oninput="updateBannerLivePreview()"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Teks Tombol (CTA)</label>
+            <input type="text" id="bannerButtonTextInput" placeholder="Lihat Katalog Produk"
+              oninput="updateBannerLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Link Tujuan Tombol</label>
+            <input type="text" id="bannerButtonUrlInput" placeholder="#katalog"
+              oninput="updateBannerLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Urutan Slide (sort_order)</label>
+            <input type="number" id="bannerSortOrderInput" min="1" step="1" value="1" required
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+          <div class="pt-4 sm:pt-6">
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 transition">
+              <input type="checkbox" id="bannerIsActiveInput" checked class="w-4 h-4 text-[#ff66c4] rounded focus:ring-0">
+              <span class="font-bold text-slate-700">Tayangkan di Homepage</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Bagian Foto Banner & Upload Supabase Storage -->
+        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-slate-700">Foto Produk / Visual Banner <span class="text-pink-500">*</span></label>
+            <span class="text-[10px] text-slate-400">Maks. 5 MB (JPG, PNG, WebP)</span>
+          </div>
+
+          <!-- Pilihan Upload File ke Supabase Storage -->
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <label for="bannerImageFileInput"
+                class="flex-1 py-2.5 px-3 bg-white border border-dashed border-slate-300 hover:border-[#ff66c4] rounded-xl flex items-center justify-center gap-2 cursor-pointer transition text-slate-600 hover:text-[#ff66c4]">
+                <i class="fas fa-cloud-arrow-up text-sm text-[#ff66c4]"></i>
+                <span id="bannerImageFileLabel" class="font-bold truncate">Pilih / Upload Gambar ke Supabase Storage</span>
+              </label>
+              <input type="file" id="bannerImageFileInput" accept="image/*" class="hidden" onchange="handleBannerFileSelected(this)">
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-slate-400 font-bold uppercase shrink-0">Atau URL Gambar:</span>
+              <input type="text" id="bannerImageUrlInput" placeholder="https://... (Google Drive / Unsplash / direct link)"
+                oninput="handleBannerUrlInput(this.value)"
+                class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#ff66c4] text-xs transition">
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Preview Slide Banner -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+            <span>Pratinjau Tampilan Slide Banner:</span>
+            <span class="text-[10px] text-[#ff66c4] font-semibold"><i class="fas fa-eye"></i> Tampilan Real-time</span>
+          </label>
+          <div class="rounded-2xl overflow-hidden p-4 sm:p-6 text-white flex items-center justify-between shadow-lg relative min-h-[140px]"
+            style="background: linear-gradient(135deg, #38b6ff 0%, #0077d6 100%);">
+            <div class="z-10 max-w-[65%]">
+              <span id="previewBannerBadge" class="inline-block px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-extrabold uppercase tracking-wider mb-1 text-white border border-white/30">
+                KATALOG ONLINE
+              </span>
+              <h4 id="previewBannerTitle" class="text-sm sm:text-lg font-extrabold mb-1 leading-tight drop-shadow-sm">PROMO SPESIAL SHINEMART</h4>
+              <p id="previewBannerDesc" class="text-[10px] sm:text-xs opacity-95 mb-2 line-clamp-2">Diskon hingga 35% Sembako &amp; Kebutuhan Dapur Hemat!</p>
+              <span id="previewBannerBtn" class="inline-flex items-center gap-1.5 bg-white text-slate-900 font-bold px-3 py-1 rounded-full text-[10px] shadow">
+                <span>Lihat Katalog Produk</span>
+                <i class="fas fa-arrow-right text-[#ff66c4] text-[8px]"></i>
+              </span>
+            </div>
+            <div class="w-24 sm:w-32 h-20 sm:h-24 rounded-xl overflow-hidden shadow-xl border border-white/30 transform rotate-2 bg-white/10 shrink-0">
+              <img id="previewBannerImg" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800" alt="Preview" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeBannerModal()"
+            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+            Batal
+          </button>
+          <button type="submit" id="btnSaveBanner"
+            class="px-5 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl transition shadow-md shadow-pink-400/20 flex items-center gap-1.5">
+            <i class="fas fa-save"></i> <span>Simpan Banner</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL PANDUAN SQL SUPABASE ================= -->
+  <div id="sqlGuideModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0077d6] to-[#38b6ff] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-database"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Script SQL Setup Supabase</h3>
+            <span class="text-[11px] text-sky-200">Tabel Banners &amp; Bucket Storage</span>
+          </div>
+        </div>
+        <button onclick="closeSqlGuideModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <p class="text-slate-600">
+          Jika tabel <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">banners</code> atau bucket storage belum dibuat di Supabase, silakan copy script SQL di bawah ini dan jalankan pada menu <strong>SQL Editor</strong> di dashboard Supabase Anda:
+        </p>
+        <div class="relative">
+          <pre id="sqlScriptContent" class="bg-slate-900 text-slate-100 p-4 rounded-2xl overflow-x-auto text-[11px] font-mono leading-relaxed max-h-72"></pre>
+          <button onclick="copySqlScript()" class="absolute top-3 right-3 px-3 py-1.5 bg-[#38b6ff] hover:bg-[#0099ff] text-white font-extrabold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+            <i class="fas fa-copy"></i> Salin SQL
+          </button>
+        </div>
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] space-y-1">
+          <div class="font-bold flex items-center gap-1"><i class="fas fa-lightbulb"></i> Tips:</div>
+          <div>Script ini otomatis membuat tabel <code>banners</code>, konfigurasi bucket storage <code>banners</code> (public), security policy (RLS), serta 3 data banner awal!</div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeSqlGuideModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          Tutup
+        </button>
+      </div>
     </div>
   </div>
 

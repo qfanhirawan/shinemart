@@ -68,6 +68,7 @@ function checkAdminAuth() {
     if (mainContent) mainContent.classList.remove("hidden");
     if (logoutBtn) logoutBtn.classList.remove("hidden");
     loadSupabaseProductsList();
+    loadSupabaseBannersList();
   } else {
     if (loginOverlay) loginOverlay.classList.remove("hidden");
     if (mainContent) mainContent.classList.add("hidden");
@@ -1156,3 +1157,751 @@ function formatRupiah(amount) {
     maximumFractionDigits: 0
   }).format(amount);
 }
+
+// ==============================================================================
+// BANNER MANAGEMENT (CRUD) DI ADMIN PANEL
+// ==============================================================================
+let liveSupabaseBanners = [];
+let selectedBannerFile = null;
+let currentAdminTab = "products";
+
+/**
+ * Switch Tab: Kelola Produk vs Banner Promosi Homepage
+ */
+function switchAdminTab(tabName) {
+  currentAdminTab = tabName;
+  const productsTab = document.getElementById("productsTabSection");
+  const bannersTab = document.getElementById("bannersTabSection");
+  const tabBtnProducts = document.getElementById("tabBtnProducts");
+  const tabBtnBanners = document.getElementById("tabBtnBanners");
+  const btnTopAddBanner = document.getElementById("btnTopAddBanner");
+
+  if (tabName === "banners") {
+    if (productsTab) productsTab.classList.add("hidden");
+    if (bannersTab) bannersTab.classList.remove("hidden");
+    if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
+
+    if (tabBtnBanners) {
+      tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4]";
+    }
+    if (tabBtnProducts) {
+      tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
+    }
+
+    loadSupabaseBannersList();
+  } else {
+    if (bannersTab) bannersTab.classList.add("hidden");
+    if (productsTab) productsTab.classList.remove("hidden");
+    if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
+
+    if (tabBtnProducts) {
+      tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
+    }
+    if (tabBtnBanners) {
+      tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
+    }
+  }
+}
+
+/**
+ * Memuat seluruh daftar banner live dari Supabase
+ */
+async function loadSupabaseBannersList() {
+  const tbody = document.getElementById("supabaseBannersTableBody");
+  const countBadge = document.getElementById("supabaseBannersCount");
+  const topBadge = document.getElementById("adminBannerCountBadge");
+  const summaryEl = document.getElementById("activeBannersSummary");
+
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+        <i class="fas fa-spinner fa-spin mr-1.5"></i> Mengambil data banner dari Supabase...
+      </td>
+    </tr>
+  `;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-6 text-xs text-pink-500 font-bold">
+          Kredensial Supabase belum terkonfigurasi.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("banners")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      // Jika tabel belum dibuat (PGRST205 / 404)
+      if (error.code === "PGRST205" || String(error.message).includes("schema cache") || String(error.message).includes("banners")) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-8 px-4">
+              <div class="max-w-md mx-auto space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 class="font-extrabold text-slate-800 text-sm">Tabel "banners" Belum Dibuat di Supabase</h4>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Supabase belum mendeteksi tabel <code>public.banners</code>. Silakan jalankan script SQL yang telah disediakan untuk membuat tabel dan storage bucket.
+                </p>
+                <button onclick="openSqlGuideModal()" class="px-4 py-2 bg-gradient-to-r from-[#0077d6] to-[#38b6ff] text-white font-extrabold rounded-xl text-xs shadow transition">
+                  <i class="fas fa-code mr-1.5"></i> Buka Panduan &amp; Salin Script SQL
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (countBadge) countBadge.textContent = "0 banner";
+        if (topBadge) topBadge.textContent = "0";
+        return;
+      }
+      throw error;
+    }
+
+    liveSupabaseBanners = data || [];
+    renderSupabaseBannersTable(liveSupabaseBanners);
+
+    const activeCount = liveSupabaseBanners.filter(b => b.is_active).length;
+    if (countBadge) countBadge.textContent = `${liveSupabaseBanners.length} banner (${activeCount} aktif)`;
+    if (topBadge) topBadge.textContent = activeCount;
+    if (summaryEl) summaryEl.textContent = `${activeCount} dari ${liveSupabaseBanners.length} banner sedang tayang`;
+
+  } catch (err) {
+    console.error("Gagal memuat list banner dari Supabase:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-6 text-xs text-rose-500">
+          Gagal memuat data: ${err.message || 'Periksa koneksi Supabase'}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Render Tabel Banner di Dashboard Admin
+ */
+function renderSupabaseBannersTable(items) {
+  const tbody = document.getElementById("supabaseBannersTableBody");
+  if (!tbody) return;
+
+  if (items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-10 px-4">
+          <div class="max-w-sm mx-auto space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-pink-50 text-[#ff66c4] flex items-center justify-center text-xl mx-auto">
+              <i class="fas fa-images"></i>
+            </div>
+            <h4 class="font-extrabold text-slate-800 text-sm">Belum Ada Banner di Database</h4>
+            <p class="text-xs text-slate-400">
+              Tambahkan slide promosi pertama Anda untuk ditampilkan di homepage katalog.
+            </p>
+            <button onclick="openAddBannerModal()" class="px-4 py-2 bg-[#ff66c4] text-white font-bold rounded-xl text-xs hover:bg-[#e043a5] transition shadow-sm">
+              <i class="fas fa-plus mr-1"></i> Tambah Banner Baru
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = items.map((banner) => {
+    const imgSrc = formatGoogleDriveImageUrl(banner.image_url);
+    const badgeText = banner.badge_text || "KATALOG ONLINE";
+    const isActive = Boolean(banner.is_active);
+
+    return `
+      <tr class="hover:bg-pink-50/30 border-b border-slate-100 transition text-xs">
+        <!-- Urutan Slide -->
+        <td class="py-3 px-3 text-center">
+          <span class="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold font-mono text-[11px] border border-slate-200">
+            Slide ${banner.sort_order || 1}
+          </span>
+        </td>
+
+        <!-- Foto Slide -->
+        <td class="py-3 px-3">
+          <div class="w-24 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative group">
+            <img src="${imgSrc}" alt="${banner.title}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <a href="${imgSrc}" target="_blank" class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold" title="Lihat Foto Full">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
+          </div>
+        </td>
+
+        <!-- Badge & Judul -->
+        <td class="py-3 px-3 max-w-xs">
+          <div class="space-y-1">
+            <span class="inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-sky-100 text-[#0077d6]">
+              ${badgeText}
+            </span>
+            <div class="font-extrabold text-slate-900 text-xs sm:text-sm line-clamp-1" title="${banner.title}">
+              ${banner.title}
+            </div>
+            <div class="text-[11px] text-slate-400 line-clamp-1" title="${banner.description || '-'}">
+              ${banner.description || '-'}
+            </div>
+          </div>
+        </td>
+
+        <!-- Tombol CTA -->
+        <td class="py-3 px-3">
+          <div class="space-y-0.5">
+            <div class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fas fa-mouse-pointer text-[#ff66c4] text-[10px]"></i>
+              <span class="truncate">${banner.button_text || 'Lihat Katalog Produk'}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono truncate" title="${banner.button_url || '#katalog'}">
+              ${banner.button_url || '#katalog'}
+            </div>
+          </div>
+        </td>
+
+        <!-- Status Tayang -->
+        <td class="py-3 px-3 text-center">
+          <div class="flex items-center justify-center gap-2">
+            ${isActive ? `
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Aktif</span>
+              </span>
+              <button onclick="toggleBannerActiveStatus('${banner.id}', false)"
+                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition flex items-center justify-center text-xs"
+                title="Sembunyikan / Nonaktifkan banner">
+                <i class="fas fa-eye-slash"></i>
+              </button>
+            ` : `
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-500 border border-slate-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                <span>Nonaktif</span>
+              </span>
+              <button onclick="toggleBannerActiveStatus('${banner.id}', true)"
+                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 transition flex items-center justify-center text-xs"
+                title="Aktifkan / Tayangkan banner">
+                <i class="fas fa-eye"></i>
+              </button>
+            `}
+          </div>
+        </td>
+
+        <!-- Aksi -->
+        <td class="py-3 px-3 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openEditBannerModal('${banner.id}')"
+              class="w-7 h-7 rounded-lg bg-sky-50 text-[#0077d6] hover:bg-[#38b6ff] hover:text-white transition flex items-center justify-center text-xs"
+              title="Edit Banner">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="deleteBannerFromSupabase('${banner.id}', '${banner.title.replace(/'/g, "\\'")}')"
+              class="w-7 h-7 rounded-lg bg-pink-50 text-[#ff66c4] hover:bg-rose-600 hover:text-white transition flex items-center justify-center text-xs"
+              title="Hapus Banner">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+/**
+ * Filter tabel banner saat admin mengetik pencarian
+ */
+function filterBannersTable() {
+  const query = (document.getElementById("bannerSearchInput")?.value || "").toLowerCase().trim();
+  if (!query) {
+    renderSupabaseBannersTable(liveSupabaseBanners);
+    return;
+  }
+  const filtered = liveSupabaseBanners.filter(b => 
+    (b.title || "").toLowerCase().includes(query) ||
+    (b.badge_text || "").toLowerCase().includes(query) ||
+    (b.description || "").toLowerCase().includes(query)
+  );
+  renderSupabaseBannersTable(filtered);
+}
+
+/**
+ * Buka Modal Tambah Banner Baru
+ */
+function openAddBannerModal() {
+  selectedBannerFile = null;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setVal("bannerId", "");
+  setVal("bannerExistingImageUrl", "");
+  setVal("bannerTitleInput", "");
+  setVal("bannerBadgeInput", "KATALOG ONLINE");
+  setVal("bannerDescriptionInput", "");
+  setVal("bannerButtonTextInput", "Lihat Katalog Produk");
+  setVal("bannerButtonUrlInput", "#katalog");
+  setVal("bannerSortOrderInput", (liveSupabaseBanners ? liveSupabaseBanners.length : 0) + 1);
+  
+  const activeInput = document.getElementById("bannerIsActiveInput");
+  if (activeInput) activeInput.checked = true;
+  setVal("bannerImageUrlInput", "");
+
+  const fileInput = document.getElementById("bannerImageFileInput");
+  if (fileInput) fileInput.value = "";
+  const fileLabel = document.getElementById("bannerImageFileLabel");
+  if (fileLabel) fileLabel.textContent = "Pilih / Upload Gambar ke Supabase Storage";
+
+  const titleEl = document.getElementById("bannerModalTitle");
+  if (titleEl) titleEl.textContent = "Tambah Banner Baru";
+  updateBannerLivePreview();
+
+  const modal = document.getElementById("bannerModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+/**
+ * Buka Modal Edit Banner
+ */
+function openEditBannerModal(bannerId) {
+  const banner = liveSupabaseBanners.find(b => String(b.id) === String(bannerId));
+  if (!banner) return;
+
+  selectedBannerFile = null;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setVal("bannerId", banner.id);
+  setVal("bannerExistingImageUrl", banner.image_url || "");
+  setVal("bannerTitleInput", banner.title || "");
+  setVal("bannerBadgeInput", banner.badge_text || "KATALOG ONLINE");
+  setVal("bannerDescriptionInput", banner.description || "");
+  setVal("bannerButtonTextInput", banner.button_text || "Lihat Katalog Produk");
+  setVal("bannerButtonUrlInput", banner.button_url || "#katalog");
+  setVal("bannerSortOrderInput", banner.sort_order || 1);
+  
+  const activeInput = document.getElementById("bannerIsActiveInput");
+  if (activeInput) activeInput.checked = Boolean(banner.is_active);
+  setVal("bannerImageUrlInput", banner.image_url || "");
+
+  const fileInput = document.getElementById("bannerImageFileInput");
+  if (fileInput) fileInput.value = "";
+  const fileLabel = document.getElementById("bannerImageFileLabel");
+  if (fileLabel) fileLabel.textContent = "Ganti Gambar via Supabase Storage (Opsional)";
+
+  const titleEl = document.getElementById("bannerModalTitle");
+  if (titleEl) titleEl.textContent = "Edit Banner Promosi";
+  updateBannerLivePreview();
+
+  const modal = document.getElementById("bannerModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeBannerModal() {
+  const modal = document.getElementById("bannerModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+/**
+ * Handler saat file gambar dipilih di form banner
+ */
+function handleBannerFileSelected(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran gambar melebihi batas 5 MB. Silakan pilih gambar yang lebih kecil.");
+      input.value = "";
+      return;
+    }
+    selectedBannerFile = file;
+    const label = document.getElementById("bannerImageFileLabel");
+    if (label) label.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+
+    // Preview lokal seketika
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const previewImg = document.getElementById("previewBannerImg");
+      if (previewImg) previewImg.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+/**
+ * Handler saat user mengetik URL gambar manual
+ */
+function handleBannerUrlInput(url) {
+  selectedBannerFile = null;
+  const label = document.getElementById("bannerImageFileLabel");
+  if (label) label.textContent = "Pilih / Upload Gambar ke Supabase Storage";
+  const fileInput = document.getElementById("bannerImageFileInput");
+  if (fileInput) fileInput.value = "";
+
+  const previewImg = document.getElementById("previewBannerImg");
+  if (previewImg && url.trim()) {
+    previewImg.src = formatGoogleDriveImageUrl(url.trim());
+  }
+}
+
+/**
+ * Update pratinjau live banner di modal
+ */
+function updateBannerLivePreview() {
+  const title = document.getElementById("bannerTitleInput")?.value.trim() || "PROMO SPESIAL SHINEMART";
+  const badge = document.getElementById("bannerBadgeInput")?.value.trim() || "KATALOG ONLINE";
+  const desc = document.getElementById("bannerDescriptionInput")?.value.trim() || "Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!";
+  const btnText = document.getElementById("bannerButtonTextInput")?.value.trim() || "Lihat Katalog Produk";
+  const existingUrl = document.getElementById("bannerExistingImageUrl")?.value.trim();
+  const manualUrl = document.getElementById("bannerImageUrlInput")?.value.trim();
+
+  const previewTitle = document.getElementById("previewBannerTitle");
+  const previewBadge = document.getElementById("previewBannerBadge");
+  const previewDesc = document.getElementById("previewBannerDesc");
+  const previewBtn = document.getElementById("previewBannerBtn");
+  const previewImg = document.getElementById("previewBannerImg");
+
+  if (previewTitle) previewTitle.textContent = title;
+  if (previewBadge) previewBadge.textContent = badge;
+  if (previewDesc) previewDesc.textContent = desc;
+  if (previewBtn) {
+    const span = previewBtn.querySelector("span");
+    if (span) span.textContent = btnText;
+    else previewBtn.textContent = btnText;
+  }
+
+  if (previewImg && !selectedBannerFile) {
+    const url = manualUrl || existingUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800";
+    previewImg.src = formatGoogleDriveImageUrl(url);
+  }
+}
+
+/**
+ * Simpan Banner ke Supabase (Upload Gambar ke Storage + Insert/Update Database)
+ */
+async function handleSaveBanner(event) {
+  event.preventDefault();
+  const btn = document.getElementById("btnSaveBanner");
+  const originalHtml = btn.innerHTML;
+
+  const bannerId = document.getElementById("bannerId").value.trim();
+  const title = document.getElementById("bannerTitleInput").value.trim();
+  const badge_text = document.getElementById("bannerBadgeInput").value.trim() || "KATALOG ONLINE";
+  const description = document.getElementById("bannerDescriptionInput").value.trim();
+  const button_text = document.getElementById("bannerButtonTextInput").value.trim() || "Lihat Katalog Produk";
+  const button_url = document.getElementById("bannerButtonUrlInput").value.trim() || "#katalog";
+  const sort_order = parseInt(document.getElementById("bannerSortOrderInput").value) || 1;
+  const is_active = document.getElementById("bannerIsActiveInput").checked;
+
+  const existingUrl = document.getElementById("bannerExistingImageUrl").value.trim();
+  const manualUrl = document.getElementById("bannerImageUrlInput").value.trim();
+
+  let finalImageUrl = manualUrl || existingUrl;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    showAdminToast("Koneksi Supabase belum terkonfigurasi.", "error");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan...`;
+
+  try {
+    // 1. Jika ada file lokal yang dipilih, upload ke Supabase Storage (bucket 'banners')
+    if (selectedBannerFile) {
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Upload Foto ke Storage...`;
+      const fileExt = selectedBannerFile.name.split('.').pop() || 'jpg';
+      const cleanFileName = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+      const { data: uploadData, error: uploadErr } = await supabaseClient.storage
+        .from("banners")
+        .upload(cleanFileName, selectedBannerFile, {
+          cacheControl: "3600",
+          upsert: true
+        });
+
+      if (uploadErr) {
+        throw new Error(`Upload ke Supabase Storage gagal: ${uploadErr.message}. Pastikan bucket 'banners' telah dibuat di Supabase Storage.`);
+      }
+
+      // Ambil Public URL
+      const { data: publicUrlData } = supabaseClient.storage
+        .from("banners")
+        .getPublicUrl(cleanFileName);
+
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error("Gagal mendapatkan public URL gambar dari Supabase Storage.");
+      }
+
+      finalImageUrl = publicUrlData.publicUrl;
+    }
+
+    // Pastikan ada URL gambar
+    if (!finalImageUrl) {
+      throw new Error("Harap unggah file foto banner atau masukkan URL gambar.");
+    }
+
+    // 2. Simpan Data ke Tabel 'banners'
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan Database...`;
+    const payload = {
+      title,
+      badge_text,
+      description,
+      button_text,
+      button_url,
+      image_url: finalImageUrl,
+      sort_order,
+      is_active
+    };
+
+    if (bannerId) {
+      // Update
+      const { error: updateErr } = await supabaseClient
+        .from("banners")
+        .update(payload)
+        .eq("id", bannerId);
+
+      if (updateErr) throw updateErr;
+      showAdminToast("Banner promosi berhasil diperbarui!", "success");
+    } else {
+      // Insert baru
+      const { error: insertErr } = await supabaseClient
+        .from("banners")
+        .insert([payload]);
+
+      if (insertErr) throw insertErr;
+      showAdminToast("Banner promosi baru berhasil ditambahkan!", "success");
+    }
+
+    closeBannerModal();
+    loadSupabaseBannersList();
+
+  } catch (err) {
+    console.error("Gagal menyimpan banner:", err);
+    showAdminToast(err.message || "Gagal menyimpan banner ke Supabase.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+/**
+ * Toggle Status Aktif/Nonaktifkan Banner
+ */
+async function toggleBannerActiveStatus(bannerId, newStatus) {
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("banners")
+      .update({ is_active: newStatus })
+      .eq("id", bannerId);
+
+    if (error) throw error;
+
+    showAdminToast(`Banner berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}!`, "success");
+    
+    // Update local state dan render ulang
+    const idx = liveSupabaseBanners.findIndex(b => String(b.id) === String(bannerId));
+    if (idx > -1) {
+      liveSupabaseBanners[idx].is_active = newStatus;
+      renderSupabaseBannersTable(liveSupabaseBanners);
+      const activeCount = liveSupabaseBanners.filter(b => b.is_active).length;
+      const countBadge = document.getElementById("supabaseBannersCount");
+      const topBadge = document.getElementById("adminBannerCountBadge");
+      const summaryEl = document.getElementById("activeBannersSummary");
+      if (countBadge) countBadge.textContent = `${liveSupabaseBanners.length} banner (${activeCount} aktif)`;
+      if (topBadge) topBadge.textContent = activeCount;
+      if (summaryEl) summaryEl.textContent = `${activeCount} dari ${liveSupabaseBanners.length} banner sedang tayang`;
+    }
+
+  } catch (err) {
+    console.error("Gagal mengubah status banner:", err);
+    showAdminToast(`Gagal mengubah status: ${err.message}`, "error");
+  }
+}
+
+/**
+ * Hapus Banner dari Supabase
+ */
+async function deleteBannerFromSupabase(bannerId, bannerTitle) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus banner "${bannerTitle}"?`)) {
+    return;
+  }
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("banners")
+      .delete()
+      .eq("id", bannerId);
+
+    if (error) throw error;
+
+    showAdminToast(`Banner "${bannerTitle}" berhasil dihapus!`, "success");
+    loadSupabaseBannersList();
+
+  } catch (err) {
+    console.error("Gagal menghapus banner:", err);
+    showAdminToast(`Gagal menghapus: ${err.message}`, "error");
+  }
+}
+
+/**
+ * Modal Panduan & Script SQL Supabase
+ */
+const SQL_BANNERS_SCRIPT = `-- ==============================================================================
+-- SCRIPT SQL: TABEL BANNERS & SUPABASE STORAGE BUCKET
+-- Sistem Katalog Digital Shinemart
+-- Jalankan script ini di SQL Editor dashboard Supabase Anda.
+-- ==============================================================================
+
+-- 1. Buat Tabel banners
+CREATE TABLE IF NOT EXISTS public.banners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    badge_text TEXT DEFAULT 'KATALOG ONLINE',
+    title TEXT NOT NULL,
+    description TEXT,
+    button_text TEXT DEFAULT 'Lihat Katalog Produk',
+    button_url TEXT DEFAULT '#katalog',
+    image_url TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Index untuk optimasi query
+CREATE INDEX IF NOT EXISTS idx_banners_sort_order ON public.banners (sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_banners_is_active ON public.banners (is_active);
+
+-- 2. Aktifkan Row Level Security (RLS)
+ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+
+-- 3. Policy Akses Tabel banners
+DROP POLICY IF EXISTS "Public can view active banners" ON public.banners;
+CREATE POLICY "Public can view active banners" ON public.banners FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow anon insert banners" ON public.banners;
+CREATE POLICY "Allow anon insert banners" ON public.banners FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon update banners" ON public.banners;
+CREATE POLICY "Allow anon update banners" ON public.banners FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Allow anon delete banners" ON public.banners;
+CREATE POLICY "Allow anon delete banners" ON public.banners FOR DELETE USING (true);
+
+-- 4. Konfigurasi Bucket Supabase Storage untuk upload file gambar banner
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'banners',
+    'banners',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE 
+SET public = true, file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
+
+-- 5. Policy Akses Row Level Security untuk Storage Bucket 'banners'
+DROP POLICY IF EXISTS "Public Access Banners Storage" ON storage.objects;
+CREATE POLICY "Public Access Banners Storage" ON storage.objects FOR SELECT USING (bucket_id = 'banners');
+
+DROP POLICY IF EXISTS "Anon Insert Banners Storage" ON storage.objects;
+CREATE POLICY "Anon Insert Banners Storage" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'banners');
+
+DROP POLICY IF EXISTS "Anon Update Banners Storage" ON storage.objects;
+CREATE POLICY "Anon Update Banners Storage" ON storage.objects FOR UPDATE USING (bucket_id = 'banners');
+
+DROP POLICY IF EXISTS "Anon Delete Banners Storage" ON storage.objects;
+CREATE POLICY "Anon Delete Banners Storage" ON storage.objects FOR DELETE USING (bucket_id = 'banners');
+
+-- 6. Masukkan Data Awal (Seed Data)
+INSERT INTO public.banners (badge_text, title, description, button_text, button_url, image_url, sort_order, is_active)
+VALUES 
+(
+    'KATALOG ONLINE',
+    'PROMO SPESIAL SHINEMART',
+    'Diskon hingga 35% Sembako & Kebutuhan Dapur Hemat!',
+    'Lihat Katalog Produk',
+    '#katalog',
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80',
+    1,
+    true
+),
+(
+    'HOT DEAL',
+    'BELI BUNDLE LEBIH HEMAT',
+    'Paket Snack & Minuman Segar Spesial Warna Favorit',
+    'Lihat Katalog Produk',
+    '#katalog',
+    'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&auto=format&fit=crop&q=80',
+    2,
+    true
+),
+(
+    'PESAN VIA WA',
+    'GRATIS ONGKIR AREA LOKAL',
+    'Pesan Multi-Item via WhatsApp, Antar Cepat Dalam 30 Menit!',
+    'Lihat Katalog Produk',
+    '#katalog',
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80',
+    3,
+    true
+);`;
+
+function openSqlGuideModal() {
+  const codeEl = document.getElementById("sqlScriptContent");
+  if (codeEl) codeEl.textContent = SQL_BANNERS_SCRIPT;
+  const modal = document.getElementById("sqlGuideModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeSqlGuideModal() {
+  const modal = document.getElementById("sqlGuideModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function copySqlScript() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(SQL_BANNERS_SCRIPT).then(() => {
+      showAdminToast("Script SQL berhasil disalin ke clipboard!", "success");
+    }).catch(() => {
+      fallbackCopyText(SQL_BANNERS_SCRIPT);
+    });
+  } else {
+    fallbackCopyText(SQL_BANNERS_SCRIPT);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  showAdminToast("Script SQL berhasil disalin ke clipboard!", "success");
+}
+
