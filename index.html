@@ -66,7 +66,7 @@
   </script>
 
   <!-- Font Awesome Icons CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -605,6 +605,18 @@
                   <span class="block text-xs text-slate-400">Pemesanan Multi-Item dilayani dengan cepat</span>
                 </div>
               </div>
+
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-sky-100 text-[#0077d6] flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fas fa-envelope"></i>
+                </div>
+                <div>
+                  <strong class="block text-slate-800 font-bold">Email Resmi:</strong>
+                  <a href="mailto:djihan@shinemart.id" class="text-[#0077d6] hover:underline font-medium">djihan@shinemart.id</a>
+                  <span class="block text-xs text-slate-400">Kerjasama & Layanan Informasi</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -654,19 +666,21 @@
           </p>
           <!-- Social Icons -->
           <div class="flex items-center gap-3">
-            <a href="#"
-              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#38b6ff] text-white flex items-center justify-center transition">
+            <a href="https://instagram.com/shinemart.id" target="_blank" rel="noopener noreferrer" title="Instagram @shinemart.id"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#e1306c] text-white flex items-center justify-center transition">
               <i class="fab fa-instagram"></i>
             </a>
-            <a href="#"
-              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#38b6ff] text-white flex items-center justify-center transition">
-              <i class="fab fa-facebook-f"></i>
+            <a href="https://threads.net/@shinemart.id" target="_blank" rel="noopener noreferrer" title="Threads @shinemart.id"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-black text-white flex items-center justify-center transition p-2">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+                <path d="M141.537 88.9883C140.71 88.5919 139.87 88.2104 139.019 87.8451C137.587 60.5305 122.244 44.7224 97.4586 44.7224C71.8241 44.7224 53.6499 64.9261 53.6499 96.0823C53.6499 127.238 71.8241 147.442 97.4586 147.442C116.634 147.442 129.81 135.864 135.617 121.282L120.312 113.682C116.837 122.428 108.411 129.351 97.4586 129.351C81.4424 129.351 71.0205 115.111 71.0205 96.0823C71.0205 77.0538 81.4424 62.8136 97.4586 62.8136C112.551 62.8136 120.672 73.6841 121.905 90.7136C114.708 89.288 106.822 88.9482 98.4109 89.7042C73.9161 91.9084 59.882 105.074 59.882 121.905C59.882 137.288 72.8464 148.914 89.7042 148.914C105.72 148.914 116.291 140.547 122.046 128.432C125.797 139.524 134.664 147.442 147.388 147.442C164.717 147.442 176 133.565 176 110.826C176 74.3495 147.882 44.7224 97.4586 44.7224C46.8521 44.7224 16 76.5446 16 122.952C16 169.36 46.8521 201.182 97.4586 201.182C126.837 201.182 150.318 190.528 163.784 171.748L150.046 160.038C139.814 174.195 120.803 183.091 97.4586 183.091C57.4332 183.091 33.7298 157.065 33.7298 122.952C33.7298 88.8399 57.4332 62.8136 97.4586 62.8136C138.163 62.8136 159.27 86.8397 159.27 110.826C159.27 124.636 153.292 131.066 146.402 131.066C140.71 131.066 136.657 127.324 136.657 120.009C136.657 118.064 137.07 115.828 137.897 113.308C139.724 107.697 141.537 98.7183 141.537 88.9883ZM100.009 107.241C111.455 106.212 119.559 107.411 122.428 108.432C121.282 121.366 113.627 131.066 99.8682 131.066C88.6367 131.066 77.9431 123.633 77.9431 113.682C77.9431 103.731 88.5638 107.241 100.009 107.241Z" />
+              </svg>
             </a>
-            <a href="#"
+            <a href="https://tiktok.com/@shinemart.id" target="_blank" rel="noopener noreferrer" title="TikTok @shinemart.id"
               class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#ff66c4] text-white flex items-center justify-center transition">
               <i class="fab fa-tiktok"></i>
             </a>
-            <a href="javascript:void(0)" onclick="openGeneralWhatsApp()"
+            <a href="javascript:void(0)" onclick="openGeneralWhatsApp()" title="WhatsApp Kasir"
               class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#25d366] text-white flex items-center justify-center transition">
               <i class="fab fa-whatsapp"></i>
             </a>
@@ -698,6 +712,10 @@
             <li><a href="#katalog" class="hover:text-[#ff66c4] transition">Cek Promo Hari Ini</a></li>
             <li><a href="javascript:void(0)" onclick="openGeneralWhatsApp('kasir')"
                 class="hover:text-[#38b6ff] transition">Kontak Layanan Kasir</a></li>
+            <li><a href="mailto:djihan@shinemart.id"
+                class="hover:text-[#38b6ff] transition flex items-center gap-1.5 pt-1 text-slate-300">
+                <i class="fas fa-envelope text-[#38b6ff]"></i> djihan@shinemart.id
+              </a></li>
           </ul>
         </div>
 
