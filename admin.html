@@ -632,21 +632,34 @@
             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
         </div>
 
-        <!-- Preview Gambar Edit -->
-        <div class="flex items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-          <div onclick="openEditModalImagePreview()"
-            class="w-20 h-20 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer relative group shadow-sm hover:border-[#38b6ff] transition" title="Klik untuk perbesar foto">
-            <img id="editImagePreview" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500" alt="Preview"
-              class="w-full h-full object-contain p-1.5 transition-transform group-hover:scale-110"
-              onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
-            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs font-bold rounded-2xl">
-              <i class="fas fa-search-plus"></i>
+        <!-- Preview Gambar Edit Langsung Jelas & Besar -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+              <i class="fas fa-image text-[#38b6ff]"></i> Pratinjau Foto Produk
+            </span>
+            <div class="flex items-center gap-2">
+              <a id="btnOpenEditImageExternal" href="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500" target="_blank" rel="noopener noreferrer"
+                class="px-2.5 py-1 bg-white border border-slate-200 hover:border-[#38b6ff] text-[#0077d6] rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-sm">
+                <i class="fas fa-external-link-alt text-[10px]"></i> Buka Tab Baru
+              </a>
+              <button type="button" onclick="toggleExpandEditImage()"
+                class="px-2.5 py-1 bg-sky-50 hover:bg-[#38b6ff] text-[#0077d6] hover:text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                <i class="fas fa-search-plus text-[10px]"></i> <span id="toggleExpandText">Perbesar</span>
+              </button>
             </div>
           </div>
-          <div class="text-xs text-slate-500">
-            <span class="font-bold text-slate-700 block mb-0.5">Pratinjau Foto Produk</span>
-            <span class="text-[11px] block text-slate-400">Klik kotak foto di samping untuk melihat ukuran penuh & jelas.</span>
-            <span class="text-[10px] text-sky-600 block mt-1 font-semibold">Mendukung link langsung & Google Drive.</span>
+
+          <!-- Area Foto Produk Jelas -->
+          <div id="editImageContainer" class="w-full h-44 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-2 relative group shadow-sm transition-all duration-300">
+            <img id="editImagePreview" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500" alt="Preview Produk"
+              class="max-w-full max-h-full object-contain transition-transform duration-200"
+              onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          </div>
+          
+          <div class="text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Foto otomatis update saat Anda mengubah URL gambar di atas.</span>
+            <span class="text-emerald-600 font-semibold">Tampilan Jelas</span>
           </div>
         </div>
 
@@ -887,7 +900,7 @@
   </div>
 
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js"></script>
+  <script src="js/admin.js?v=2.2"></script>
 </body>
 
 </html>

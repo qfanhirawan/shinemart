@@ -925,7 +925,7 @@ function openEditProductModal(productId) {
   
   const currentImg = product.image_url || product.imageUrl || "";
   if (imgInput) imgInput.value = currentImg;
-  if (imgPreview) imgPreview.src = formatGoogleDriveImageUrl(currentImg);
+  updateEditImagePreview(currentImg);
 
   handlePromoTypeChange();
   updatePromoCalculationPreview();
@@ -953,8 +953,32 @@ function closeEditProductModal() {
  */
 function updateEditImagePreview(url) {
   const imgPreview = document.getElementById("editImagePreview");
+  const btnExternal = document.getElementById("btnOpenEditImageExternal");
+  const formatted = formatGoogleDriveImageUrl(url);
   if (imgPreview) {
-    imgPreview.src = formatGoogleDriveImageUrl(url);
+    imgPreview.src = formatted || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
+  }
+  if (btnExternal) {
+    btnExternal.href = formatted || "#";
+  }
+}
+
+/**
+ * Toggle perbesar / perkecil ukuran foto langsung di dalam form edit
+ */
+function toggleExpandEditImage() {
+  const container = document.getElementById("editImageContainer");
+  const textElem = document.getElementById("toggleExpandText");
+  if (!container) return;
+
+  if (container.classList.contains("h-44")) {
+    container.classList.remove("h-44");
+    container.classList.add("h-80");
+    if (textElem) textElem.textContent = "Kecilkan";
+  } else {
+    container.classList.remove("h-80");
+    container.classList.add("h-44");
+    if (textElem) textElem.textContent = "Perbesar";
   }
 }
 
