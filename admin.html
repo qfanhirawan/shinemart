@@ -633,15 +633,20 @@
         </div>
 
         <!-- Preview Gambar Edit -->
-        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-          <div class="w-14 h-14 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+        <div class="flex items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+          <div onclick="openProductImageModal(document.getElementById('editImagePreview').src, document.getElementById('editProductName').value || 'Pratinjau Produk', document.getElementById('editProductCategory').value || 'Produk')"
+            class="w-20 h-20 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer relative group shadow-sm hover:border-[#38b6ff] transition" title="Klik untuk perbesar foto">
             <img id="editImagePreview" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500" alt="Preview"
-              class="w-full h-full object-contain p-1"
+              class="w-full h-full object-contain p-1.5 transition-transform group-hover:scale-110"
               onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs font-bold rounded-2xl">
+              <i class="fas fa-search-plus"></i>
+            </div>
           </div>
-          <div class="text-[11px] text-slate-500">
-            <span class="font-bold text-slate-700 block">Pratinjau Foto Produk</span>
-            <span>Link gambar akan otomatis dikonversi jika menggunakan Google Drive.</span>
+          <div class="text-xs text-slate-500">
+            <span class="font-bold text-slate-700 block mb-0.5">Pratinjau Foto Produk</span>
+            <span class="text-[11px] block text-slate-400">Klik kotak foto di samping untuk melihat ukuran penuh & jelas.</span>
+            <span class="text-[10px] text-sky-600 block mt-1 font-semibold">Mendukung link langsung & Google Drive.</span>
           </div>
         </div>
 
@@ -840,6 +845,43 @@
         <button onclick="closeSqlGuideModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
           Tutup
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL LIGHTBOX PRATINJAU FOTO PRODUK JELAS ================= -->
+  <div id="imagePreviewModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" onclick="closeImagePreviewModal(event)">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+      <!-- Header Modal -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-sm font-bold">
+            <i class="fas fa-image"></i>
+          </div>
+          <div>
+            <h3 id="previewImageModalTitle" class="text-sm font-extrabold text-slate-800 line-clamp-1">Foto Produk</h3>
+            <p id="previewImageModalCategory" class="text-[11px] text-slate-400 capitalize">Kategori Produk</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeImagePreviewModal()" class="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition">
+          <i class="fas fa-times text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Container Gambar Besar -->
+      <div class="p-6 bg-slate-100/70 flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden">
+        <img id="previewImageModalImg" src="" alt="Pratinjau Foto Produk" class="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-md border border-white transition-transform hover:scale-105 duration-200">
+      </div>
+
+      <!-- Footer Modal Info & Link Eksternal -->
+      <div class="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="text-slate-400 text-[11px] flex items-center gap-1">
+          <i class="fas fa-search-plus text-[#38b6ff]"></i> Gambar resolusi penuh
+        </span>
+        <a id="previewImageModalLink" href="#" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-[#38b6ff] text-[#0077d6] hover:text-white font-bold transition flex items-center gap-1.5 text-xs">
+          <span>Buka di Tab Baru</span>
+          <i class="fas fa-external-link-alt text-[10px]"></i>
+        </a>
       </div>
     </div>
   </div>
