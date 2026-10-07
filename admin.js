@@ -1939,6 +1939,23 @@ function openProductImageModal(imgUrl, title = "Foto Produk", category = "Produk
   document.body.style.overflow = "hidden";
 }
 
+/**
+ * Pratinjau foto produk dari dalam modal edit
+ */
+function openEditModalImagePreview() {
+  const imgElem = document.getElementById("editImagePreview");
+  const inputUrl = document.getElementById("editProductImageUrl");
+  const nameInput = document.getElementById("editProductName");
+  const catInput = document.getElementById("editProductCategory");
+
+  const rawUrl = (inputUrl && inputUrl.value.trim()) ? inputUrl.value.trim() : (imgElem ? imgElem.src : "");
+  const formattedUrl = formatGoogleDriveImageUrl(rawUrl);
+  const title = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "Pratinjau Foto Produk";
+  const category = (catInput && catInput.value) ? catInput.value : "Produk";
+
+  openProductImageModal(formattedUrl, title, category);
+}
+
 function closeImagePreviewModal(event) {
   if (event && event.target && event.target.closest(".relative") && !event.target.closest("button")) {
     return;
