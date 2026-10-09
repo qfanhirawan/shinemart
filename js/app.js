@@ -493,6 +493,12 @@ function updateCartBadge() {
       floatingBadge.classList.add("hidden");
     }
   }
+
+  // Badge modal koleksi promo
+  const detailBadge = document.getElementById("sectionDetailCartBadge");
+  if (detailBadge) {
+    detailBadge.textContent = totalCount;
+  }
 }
 
 function openCartModal() {
@@ -1391,6 +1397,16 @@ async function fetchDynamicPromotionalSections() {
     }));
 
     renderDynamicPromotionalSections();
+
+    // Otomatis buka modal seksi promo jika ada hash di URL (misal #promo-uuid)
+    if (window.location.hash.startsWith("#promo-")) {
+      const targetSecId = window.location.hash.replace("#promo-", "").trim();
+      if (targetSecId) {
+        setTimeout(() => {
+          openPromotionalSectionDetail(targetSecId);
+        }, 150);
+      }
+    }
   } catch (err) {
     console.warn("Error fetchDynamicPromotionalSections:", err);
   }
@@ -1650,10 +1666,10 @@ function renderDynamicPromotionalSections() {
             </div>
 
             <div class="flex items-center gap-2">
-              <a href="${seeAllLink}" class="text-xs sm:text-sm font-extrabold text-[#0077d6] hover:text-[#38b6ff] transition flex items-center gap-1 group bg-white/70 hover:bg-white px-3 py-1.5 rounded-xl border border-white/60 shadow-xs">
+              <button onclick="handlePromotionalSectionSeeAll('${sec.id}')" class="text-xs sm:text-sm font-extrabold text-[#0077d6] hover:text-[#38b6ff] transition flex items-center gap-1 group bg-white/70 hover:bg-white px-3 py-1.5 rounded-xl border border-white/60 shadow-xs cursor-pointer">
                 <span>Lihat Semua</span>
                 <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
-              </a>
+              </button>
 
               <!-- Tombol Navigasi Desktop -->
               <div class="hidden sm:flex items-center gap-1 pl-2">
@@ -1671,7 +1687,9 @@ function renderDynamicPromotionalSections() {
           <div class="flex items-stretch gap-3 sm:gap-4 relative z-10">
             
             <!-- Sisi Kiri: Banner Tema (Ukuran persis sama dengan kotak produk di sebelahnya) -->
-            <a href="${seeAllLink}" class="w-36 sm:w-44 md:w-48 shrink-0 rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col justify-between mb-2">
+            <div onclick="handlePromotionalSectionSeeAll('${sec.id}')"
+              class="w-36 sm:w-44 md:w-48 shrink-0 rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col justify-between mb-2 cursor-pointer"
+              title="Lihat semua produk ${sec.title}">
               <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
                 onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
@@ -1681,7 +1699,7 @@ function renderDynamicPromotionalSections() {
                 </span>
                 <span class="text-xs sm:text-sm font-black line-clamp-2 leading-tight drop-shadow">${sec.title}</span>
               </div>
-            </a>
+            </div>
 
             <!-- Sisi Kanan: Slider Produk Horizontal -->
             <div class="flex-1 min-w-0 relative overflow-hidden flex items-stretch">
@@ -1710,5 +1728,240 @@ function scrollSectionCarousel(elementId, direction) {
     container.scrollBy({ left: scrollAmount, behavior: "smooth" });
   }
 }
+
+// ==============================================================================
+// MODAL / SECTION DETAIL HALAMAN KOLEKSI SEKSI PROMO
+// ==============================================================================
+function handlePromotionalSectionSeeAll(sectionId) {
+  const sec = dynamicPromoSections.find((s) => String(s.id) === String(sectionId));
+  if (!sec) return;
+
+  const url = (sec.see_all_url || "").trim();
+  // Jika admin mengarahkan ke link website eksternal
+  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+    window.open(url, "_blank");
+    return;
+  }
+
+  // Buka modal koleksi promo internal
+  openPromotionalSectionDetail(sectionId);
+}
+
+function openPromotionalSectionDetail(sectionId) {
+  const sec = dynamicPromoSections.find((s) => String(s.id) === String(sectionId));
+  if (!sec) {
+    console.warn("Promotional section not found for id:", sectionId);
+    return;
+  }
+
+  renderPromotionalSectionDetailModal(sec);
+
+  const modal = document.getElementById("sectionDetailModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.classList.add("overflow-hidden");
+  }
+
+  try {
+    history.replaceState(null, null, `#promo-${sec.id}`);
+  } catch (e) {}
+
+  updateCartBadge();
+}
+
+function closeSectionDetailModal() {
+  const modal = document.getElementById("sectionDetailModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    document.body.classList.remove("overflow-hidden");
+  }
+
+  if (window.location.hash.startsWith("#promo-")) {
+    try {
+      history.replaceState(null, null, window.location.pathname + window.location.search);
+    } catch (e) {}
+  }
+}
+
+function renderPromotionalSectionDetailModal(sec) {
+  const bannerHeader = document.getElementById("sectionDetailBannerHeader");
+  const countEl = document.getElementById("sectionDetailProductCount");
+  const gridEl = document.getElementById("sectionDetailProductsGrid");
+  if (!gridEl || !bannerHeader) return;
+
+  const bannerImg = formatGoogleDriveImageUrl(sec.banner_image_url);
+  const themeKey = sec.bg_color || "auto";
+
+  let bgGradient = "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%)";
+  let borderColor = "#bfdbfe";
+  let glowColor = "rgba(56, 182, 255, 0.28)";
+
+  if (DYNAMIC_SECTION_THEMES[themeKey]) {
+    const conf = DYNAMIC_SECTION_THEMES[themeKey];
+    bgGradient = conf.gradient;
+    borderColor = conf.border;
+    glowColor = conf.glowColor;
+  } else if (String(themeKey).startsWith("#")) {
+    bgGradient = `linear-gradient(135deg, ${hexToRgbaApp(themeKey, 0.22)} 0%, ${hexToRgbaApp(themeKey, 0.05)} 55%, #ffffff 100%)`;
+    borderColor = hexToRgbaApp(themeKey, 0.35);
+    glowColor = hexToRgbaApp(themeKey, 0.32);
+  }
+
+  // Header Banner Koleksi
+  bannerHeader.style.background = bgGradient;
+  bannerHeader.style.borderColor = borderColor;
+  bannerHeader.innerHTML = `
+    <div class="absolute -top-16 -right-16 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-40" style="background: ${glowColor};"></div>
+    <div class="relative z-10 flex flex-col md:flex-row items-center gap-4 sm:gap-6 justify-between">
+      <div class="flex items-center gap-3 sm:gap-4 max-w-xl">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl overflow-hidden shadow-md border border-white/80 bg-white">
+          <img src="${bannerImg}" alt="${sec.banner_alt || sec.title}" class="w-full h-full object-cover"
+            onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/85 border border-white/60 text-[10px] sm:text-xs font-black text-[#0077d6] uppercase tracking-wider mb-1.5 shadow-xs">
+            <i class="fas fa-fire text-amber-500"></i>
+            <span>Seksi Promo Shinemart</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 leading-tight">${sec.title}</h2>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1 font-medium">Koleksi promo hemat khusus produk pilihan di Shinemart.</p>
+        </div>
+      </div>
+      <div class="shrink-0 flex items-center gap-2 self-start md:self-center">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 border border-slate-200/80 text-xs font-extrabold text-[#0077d6] shadow-xs">
+          <i class="fas fa-boxes-stacked"></i>
+          <span>${sec.products ? sec.products.length : 0} Produk Promo</span>
+        </span>
+      </div>
+    </div>
+  `;
+
+  if (countEl) {
+    countEl.textContent = `${sec.products ? sec.products.length : 0} Produk`;
+  }
+
+  // Render Grid Produk
+  if (!sec.products || sec.products.length === 0) {
+    gridEl.innerHTML = `
+      <div class="col-span-full py-16 text-center text-slate-400">
+        <i class="fas fa-box-open text-4xl mb-3 text-slate-300"></i>
+        <p class="font-bold text-slate-600 text-sm">Belum ada produk dalam seksi promo ini</p>
+        <p class="text-xs text-slate-400 mt-1">Silakan cek kembali nanti atau lihat katalog beranda.</p>
+      </div>
+    `;
+    return;
+  }
+
+  gridEl.innerHTML = sec.products.map((item) => {
+    const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
+    const isOutOfStock = (item.stock && item.stock.toLowerCase() === 'habis') || (item.cleanStock && item.cleanStock.toLowerCase() === 'habis');
+
+    let priceDisplayHtml = `
+      <div class="text-xs sm:text-sm md:text-base font-extrabold text-[#0077d6]">
+        ${formatRupiah(item.price)}
+      </div>
+    `;
+    let discountBadgeHtml = "";
+
+    if (item.hasPromo) {
+      if (item.promoType === "percent") {
+        discountBadgeHtml = `
+          <span class="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+            <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${item.promoValue}% OFF
+          </span>
+        `;
+        priceDisplayHtml = `
+          <div class="flex flex-col">
+            <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
+            <span class="text-xs sm:text-sm md:text-base font-black text-pink-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+          </div>
+        `;
+      } else if (item.promoType === "nominal") {
+        discountBadgeHtml = `
+          <span class="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+            HEMAT
+          </span>
+        `;
+        priceDisplayHtml = `
+          <div class="flex flex-col">
+            <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
+            <span class="text-xs sm:text-sm md:text-base font-black text-emerald-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+          </div>
+        `;
+      } else if (item.promoType === "b1g1") {
+        discountBadgeHtml = `
+          <span class="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+            <i class="fas fa-gift mr-0.5"></i> BUY 1 GET 1
+          </span>
+        `;
+      }
+    }
+
+    return `
+      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-sm hover:shadow-md hover:border-[#38b6ff]/40 transition-all duration-300 flex flex-col justify-between relative group">
+        ${discountBadgeHtml}
+
+        <!-- Gambar Produk -->
+        <div class="w-full h-32 sm:h-36 rounded-xl bg-slate-50 flex items-center justify-center p-2 mb-2.5 overflow-hidden cursor-pointer" onclick="openProductPreview('${item.id}')">
+          <img src="${imgUrl}" alt="${item.name}" loading="lazy"
+            class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+        </div>
+
+        <!-- Info Produk -->
+        <div class="flex-1 flex flex-col justify-between">
+          <div>
+            <span class="text-[10px] font-bold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded-md inline-block uppercase tracking-wider mb-1 line-clamp-1">
+              ${item.category || 'PROMO'}
+            </span>
+            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-snug mb-1 min-h-[32px] group-hover:text-[#0077d6] transition-colors cursor-pointer" title="${item.name}" onclick="openProductPreview('${item.id}')">
+              ${item.name}
+            </h4>
+            <p class="text-[10px] text-slate-400 mb-2">${item.unit || '1 Pcs'}</p>
+          </div>
+
+          <!-- Bottom Price & Quick Add Button -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+            ${priceDisplayHtml}
+
+            ${isOutOfStock ? `
+              <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-xl">Habis</span>
+            ` : `
+              <button onclick="addToCart('${item.id}', 1)"
+                class="w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white flex items-center justify-center font-black text-sm shadow-sm hover:shadow-sky-400/30 transition-all active:scale-90"
+                title="Tambah ke Keranjang">
+                <i class="fas fa-plus"></i>
+              </button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Global window assignments & listeners
+window.handlePromotionalSectionSeeAll = handlePromotionalSectionSeeAll;
+window.openPromotionalSectionDetail = openPromotionalSectionDetail;
+window.closeSectionDetailModal = closeSectionDetailModal;
+
+window.addEventListener("hashchange", () => {
+  if (window.location.hash.startsWith("#promo-")) {
+    const targetSecId = window.location.hash.replace("#promo-", "").trim();
+    if (targetSecId) {
+      openPromotionalSectionDetail(targetSecId);
+    }
+  } else if (!window.location.hash) {
+    closeSectionDetailModal();
+  }
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeSectionDetailModal();
+  }
+});
 
 
