@@ -278,6 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initBannerSlider();
   setupEventListeners();
   fetchProductsFromDatabase();
+  fetchDynamicPromotionalSections();
 });
 
 function mapProductWithPromo(p) {
@@ -1269,3 +1270,240 @@ function formatRupiah(amount) {
     maximumFractionDigits: 0
   }).format(amount);
 }
+
+/**
+ * ==============================================================================
+ * DYNAMIC PROMOTIONAL SECTION / CATALOG MANAGER (KLIK INDOMARET STYLE)
+ * Mengambil seksi aktif dari Supabase dan me-render carousel bertema di beranda
+ * ==============================================================================
+ */
+let dynamicPromoSections = [];
+
+async function fetchDynamicPromotionalSections() {
+  const container = document.getElementById("dynamicPromotionalSectionsContainer");
+  if (!container) return;
+
+  const supabaseClient = getSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    // 1. Ambil data seksi aktif yang diurutkan berdasarkan display_order
+    const { data: sections, error: secError } = await supabaseClient
+      .from("promotional_sections")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true });
+
+    if (secError || !sections || sections.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    // 2. Ambil semua item produk relasi
+    const sectionIds = sections.map((s) => s.id);
+    const { data: items, error: itemError } = await supabaseClient
+      .from("promotional_section_items")
+      .select("*, products(*)")
+      .in("section_id", sectionIds)
+      .order("sort_order", { ascending: true });
+
+    if (itemError) {
+      console.warn("Gagal memuat item seksi promosi:", itemError);
+      return;
+    }
+
+    // Gabungkan produk ke masing-masing seksi
+    const itemsBySection = {};
+    (items || []).forEach((it) => {
+      if (!itemsBySection[it.section_id]) {
+        itemsBySection[it.section_id] = [];
+      }
+      if (it.products) {
+        itemsBySection[it.section_id].push(mapProductWithPromo(it.products));
+      }
+    });
+
+    dynamicPromoSections = sections.map((sec) => ({
+      ...sec,
+      products: itemsBySection[sec.id] || []
+    })).filter((sec) => sec.products.length > 0);
+
+    renderDynamicPromotionalSections();
+  } catch (err) {
+    console.warn("Error fetchDynamicPromotionalSections:", err);
+  }
+}
+
+function renderDynamicPromotionalSections() {
+  const container = document.getElementById("dynamicPromotionalSectionsContainer");
+  if (!container) return;
+
+  if (dynamicPromoSections.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = dynamicPromoSections.map((sec, idx) => {
+    const bannerImg = formatGoogleDriveImageUrl(sec.banner_image_url);
+    const seeAllLink = sec.see_all_url || "#katalog";
+    const carouselId = `sectionCarousel_${sec.id.replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+    const productsHtml = sec.products.map((item) => {
+      const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
+      const isOutOfStock = (item.stock && item.stock.toLowerCase() === 'habis') || (item.cleanStock && item.cleanStock.toLowerCase() === 'habis');
+
+      // Hitung harga normal & promo
+      let priceDisplayHtml = `
+        <div class="text-xs sm:text-sm font-extrabold text-[#0077d6]">
+          ${formatRupiah(item.price)}
+        </div>
+      `;
+      let discountBadgeHtml = "";
+
+      if (item.hasPromo) {
+        if (item.promoType === "percent") {
+          discountBadgeHtml = `
+            <span class="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+              <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${item.promoValue}% OFF
+            </span>
+          `;
+          priceDisplayHtml = `
+            <div class="flex flex-col">
+              <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
+              <span class="text-xs sm:text-sm font-black text-pink-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+            </div>
+          `;
+        } else if (item.promoType === "nominal") {
+          discountBadgeHtml = `
+            <span class="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+              HEMAT
+            </span>
+          `;
+          priceDisplayHtml = `
+            <div class="flex flex-col">
+              <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
+              <span class="text-xs sm:text-sm font-black text-emerald-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+            </div>
+          `;
+        } else if (item.promoType === "b1g1") {
+          discountBadgeHtml = `
+            <span class="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+              <i class="fas fa-gift mr-0.5"></i> BUY 1 GET 1
+            </span>
+          `;
+        }
+      }
+
+      return `
+        <div class="w-36 sm:w-44 md:w-48 bg-white rounded-3xl p-3 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 relative group">
+          ${discountBadgeHtml}
+
+          <!-- Gambar Produk -->
+          <div class="w-full h-32 sm:h-36 rounded-2xl bg-slate-50 flex items-center justify-center p-2 mb-2.5 overflow-hidden">
+            <img src="${imgUrl}" alt="${item.name}" loading="lazy"
+              class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+              onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          </div>
+
+          <!-- Info Produk -->
+          <div>
+            <span class="text-[10px] font-bold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded-md inline-block uppercase tracking-wider mb-1 line-clamp-1">
+              ${item.category || 'PROMO'}
+            </span>
+            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-snug mb-1 min-h-[32px] group-hover:text-[#0077d6] transition-colors" title="${item.name}">
+              ${item.name}
+            </h4>
+            <p class="text-[10px] text-slate-400 mb-2">${item.unit || '1 Pcs'}</p>
+
+            <!-- Bottom Price & Quick Add Button -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+              ${priceDisplayHtml}
+
+              ${isOutOfStock ? `
+                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-xl">Habis</span>
+              ` : `
+                <button onclick="addToCart('${item.id}', 1)"
+                  class="w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white flex items-center justify-center font-black text-sm shadow-sm hover:shadow-sky-400/30 transition-all active:scale-90"
+                  title="Tambah ke Keranjang">
+                  <i class="fas fa-plus"></i>
+                </button>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <section class="py-6 px-4 max-w-7xl mx-auto">
+        <div class="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm relative overflow-hidden">
+          
+          <!-- Header Seksi: Judul & Tombol Lihat Semua -->
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#38b6ff] to-[#0077d6] text-white flex items-center justify-center text-sm sm:text-base shadow-sm">
+                <i class="fas fa-fire text-amber-300"></i>
+              </div>
+              <div>
+                <h3 class="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none">${sec.title}</h3>
+                <span class="text-[10px] sm:text-xs text-slate-400">Koleksi promo pilihan hemat Shinemart</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a href="${seeAllLink}" class="text-xs sm:text-sm font-extrabold text-[#0077d6] hover:text-[#38b6ff] transition flex items-center gap-1 group">
+                <span>Lihat Semua</span>
+                <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+              </a>
+
+              <!-- Tombol Navigasi Desktop -->
+              <div class="hidden sm:flex items-center gap-1 pl-3 border-l border-slate-200">
+                <button onclick="scrollSectionCarousel('${carouselId}', -1)" class="w-7 h-7 rounded-full bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-slate-200 transition active:scale-95">
+                  <i class="fas fa-chevron-left text-[10px]"></i>
+                </button>
+                <button onclick="scrollSectionCarousel('${carouselId}', 1)" class="w-7 h-7 rounded-full bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-slate-200 transition active:scale-95">
+                  <i class="fas fa-chevron-right text-[10px]"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Body: Banner Tema Kiri + Produk Slider Kanan (Klik Indomaret Style) -->
+          <div class="flex flex-col lg:flex-row gap-4 items-stretch">
+            
+            <!-- Sisi Kiri: Banner Tema -->
+            <a href="${seeAllLink}" class="w-full lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 relative group block aspect-[3/4] lg:aspect-auto">
+              <img src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/60 backdrop-blur-md px-2.5 py-1 rounded-full self-start mb-1.5 border border-white/20">
+                  Promo Spesial
+                </span>
+                <span class="text-sm font-black line-clamp-2 leading-snug drop-shadow">${sec.title}</span>
+              </div>
+            </a>
+
+            <!-- Sisi Kanan: Slider Produk Horizontal -->
+            <div class="flex-1 relative overflow-hidden flex items-center">
+              <div id="${carouselId}" class="w-full flex items-stretch gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
+                ${productsHtml}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+    `;
+  }).join("");
+}
+
+function scrollSectionCarousel(elementId, direction) {
+  const container = document.getElementById(elementId);
+  if (container) {
+    const scrollAmount = 300 * direction;
+    container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  }
+}
+
