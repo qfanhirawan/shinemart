@@ -1558,7 +1558,12 @@ function renderDynamicPromotionalSections() {
 
     const productsHtml = sec.products.map((item) => {
       const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
-      const isOutOfStock = (item.stock && item.stock.toLowerCase() === 'habis') || (item.cleanStock && item.cleanStock.toLowerCase() === 'habis');
+      const isOutOfStock = (item.stock && String(item.stock).toLowerCase() === 'habis') || (item.cleanStock && String(item.cleanStock).toLowerCase() === 'habis');
+      const promo = item.promoDetails || {};
+      const hasPromo = Boolean(promo.hasPromo || item.hasPromo);
+      const promoType = promo.promoType || item.promoType;
+      const promoValue = promo.promoValue || item.promoValue || 0;
+      const finalPrice = promo.finalPrice || item.finalPrice || item.price;
 
       // Hitung harga normal & promo
       let priceDisplayHtml = `
@@ -1568,20 +1573,20 @@ function renderDynamicPromotionalSections() {
       `;
       let discountBadgeHtml = "";
 
-      if (item.hasPromo) {
-        if (item.promoType === "percent") {
+      if (hasPromo) {
+        if (promoType === "percent") {
           discountBadgeHtml = `
             <span class="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
-              <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${item.promoValue}% OFF
+              <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${promoValue}% OFF
             </span>
           `;
           priceDisplayHtml = `
             <div class="flex flex-col">
               <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
-              <span class="text-xs sm:text-sm font-black text-pink-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+              <span class="text-xs sm:text-sm font-black text-pink-600 leading-tight">${formatRupiah(finalPrice)}</span>
             </div>
           `;
-        } else if (item.promoType === "nominal") {
+        } else if (promoType === "nominal") {
           discountBadgeHtml = `
             <span class="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
               HEMAT
@@ -1590,10 +1595,10 @@ function renderDynamicPromotionalSections() {
           priceDisplayHtml = `
             <div class="flex flex-col">
               <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
-              <span class="text-xs sm:text-sm font-black text-emerald-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+              <span class="text-xs sm:text-sm font-black text-emerald-600 leading-tight">${formatRupiah(finalPrice)}</span>
             </div>
           `;
-        } else if (item.promoType === "b1g1") {
+        } else if (promoType === "b1g1") {
           discountBadgeHtml = `
             <span class="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
               <i class="fas fa-gift mr-0.5"></i> BUY 1 GET 1
@@ -1748,26 +1753,30 @@ function handlePromotionalSectionSeeAll(sectionId) {
 }
 
 function openPromotionalSectionDetail(sectionId) {
-  const sec = dynamicPromoSections.find((s) => String(s.id) === String(sectionId));
-  if (!sec) {
-    console.warn("Promotional section not found for id:", sectionId);
-    return;
-  }
-
-  renderPromotionalSectionDetailModal(sec);
-
-  const modal = document.getElementById("sectionDetailModal");
-  if (modal) {
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-    document.body.classList.add("overflow-hidden");
-  }
-
   try {
-    history.replaceState(null, null, `#promo-${sec.id}`);
-  } catch (e) {}
+    const sec = dynamicPromoSections.find((s) => String(s.id) === String(sectionId));
+    if (!sec) {
+      console.warn("Promotional section not found for id:", sectionId);
+      return;
+    }
 
-  updateCartBadge();
+    renderPromotionalSectionDetailModal(sec);
+
+    const modal = document.getElementById("sectionDetailModal");
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    try {
+      history.replaceState(null, null, `#promo-${sec.id}`);
+    } catch (e) {}
+
+    updateCartBadge();
+  } catch (err) {
+    console.error("Error opening promotional section detail:", err);
+  }
 }
 
 function closeSectionDetailModal() {
@@ -1856,7 +1865,12 @@ function renderPromotionalSectionDetailModal(sec) {
 
   gridEl.innerHTML = sec.products.map((item) => {
     const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
-    const isOutOfStock = (item.stock && item.stock.toLowerCase() === 'habis') || (item.cleanStock && item.cleanStock.toLowerCase() === 'habis');
+    const isOutOfStock = (item.stock && String(item.stock).toLowerCase() === 'habis') || (item.cleanStock && String(item.cleanStock).toLowerCase() === 'habis');
+    const promo = item.promoDetails || {};
+    const hasPromo = Boolean(promo.hasPromo || item.hasPromo);
+    const promoType = promo.promoType || item.promoType;
+    const promoValue = promo.promoValue || item.promoValue || 0;
+    const finalPrice = promo.finalPrice || item.finalPrice || item.price;
 
     let priceDisplayHtml = `
       <div class="text-xs sm:text-sm md:text-base font-extrabold text-[#0077d6]">
@@ -1865,20 +1879,20 @@ function renderPromotionalSectionDetailModal(sec) {
     `;
     let discountBadgeHtml = "";
 
-    if (item.hasPromo) {
-      if (item.promoType === "percent") {
+    if (hasPromo) {
+      if (promoType === "percent") {
         discountBadgeHtml = `
           <span class="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
-            <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${item.promoValue}% OFF
+            <i class="fas fa-bolt text-yellow-200 mr-0.5"></i> ${promoValue}% OFF
           </span>
         `;
         priceDisplayHtml = `
           <div class="flex flex-col">
             <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
-            <span class="text-xs sm:text-sm md:text-base font-black text-pink-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+            <span class="text-xs sm:text-sm md:text-base font-black text-pink-600 leading-tight">${formatRupiah(finalPrice)}</span>
           </div>
         `;
-      } else if (item.promoType === "nominal") {
+      } else if (promoType === "nominal") {
         discountBadgeHtml = `
           <span class="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
             HEMAT
@@ -1887,10 +1901,10 @@ function renderPromotionalSectionDetailModal(sec) {
         priceDisplayHtml = `
           <div class="flex flex-col">
             <span class="text-[10px] text-slate-400 line-through leading-tight">${formatRupiah(item.price)}</span>
-            <span class="text-xs sm:text-sm md:text-base font-black text-emerald-600 leading-tight">${formatRupiah(item.finalPrice)}</span>
+            <span class="text-xs sm:text-sm md:text-base font-black text-emerald-600 leading-tight">${formatRupiah(finalPrice)}</span>
           </div>
         `;
-      } else if (item.promoType === "b1g1") {
+      } else if (promoType === "b1g1") {
         discountBadgeHtml = `
           <span class="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
             <i class="fas fa-gift mr-0.5"></i> BUY 1 GET 1
