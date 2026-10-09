@@ -110,6 +110,15 @@ body {
   box-shadow: 0 4px 12px rgba(56, 182, 255, 0.2);
 }
 
+/* Mobile 1-Baris Slider Kategori */
+@media (max-width: 639px) {
+  .category-tab-btn.category-card {
+    flex-shrink: 0;
+    width: 11.5rem;
+    min-width: 11.5rem;
+  }
+}
+
 /* Product Card Styling */
 .product-card {
   transition: var(--transition);

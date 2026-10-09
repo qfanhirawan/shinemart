@@ -1533,6 +1533,7 @@ function renderDynamicPromotionalSections() {
     const carouselId = `sectionCarousel_${safeSecId}`;
     const sectionCardId = `secCard_${safeSecId}`;
     const bannerImgId = `bannerImg_${safeSecId}`;
+    const bannerCardId = `bannerCard_${safeSecId}`;
     const glowId = `glow_${safeSecId}`;
     const iconId = `icon_${safeSecId}`;
     const themeKey = sec.bg_color || "auto";
@@ -1688,36 +1689,39 @@ function renderDynamicPromotionalSections() {
             </div>
           </div>
 
-          <!-- Body: Banner Tema Kiri + Produk Slider Kanan (Ukuran Banner Disamakan dengan Kotak Produk) -->
-          <div class="flex items-stretch gap-3 sm:gap-4 relative z-10">
-            
-            <!-- Sisi Kiri: Banner Tema (Ukuran persis sama dengan kotak produk di sebelahnya) -->
-            <div onclick="handlePromotionalSectionSeeAll('${sec.id}')"
-              class="w-36 sm:w-44 md:w-48 shrink-0 rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col justify-between mb-2 cursor-pointer"
-              title="Lihat semua produk ${sec.title}">
-              <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
-                onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-3 sm:p-4 text-white z-10">
-                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/70 backdrop-blur-md px-2 py-0.5 rounded-full self-start mb-1 border border-white/20">
-                  Promo Spesial
-                </span>
-                <span class="text-xs sm:text-sm font-black line-clamp-2 leading-tight drop-shadow">${sec.title}</span>
+          <!-- Body: Slider Produk Horizontal dengan Banner Tema di Posisi Pertama -->
+          <div class="relative z-10 overflow-hidden">
+            <div id="${carouselId}"
+              onscroll="handleSectionCarouselScroll('${carouselId}', '${bannerCardId}')"
+              class="w-full flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none scroll-smooth"
+              style="scrollbar-width: none; -ms-overflow-style: none;">
+              
+              <!-- Sisi Kiri: Banner Tema (Item Pertama, perlahan memudar saat digeser ke kiri di mobile) -->
+              <div id="${bannerCardId}"
+                onclick="handlePromotionalSectionSeeAll('${sec.id}')"
+                class="w-36 sm:w-44 md:w-48 shrink-0 rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col justify-between cursor-pointer"
+                style="will-change: opacity, transform;"
+                title="Lihat semua produk ${sec.title}">
+                <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
+                  onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-3 sm:p-4 text-white z-10">
+                  <span class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/70 backdrop-blur-md px-2 py-0.5 rounded-full self-start mb-1 border border-white/20">
+                    Promo Spesial
+                  </span>
+                  <span class="text-xs sm:text-sm font-black line-clamp-2 leading-tight drop-shadow">${sec.title}</span>
+                </div>
               </div>
-            </div>
 
-            <!-- Sisi Kanan: Slider Produk Horizontal -->
-            <div class="flex-1 min-w-0 relative overflow-hidden flex items-stretch">
-              <div id="${carouselId}" class="w-full flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
-                ${productsHtml || `
-                  <div class="py-12 px-6 text-center w-full text-slate-400">
-                    <i class="fas fa-boxes text-2xl mb-2 text-slate-300"></i>
-                    <p class="text-xs font-semibold">Produk promo untuk seksi ini sedang disiapkan.</p>
-                  </div>
-                `}
-              </div>
-            </div>
+              <!-- Slider Produk Promo di Sebelahnya -->
+              ${productsHtml || `
+                <div class="py-12 px-6 text-center w-full text-slate-400">
+                  <i class="fas fa-boxes text-2xl mb-2 text-slate-300"></i>
+                  <p class="text-xs font-semibold">Produk promo untuk seksi ini sedang disiapkan.</p>
+                </div>
+              `}
 
+            </div>
           </div>
 
         </div>
@@ -1731,6 +1735,26 @@ function scrollSectionCarousel(elementId, direction) {
   if (container) {
     const scrollAmount = 300 * direction;
     container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  }
+}
+
+function handleSectionCarouselScroll(carouselId, bannerCardId) {
+  const carousel = document.getElementById(carouselId);
+  const banner = document.getElementById(bannerCardId);
+  if (!carousel || !banner) return;
+
+  const scrollLeft = carousel.scrollLeft;
+  // Di layar mobile atau saat digeser ke kiri, perlahan kurangi opacity banner
+  const fadeThreshold = 140;
+  if (scrollLeft > 0) {
+    const opacity = Math.max(0, 1 - (scrollLeft / fadeThreshold));
+    const scale = Math.max(0.88, 1 - (scrollLeft / (fadeThreshold * 2)));
+    banner.style.opacity = String(opacity);
+    banner.style.transform = `scale(${scale})`;
+    banner.style.transition = "opacity 0.1s ease-out, transform 0.1s ease-out";
+  } else {
+    banner.style.opacity = "1";
+    banner.style.transform = "scale(1)";
   }
 }
 
@@ -1960,6 +1984,7 @@ function renderPromotionalSectionDetailModal(sec) {
 window.handlePromotionalSectionSeeAll = handlePromotionalSectionSeeAll;
 window.openPromotionalSectionDetail = openPromotionalSectionDetail;
 window.closeSectionDetailModal = closeSectionDetailModal;
+window.handleSectionCarouselScroll = handleSectionCarouselScroll;
 
 window.addEventListener("hashchange", () => {
   if (window.location.hash.startsWith("#promo-")) {

@@ -95,7 +95,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Custom Styles System -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=2.2">
 </head>
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-[#ff66c4] selection:text-white">
@@ -224,13 +224,13 @@
     <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Kategori Produk</h2>
-        <p class="text-xs md:text-sm text-slate-500">Pilih kategori untuk memfilter produk katalog minimarket</p>
+        <p class="text-xs md:text-sm text-slate-500">Pilih kategori untuk memfilter produk katalog <span class="sm:hidden text-[#0077d6] font-semibold">(geser kanan 👉)</span></p>
       </div>
-      <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full border border-sky-100">14 Kategori Lengkap</span>
+      <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full border border-sky-100">14 Kategori</span>
     </div>
 
-    <!-- Category Buttons Grid -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3">
+    <!-- Category Buttons: 1 Baris Horizontal Slider di Mobile, Grid di Desktop -->
+    <div class="flex overflow-x-auto pb-3 scrollbar-none sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3 -mx-4 px-4 sm:mx-0 sm:px-0">
 
       <!-- Semua -->
       <button data-category="all"
@@ -975,7 +975,7 @@
   </div>
 
   <!-- Application Logic JavaScript Khusus Pengunjung -->
-  <script src="js/app.js?v=3.7"></script>
+  <script src="js/app.js?v=3.8"></script>
 </body>
 
 </html>
