@@ -1667,25 +1667,25 @@ function renderDynamicPromotionalSections() {
             </div>
           </div>
 
-          <!-- Body: Banner Tema Kiri + Produk Slider Kanan (Klik Indomaret Style) -->
-          <div class="flex flex-col lg:flex-row gap-4 items-stretch relative z-10">
+          <!-- Body: Banner Tema Kiri + Produk Slider Kanan (Ukuran Banner Disamakan dengan Kotak Produk) -->
+          <div class="flex items-stretch gap-3 sm:gap-4 relative z-10">
             
-            <!-- Sisi Kiri: Banner Tema -->
-            <a href="${seeAllLink}" class="w-full lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 relative group block aspect-[3/4] lg:aspect-auto">
+            <!-- Sisi Kiri: Banner Tema (Ukuran persis sama dengan kotak produk di sebelahnya) -->
+            <a href="${seeAllLink}" class="w-36 sm:w-44 md:w-48 shrink-0 rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col justify-between mb-2">
               <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
                 onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
-                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/60 backdrop-blur-md px-2.5 py-1 rounded-full self-start mb-1.5 border border-white/20">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-3 sm:p-4 text-white z-10">
+                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/70 backdrop-blur-md px-2 py-0.5 rounded-full self-start mb-1 border border-white/20">
                   Promo Spesial
                 </span>
-                <span class="text-sm font-black line-clamp-2 leading-snug drop-shadow">${sec.title}</span>
+                <span class="text-xs sm:text-sm font-black line-clamp-2 leading-tight drop-shadow">${sec.title}</span>
               </div>
             </a>
 
             <!-- Sisi Kanan: Slider Produk Horizontal -->
-            <div class="flex-1 relative overflow-hidden flex items-center">
-              <div id="${carouselId}" class="w-full flex items-stretch gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div class="flex-1 min-w-0 relative overflow-hidden flex items-stretch">
+              <div id="${carouselId}" class="w-full flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
                 ${productsHtml || `
                   <div class="py-12 px-6 text-center w-full text-slate-400">
                     <i class="fas fa-boxes text-2xl mb-2 text-slate-300"></i>
