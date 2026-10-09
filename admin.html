@@ -1031,6 +1031,103 @@
           </div>
         </div>
 
+        <!-- Pengaturan Warna Latar & Gradasi Seksi -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="block font-bold text-slate-700">
+              <i class="fas fa-palette text-[#38b6ff] mr-1"></i> Tema Gradasi Background Seksi
+            </label>
+            <span class="text-[10px] text-slate-400 font-medium">Bisa otomatis atau pilih sendiri</span>
+          </div>
+
+          <!-- Pilihan Warna Radio / Swatch -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <!-- Auto -->
+            <label class="cursor-pointer border-2 border-[#38b6ff] rounded-xl p-2 flex items-center gap-2 bg-white transition relative" id="labelThemeAuto">
+              <input type="radio" name="sectionThemeRadio" value="auto" checked onchange="handleSectionThemeChange('auto')" class="accent-[#38b6ff]">
+              <div class="flex flex-col">
+                <span class="text-[11px] font-bold text-slate-800 flex items-center gap-1">
+                  🪄 Otomatis
+                </span>
+                <span class="text-[9px] text-slate-400">Ikuti warna banner</span>
+              </div>
+            </label>
+
+            <!-- Sky Blue -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-[#38b6ff] transition" id="labelThemeSky">
+              <input type="radio" name="sectionThemeRadio" value="sky" onchange="handleSectionThemeChange('sky')" class="accent-[#38b6ff]">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-sky-400 to-blue-600 shadow-sm shrink-0"></div>
+                <span class="text-[11px] font-bold text-slate-800">Biru Sky</span>
+              </div>
+            </label>
+
+            <!-- Berry Pink -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-pink-500 transition" id="labelThemePink">
+              <input type="radio" name="sectionThemeRadio" value="pink" onchange="handleSectionThemeChange('pink')" class="accent-pink-500">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-pink-400 to-rose-600 shadow-sm shrink-0"></div>
+                <span class="text-[11px] font-bold text-slate-800">Pink Berry</span>
+              </div>
+            </label>
+
+            <!-- Fresh Emerald -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-emerald-500 transition" id="labelThemeEmerald">
+              <input type="radio" name="sectionThemeRadio" value="emerald" onchange="handleSectionThemeChange('emerald')" class="accent-emerald-500">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-600 shadow-sm shrink-0"></div>
+                <span class="text-[11px] font-bold text-slate-800">Mint Hijau</span>
+              </div>
+            </label>
+
+            <!-- Warm Sunset -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-orange-500 transition" id="labelThemeOrange">
+              <input type="radio" name="sectionThemeRadio" value="orange" onchange="handleSectionThemeChange('orange')" class="accent-orange-500">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-orange-400 to-amber-600 shadow-sm shrink-0"></div>
+                <span class="text-[11px] font-bold text-slate-800">Sunset Oranye</span>
+              </div>
+            </label>
+
+            <!-- Royal Purple -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-purple-500 transition" id="labelThemePurple">
+              <input type="radio" name="sectionThemeRadio" value="purple" onchange="handleSectionThemeChange('purple')" class="accent-purple-500">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-purple-400 to-indigo-600 shadow-sm shrink-0"></div>
+                <span class="text-[11px] font-bold text-slate-800">Ungu Mewah</span>
+              </div>
+            </label>
+
+            <!-- Custom Hex Picker -->
+            <label class="cursor-pointer border rounded-xl p-2 flex items-center gap-2 bg-white hover:border-slate-400 transition col-span-2 sm:col-span-3" id="labelThemeCustom">
+              <input type="radio" name="sectionThemeRadio" value="custom" onchange="handleSectionThemeChange('custom')" class="accent-slate-700">
+              <div class="flex items-center gap-2 flex-1">
+                <span class="text-[11px] font-bold text-slate-800">Warna Kustom:</span>
+                <input type="color" id="sectionCustomColorInput" value="#38b6ff" oninput="handleCustomColorInput(this.value)" class="w-7 h-6 rounded cursor-pointer border-0 bg-transparent">
+                <input type="text" id="sectionCustomColorText" value="#38b6ff" placeholder="#38b6ff" oninput="handleCustomColorInput(this.value)" class="w-24 px-2 py-0.5 text-[11px] font-mono border rounded bg-slate-50 uppercase">
+              </div>
+            </label>
+          </div>
+
+          <input type="hidden" id="sectionBgColorInput" value="auto">
+
+          <!-- Mini Live Preview Box -->
+          <div id="sectionThemePreviewBox" class="p-3 rounded-xl border border-sky-200 transition-all duration-300 flex items-center justify-between shadow-sm" style="background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%);">
+            <div class="flex items-center gap-2">
+              <div id="previewBoxIcon" class="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#38b6ff] to-[#0077d6] text-white flex items-center justify-center text-[10px] shadow-sm">
+                <i class="fas fa-fire"></i>
+              </div>
+              <div>
+                <span id="previewBoxText" class="text-[11px] font-bold text-slate-800 block leading-tight">Tema: Otomatis dari Banner</span>
+                <span class="text-[9px] text-slate-500">Background akan otomatis senada dengan banner</span>
+              </div>
+            </div>
+            <button type="button" onclick="extractColorFromCurrentBannerPreview()" class="px-2.5 py-1 text-[10px] font-bold text-[#0077d6] bg-white hover:bg-sky-50 rounded-lg border border-sky-200 shadow-xs transition">
+              <i class="fas fa-eye-dropper mr-1"></i> Uji Warna Banner
+            </button>
+          </div>
+        </div>
+
         <!-- Pengaturan Status Aktif -->
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="sectionIsActiveInput" checked class="w-4 h-4 text-[#38b6ff] rounded focus:ring-sky-400">
@@ -1132,7 +1229,7 @@
   </div>
 
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=3.0"></script>
+  <script src="js/admin.js?v=3.1"></script>
 </body>
 
 </html>

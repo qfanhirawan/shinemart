@@ -2168,9 +2168,12 @@ function renderSupabaseSectionsTable(sections) {
         <!-- Info Seksi -->
         <td class="py-3 px-4">
           <div class="font-extrabold text-slate-800 text-sm mb-1">${sec.title}</div>
-          <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+          <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mb-1.5">
             <i class="fas fa-link text-[#38b6ff]"></i>
             <span class="truncate max-w-[200px]">${sec.see_all_url || '#katalog'}</span>
+          </div>
+          <div>
+            ${getSectionThemeBadgeHtml(sec.bg_color)}
           </div>
         </td>
 
@@ -2221,6 +2224,194 @@ function renderSupabaseSectionsTable(sections) {
   }).join("");
 }
 
+// ==============================================================================
+// PENGATURAN TEMA & GRADASI BACKGROUND SEKSI PROMO
+// ==============================================================================
+const SECTION_THEME_CONFIGS = {
+  auto: {
+    name: "Otomatis dari Banner",
+    desc: "Background akan otomatis membaca warna dominan dari gambar banner",
+    gradient: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%)",
+    border: "#bfdbfe",
+    iconBg: "linear-gradient(135deg, #38b6ff, #0077d6)"
+  },
+  sky: {
+    name: "Biru Sky",
+    desc: "Gradasi biru muda elegan khas Shinemart",
+    gradient: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%)",
+    border: "#bfdbfe",
+    iconBg: "linear-gradient(135deg, #38b6ff, #0077d6)"
+  },
+  pink: {
+    name: "Pink Berry",
+    desc: "Gradasi merah muda manis untuk promo spesial",
+    gradient: "linear-gradient(135deg, #fce7f3 0%, #fff1f2 55%, #ffffff 100%)",
+    border: "#fbcfe8",
+    iconBg: "linear-gradient(135deg, #ff66c4, #e043a5)"
+  },
+  emerald: {
+    name: "Mint Hijau",
+    desc: "Gradasi hijau segar bernuansa alam & produk fresh",
+    gradient: "linear-gradient(135deg, #d1fae5 0%, #ecfdf5 55%, #ffffff 100%)",
+    border: "#a7f3d0",
+    iconBg: "linear-gradient(135deg, #10b981, #059669)"
+  },
+  orange: {
+    name: "Sunset Oranye",
+    desc: "Gradasi oranye hangat untuk camilan & bakery",
+    gradient: "linear-gradient(135deg, #ffedd5 0%, #fffbeb 55%, #ffffff 100%)",
+    border: "#fed7aa",
+    iconBg: "linear-gradient(135deg, #f97316, #ea580c)"
+  },
+  purple: {
+    name: "Ungu Mewah",
+    desc: "Gradasi ungu lavender eksklusif",
+    gradient: "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 55%, #ffffff 100%)",
+    border: "#ddd6fe",
+    iconBg: "linear-gradient(135deg, #8b5cf6, #6d28d9)"
+  }
+};
+
+function hexToRgbaHelper(hex, alpha = 1) {
+  if (!hex || typeof hex !== 'string') return `rgba(56, 182, 255, ${alpha})`;
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(56, 182, 255, ${alpha})`;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getSectionThemeBadgeHtml(bgVal) {
+  const key = bgVal || 'auto';
+  if (key === 'auto') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md"><i class="fas fa-magic text-[#38b6ff]"></i> Gradasi Banner</span>`;
+  } else if (key === 'sky') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span> Biru Sky</span>`;
+  } else if (key === 'pink') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full bg-pink-500 inline-block"></span> Pink Berry</span>`;
+  } else if (key === 'emerald') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Mint Hijau</span>`;
+  } else if (key === 'orange') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Sunset Oranye</span>`;
+  } else if (key === 'purple') {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> Ungu Mewah</span>`;
+  } else {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md"><span class="w-2 h-2 rounded-full inline-block" style="background:${key}"></span> Kustom</span>`;
+  }
+}
+
+function handleSectionThemeChange(themeKey) {
+  const bgInput = document.getElementById("sectionBgColorInput");
+  const previewBox = document.getElementById("sectionThemePreviewBox");
+  const previewText = document.getElementById("previewBoxText");
+  const previewIcon = document.getElementById("previewBoxIcon");
+  if (!bgInput) return;
+
+  // Reset highlight border
+  ["Auto", "Sky", "Pink", "Emerald", "Orange", "Purple", "Custom"].forEach(id => {
+    const el = document.getElementById(`labelTheme${id}`);
+    if (el) {
+      el.classList.remove("border-[#38b6ff]", "border-pink-500", "border-emerald-500", "border-orange-500", "border-purple-500", "border-slate-700", "ring-2", "ring-offset-1");
+      el.classList.add("border-slate-200");
+    }
+  });
+
+  if (themeKey === "custom") {
+    const customHex = document.getElementById("sectionCustomColorInput")?.value || "#38b6ff";
+    bgInput.value = customHex;
+    const labelEl = document.getElementById("labelThemeCustom");
+    if (labelEl) {
+      labelEl.classList.remove("border-slate-200");
+      labelEl.classList.add("ring-2", "ring-slate-700", "border-slate-700");
+    }
+    if (previewBox) {
+      previewBox.style.background = `linear-gradient(135deg, ${hexToRgbaHelper(customHex, 0.22)} 0%, ${hexToRgbaHelper(customHex, 0.06)} 55%, #ffffff 100%)`;
+      previewBox.style.borderColor = hexToRgbaHelper(customHex, 0.35);
+    }
+    if (previewText) previewText.textContent = `Tema: Warna Kustom (${customHex.toUpperCase()})`;
+    if (previewIcon) previewIcon.style.background = customHex;
+    return;
+  }
+
+  bgInput.value = themeKey;
+  const conf = SECTION_THEME_CONFIGS[themeKey] || SECTION_THEME_CONFIGS.auto;
+  const capitalKey = themeKey.charAt(0).toUpperCase() + themeKey.slice(1);
+  const labelEl = document.getElementById(`labelTheme${capitalKey}`);
+  if (labelEl) {
+    labelEl.classList.remove("border-slate-200");
+    labelEl.classList.add("ring-2", "ring-offset-1", "border-[#38b6ff]");
+  }
+
+  if (previewBox) {
+    previewBox.style.background = conf.gradient;
+    previewBox.style.borderColor = conf.border;
+  }
+  if (previewText) previewText.textContent = `Tema: ${conf.name}`;
+  if (previewIcon) previewIcon.style.background = conf.iconBg;
+}
+
+function handleCustomColorInput(hex) {
+  if (!hex) return;
+  const colorPicker = document.getElementById("sectionCustomColorInput");
+  const colorText = document.getElementById("sectionCustomColorText");
+  const customRadio = document.querySelector('input[name="sectionThemeRadio"][value="custom"]');
+
+  if (colorPicker && colorPicker.value !== hex) colorPicker.value = hex;
+  if (colorText && colorText.value !== hex) colorText.value = hex;
+  if (customRadio) customRadio.checked = true;
+
+  handleSectionThemeChange("custom");
+}
+
+function extractColorFromCurrentBannerPreview() {
+  const img = document.getElementById("sectionBannerPreviewImg");
+  if (!img) return;
+
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = 16;
+    canvas.height = 16;
+    ctx.drawImage(img, 0, 0, 16, 16);
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+    let r = 0, g = 0, b = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      const red = data[i];
+      const green = data[i + 1];
+      const blue = data[i + 2];
+      const bright = (red * 299 + green * 587 + blue * 114) / 1000;
+      if (bright > 25 && bright < 235) {
+        r += red; g += green; b += blue; count++;
+      }
+    }
+    if (count > 0) {
+      r = Math.round(r / count);
+      g = Math.round(g / count);
+      b = Math.round(b / count);
+      const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+
+      const previewBox = document.getElementById("sectionThemePreviewBox");
+      const previewText = document.getElementById("previewBoxText");
+      if (previewBox) {
+        previewBox.style.background = `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, 0.22) 0%, rgba(${r}, ${g}, ${b}, 0.06) 55%, #ffffff 100%)`;
+        previewBox.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.35)`;
+      }
+      if (previewText) {
+        previewText.textContent = `Terdeteksi dari Banner: RGB(${r}, ${g}, ${b}) / ${hex.toUpperCase()}`;
+      }
+      showAdminToast(`Berhasil mendeteksi warna banner (${hex.toUpperCase()})!`, "success");
+      return;
+    }
+  } catch (e) {
+    console.warn("CORS/Canvas detection info:", e);
+  }
+  showAdminToast("Mode otomatis aktif! Di beranda sistem akan menyesuaikan warna banner secara dinamis.", "info");
+}
+
 /**
  * Buka modal tambah seksi
  */
@@ -2233,6 +2424,11 @@ function openAddSectionModal() {
   document.getElementById("sectionDisplayOrderInput").value = liveSupabaseSections.length + 1;
   document.getElementById("sectionSeeAllUrlInput").value = "#katalog";
   document.getElementById("sectionIsActiveInput").checked = true;
+
+  // Reset tema ke auto
+  const autoRadio = document.querySelector('input[name="sectionThemeRadio"][value="auto"]');
+  if (autoRadio) autoRadio.checked = true;
+  handleSectionThemeChange("auto");
 
   updateSectionBannerPreview("");
   selectedSectionProducts = [];
@@ -2259,6 +2455,20 @@ function openEditSectionModal(sectionId) {
   document.getElementById("sectionSeeAllUrlInput").value = sec.see_all_url || "#katalog";
   document.getElementById("sectionBannerUrlInput").value = sec.banner_image_url;
   document.getElementById("sectionIsActiveInput").checked = Boolean(sec.is_active);
+
+  // Set tema warna
+  const savedBg = sec.bg_color || "auto";
+  const matchedRadio = document.querySelector(`input[name="sectionThemeRadio"][value="${savedBg}"]`);
+  if (matchedRadio) {
+    matchedRadio.checked = true;
+    handleSectionThemeChange(savedBg);
+  } else if (String(savedBg).startsWith("#")) {
+    handleCustomColorInput(savedBg);
+  } else {
+    const autoRadio = document.querySelector('input[name="sectionThemeRadio"][value="auto"]');
+    if (autoRadio) autoRadio.checked = true;
+    handleSectionThemeChange("auto");
+  }
 
   updateSectionBannerPreview(sec.banner_image_url);
   selectedSectionProducts = [...(sec.products || [])];
@@ -2338,6 +2548,7 @@ async function handleSaveSection(event) {
   const display_order = Number(document.getElementById("sectionDisplayOrderInput")?.value) || 1;
   const see_all_url = document.getElementById("sectionSeeAllUrlInput")?.value?.trim() || "#katalog";
   const banner_image_url = document.getElementById("sectionBannerUrlInput")?.value?.trim();
+  const bg_color = document.getElementById("sectionBgColorInput")?.value || "auto";
   const is_active = document.getElementById("sectionIsActiveInput")?.checked;
 
   if (!title || !banner_image_url) {
@@ -2357,19 +2568,31 @@ async function handleSaveSection(event) {
 
   try {
     let sectionId = id;
+    const sectionPayload = {
+      title,
+      display_order,
+      see_all_url,
+      banner_image_url,
+      bg_color,
+      is_active
+    };
 
     if (sectionId) {
       // 1. Update Tabel promotional_sections
-      const { error: updateError } = await supabaseClient
+      let { error: updateError } = await supabaseClient
         .from("promotional_sections")
-        .update({
-          title,
-          display_order,
-          see_all_url,
-          banner_image_url,
-          is_active
-        })
+        .update(sectionPayload)
         .eq("id", sectionId);
+
+      // Fallback jika kolom bg_color belum di-migration di DB pengguna
+      if (updateError && String(updateError.message).includes("bg_color")) {
+        delete sectionPayload.bg_color;
+        const retryRes = await supabaseClient
+          .from("promotional_sections")
+          .update(sectionPayload)
+          .eq("id", sectionId);
+        updateError = retryRes.error;
+      }
 
       if (updateError) throw updateError;
 
@@ -2380,20 +2603,24 @@ async function handleSaveSection(event) {
         .eq("section_id", sectionId);
     } else {
       // Insert Seksi Baru
-      const { data: newSec, error: insertError } = await supabaseClient
+      let insertRes = await supabaseClient
         .from("promotional_sections")
-        .insert([{
-          title,
-          display_order,
-          see_all_url,
-          banner_image_url,
-          is_active
-        }])
+        .insert([sectionPayload])
         .select()
         .single();
 
-      if (insertError) throw insertError;
-      sectionId = newSec.id;
+      // Fallback jika kolom bg_color belum ada
+      if (insertRes.error && String(insertRes.error.message).includes("bg_color")) {
+        delete sectionPayload.bg_color;
+        insertRes = await supabaseClient
+          .from("promotional_sections")
+          .insert([sectionPayload])
+          .select()
+          .single();
+      }
+
+      if (insertRes.error) throw insertRes.error;
+      sectionId = insertRes.data.id;
     }
 
     // 3. Masukkan item produk relasi

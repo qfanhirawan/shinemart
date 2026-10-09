@@ -1334,6 +1334,111 @@ async function fetchDynamicPromotionalSections() {
   }
 }
 
+// ==============================================================================
+// TEMA GRADASI DINAMIS UNTUK SEKSI PROMO (KLIK INDOMARET STYLE)
+// ==============================================================================
+const DYNAMIC_SECTION_THEMES = {
+  sky: {
+    gradient: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%)",
+    border: "#bfdbfe",
+    glowColor: "rgba(56, 182, 255, 0.28)",
+    iconBg: "linear-gradient(135deg, #38b6ff, #0077d6)",
+    tagBg: "#dbeafe",
+    tagText: "#1d4ed8"
+  },
+  pink: {
+    gradient: "linear-gradient(135deg, #fce7f3 0%, #fff1f2 55%, #ffffff 100%)",
+    border: "#fbcfe8",
+    glowColor: "rgba(255, 102, 196, 0.28)",
+    iconBg: "linear-gradient(135deg, #ff66c4, #e043a5)",
+    tagBg: "#fce7f3",
+    tagText: "#be185d"
+  },
+  emerald: {
+    gradient: "linear-gradient(135deg, #d1fae5 0%, #ecfdf5 55%, #ffffff 100%)",
+    border: "#a7f3d0",
+    glowColor: "rgba(16, 185, 129, 0.28)",
+    iconBg: "linear-gradient(135deg, #10b981, #059669)",
+    tagBg: "#d1fae5",
+    tagText: "#047857"
+  },
+  orange: {
+    gradient: "linear-gradient(135deg, #ffedd5 0%, #fffbeb 55%, #ffffff 100%)",
+    border: "#fed7aa",
+    glowColor: "rgba(249, 115, 22, 0.28)",
+    iconBg: "linear-gradient(135deg, #f97316, #ea580c)",
+    tagBg: "#ffedd5",
+    tagText: "#c2410c"
+  },
+  purple: {
+    gradient: "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 55%, #ffffff 100%)",
+    border: "#ddd6fe",
+    glowColor: "rgba(139, 92, 246, 0.28)",
+    iconBg: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+    tagBg: "#ede9fe",
+    tagText: "#6d28d9"
+  }
+};
+
+function hexToRgbaApp(hex, alpha = 1) {
+  if (!hex || typeof hex !== 'string') return `rgba(56, 182, 255, ${alpha})`;
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(56, 182, 255, ${alpha})`;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Ekstraksi warna dominan gambar banner untuk gradasi otomatis
+ */
+function applyBannerColorToSection(cardId, glowId, iconId, imgEl) {
+  if (!imgEl) return;
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    canvas.width = 16;
+    canvas.height = 16;
+    ctx.drawImage(imgEl, 0, 0, 16, 16);
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+    let r = 0, g = 0, b = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      const red = data[i];
+      const green = data[i + 1];
+      const blue = data[i + 2];
+      const bright = (red * 299 + green * 587 + blue * 114) / 1000;
+      if (bright > 25 && bright < 235) {
+        r += red; g += green; b += blue; count++;
+      }
+    }
+    if (count > 0) {
+      r = Math.round(r / count);
+      g = Math.round(g / count);
+      b = Math.round(b / count);
+
+      const card = document.getElementById(cardId);
+      const glow = document.getElementById(glowId);
+      const icon = document.getElementById(iconId);
+      if (card) {
+        card.style.background = `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, 0.22) 0%, rgba(${r}, ${g}, ${b}, 0.05) 55%, #ffffff 100%)`;
+        card.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.32)`;
+      }
+      if (glow) {
+        glow.style.background = `rgba(${r}, ${g}, ${b}, 0.35)`;
+      }
+      if (icon) {
+        icon.style.background = `linear-gradient(135deg, rgb(${r}, ${g}, ${b}), rgba(${r}, ${g}, ${b}, 0.8))`;
+      }
+    }
+  } catch (err) {
+    // Graceful fallback jika browser memblokir canvas CORS
+  }
+}
+
 function renderDynamicPromotionalSections() {
   const container = document.getElementById("dynamicPromotionalSectionsContainer");
   if (!container) return;
@@ -1346,7 +1451,32 @@ function renderDynamicPromotionalSections() {
   container.innerHTML = dynamicPromoSections.map((sec, idx) => {
     const bannerImg = formatGoogleDriveImageUrl(sec.banner_image_url);
     const seeAllLink = sec.see_all_url || "#katalog";
-    const carouselId = `sectionCarousel_${sec.id.replace(/[^a-zA-Z0-9]/g, "_")}`;
+    const safeSecId = String(sec.id).replace(/[^a-zA-Z0-9]/g, "_");
+    const carouselId = `sectionCarousel_${safeSecId}`;
+    const sectionCardId = `secCard_${safeSecId}`;
+    const bannerImgId = `bannerImg_${safeSecId}`;
+    const glowId = `glow_${safeSecId}`;
+    const iconId = `icon_${safeSecId}`;
+    const themeKey = sec.bg_color || "auto";
+
+    // Setup warna awal (Sky blue / preset / hex)
+    let initialGradient = "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #ffffff 100%)";
+    let initialBorder = "#bfdbfe";
+    let initialGlow = "rgba(56, 182, 255, 0.28)";
+    let initialIcon = "linear-gradient(135deg, #38b6ff, #0077d6)";
+
+    if (DYNAMIC_SECTION_THEMES[themeKey]) {
+      const conf = DYNAMIC_SECTION_THEMES[themeKey];
+      initialGradient = conf.gradient;
+      initialBorder = conf.border;
+      initialGlow = conf.glowColor;
+      initialIcon = conf.iconBg;
+    } else if (String(themeKey).startsWith("#")) {
+      initialGradient = `linear-gradient(135deg, ${hexToRgbaApp(themeKey, 0.22)} 0%, ${hexToRgbaApp(themeKey, 0.05)} 55%, #ffffff 100%)`;
+      initialBorder = hexToRgbaApp(themeKey, 0.35);
+      initialGlow = hexToRgbaApp(themeKey, 0.32);
+      initialIcon = themeKey;
+    }
 
     const productsHtml = sec.products.map((item) => {
       const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
@@ -1436,32 +1566,39 @@ function renderDynamicPromotionalSections() {
 
     return `
       <section class="py-6 px-4 max-w-7xl mx-auto">
-        <div class="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm relative overflow-hidden">
+        <div id="${sectionCardId}"
+          class="rounded-3xl p-4 sm:p-6 border shadow-sm relative overflow-hidden transition-all duration-700 backdrop-blur-sm"
+          style="background: ${initialGradient}; border-color: ${initialBorder};">
           
+          <!-- Decorative Ambient Glow Effect -->
+          <div id="${glowId}" class="absolute -top-16 -left-16 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-all duration-700"
+            style="background: ${initialGlow};"></div>
+
           <!-- Header Seksi: Judul & Tombol Lihat Semua -->
-          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/60 sm:border-slate-200/50 relative z-10">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#38b6ff] to-[#0077d6] text-white flex items-center justify-center text-sm sm:text-base shadow-sm">
+              <div id="${iconId}" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-white flex items-center justify-center text-sm sm:text-base shadow-sm transition-all duration-500"
+                style="background: ${initialIcon};">
                 <i class="fas fa-fire text-amber-300"></i>
               </div>
               <div>
                 <h3 class="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none">${sec.title}</h3>
-                <span class="text-[10px] sm:text-xs text-slate-400">Koleksi promo pilihan hemat Shinemart</span>
+                <span class="text-[10px] sm:text-xs text-slate-500">Koleksi promo pilihan hemat Shinemart</span>
               </div>
             </div>
 
             <div class="flex items-center gap-2">
-              <a href="${seeAllLink}" class="text-xs sm:text-sm font-extrabold text-[#0077d6] hover:text-[#38b6ff] transition flex items-center gap-1 group">
+              <a href="${seeAllLink}" class="text-xs sm:text-sm font-extrabold text-[#0077d6] hover:text-[#38b6ff] transition flex items-center gap-1 group bg-white/70 hover:bg-white px-3 py-1.5 rounded-xl border border-white/60 shadow-xs">
                 <span>Lihat Semua</span>
                 <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
               </a>
 
               <!-- Tombol Navigasi Desktop -->
-              <div class="hidden sm:flex items-center gap-1 pl-3 border-l border-slate-200">
-                <button onclick="scrollSectionCarousel('${carouselId}', -1)" class="w-7 h-7 rounded-full bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-slate-200 transition active:scale-95">
+              <div class="hidden sm:flex items-center gap-1 pl-2">
+                <button onclick="scrollSectionCarousel('${carouselId}', -1)" class="w-7 h-7 rounded-full bg-white/80 hover:bg-white text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-white/70 shadow-xs transition active:scale-95">
                   <i class="fas fa-chevron-left text-[10px]"></i>
                 </button>
-                <button onclick="scrollSectionCarousel('${carouselId}', 1)" class="w-7 h-7 rounded-full bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-slate-200 transition active:scale-95">
+                <button onclick="scrollSectionCarousel('${carouselId}', 1)" class="w-7 h-7 rounded-full bg-white/80 hover:bg-white text-slate-600 hover:text-[#0077d6] flex items-center justify-center border border-white/70 shadow-xs transition active:scale-95">
                   <i class="fas fa-chevron-right text-[10px]"></i>
                 </button>
               </div>
@@ -1469,12 +1606,14 @@ function renderDynamicPromotionalSections() {
           </div>
 
           <!-- Body: Banner Tema Kiri + Produk Slider Kanan (Klik Indomaret Style) -->
-          <div class="flex flex-col lg:flex-row gap-4 items-stretch">
+          <div class="flex flex-col lg:flex-row gap-4 items-stretch relative z-10">
             
             <!-- Sisi Kiri: Banner Tema -->
             <a href="${seeAllLink}" class="w-full lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 relative group block aspect-[3/4] lg:aspect-auto">
-              <img src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
+              <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                crossorigin="anonymous"
+                ${themeKey === 'auto' ? `onload="applyBannerColorToSection('${sectionCardId}', '${glowId}', '${iconId}', this)"` : ''}
                 onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
                 <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/60 backdrop-blur-md px-2.5 py-1 rounded-full self-start mb-1.5 border border-white/20">
@@ -1506,4 +1645,5 @@ function scrollSectionCarousel(elementId, direction) {
     container.scrollBy({ left: scrollAmount, behavior: "smooth" });
   }
 }
+
 
