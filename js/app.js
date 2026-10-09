@@ -1121,8 +1121,8 @@ function renderBannerSlider() {
             <i class="fas fa-arrow-right text-[#ff66c4]"></i>
           </a>
         </div>
-        <div class="hidden md:block w-64 h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-white/30 transform rotate-2">
-          <img src="${imgSrc}" alt="${banner.title}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+        <div class="w-24 h-24 sm:w-36 sm:h-36 md:w-64 md:h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-white/30 shrink-0 transform md:rotate-2 ml-2">
+          <img src="${imgSrc}" alt="${banner.title}" class="w-full h-full object-cover" onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
         </div>
       </div>
     `;
@@ -1299,34 +1299,59 @@ async function fetchDynamicPromotionalSections() {
       return;
     }
 
-    // 2. Ambil semua item produk relasi
+    // 2. Ambil data relasi items secara aman tanpa bergantung pada foreign-key cache PostgREST
     const sectionIds = sections.map((s) => s.id);
-    const { data: items, error: itemError } = await supabaseClient
-      .from("promotional_section_items")
-      .select("*, products(*)")
-      .in("section_id", sectionIds)
-      .order("sort_order", { ascending: true });
+    let items = [];
+    try {
+      const { data: rawItems, error: itemError } = await supabaseClient
+        .from("promotional_section_items")
+        .select("id, section_id, product_id, sort_order")
+        .in("section_id", sectionIds)
+        .order("sort_order", { ascending: true });
 
-    if (itemError) {
-      console.warn("Gagal memuat item seksi promosi:", itemError);
-      return;
+      if (!itemError && rawItems) {
+        items = rawItems;
+      } else if (itemError) {
+        console.warn("Info item seksi promo:", itemError);
+      }
+    } catch (itErr) {
+      console.warn("Gagal load item seksi:", itErr);
+    }
+
+    // Siapkan peta produk dari database / memory
+    const prodMap = new Map((productsList || []).map((p) => [String(p.id), p]));
+    const missingProductIds = items
+      .map((it) => String(it.product_id))
+      .filter((pid) => !prodMap.has(pid));
+
+    if (missingProductIds.length > 0) {
+      try {
+        const { data: dbProds } = await supabaseClient
+          .from("products")
+          .select("*")
+          .in("id", missingProductIds);
+        (dbProds || []).forEach((p) => prodMap.set(String(p.id), p));
+      } catch (pErr) {
+        console.warn("Gagal mengambil detail produk seksi promo:", pErr);
+      }
     }
 
     // Gabungkan produk ke masing-masing seksi
     const itemsBySection = {};
-    (items || []).forEach((it) => {
+    items.forEach((it) => {
       if (!itemsBySection[it.section_id]) {
         itemsBySection[it.section_id] = [];
       }
-      if (it.products) {
-        itemsBySection[it.section_id].push(mapProductWithPromo(it.products));
+      const p = prodMap.get(String(it.product_id));
+      if (p) {
+        itemsBySection[it.section_id].push(mapProductWithPromo(p));
       }
     });
 
     dynamicPromoSections = sections.map((sec) => ({
       ...sec,
       products: itemsBySection[sec.id] || []
-    })).filter((sec) => sec.products.length > 0);
+    }));
 
     renderDynamicPromotionalSections();
   } catch (err) {
@@ -1612,9 +1637,7 @@ function renderDynamicPromotionalSections() {
             <a href="${seeAllLink}" class="w-full lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 relative group block aspect-[3/4] lg:aspect-auto">
               <img id="${bannerImgId}" src="${bannerImg}" alt="${sec.banner_alt || sec.title}"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                crossorigin="anonymous"
-                ${themeKey === 'auto' ? `onload="applyBannerColorToSection('${sectionCardId}', '${glowId}', '${iconId}', this)"` : ''}
-                onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+                onerror="if(this.dataset.errored) return; this.dataset.errored='1'; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
                 <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#38b6ff] bg-slate-900/60 backdrop-blur-md px-2.5 py-1 rounded-full self-start mb-1.5 border border-white/20">
                   Promo Spesial
@@ -1626,7 +1649,12 @@ function renderDynamicPromotionalSections() {
             <!-- Sisi Kanan: Slider Produk Horizontal -->
             <div class="flex-1 relative overflow-hidden flex items-center">
               <div id="${carouselId}" class="w-full flex items-stretch gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
-                ${productsHtml}
+                ${productsHtml || `
+                  <div class="py-12 px-6 text-center w-full text-slate-400">
+                    <i class="fas fa-boxes text-2xl mb-2 text-slate-300"></i>
+                    <p class="text-xs font-semibold">Produk promo untuk seksi ini sedang disiapkan.</p>
+                  </div>
+                `}
               </div>
             </div>
 
