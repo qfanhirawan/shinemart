@@ -1047,8 +1047,45 @@ function setupEventListeners() {
       activeCategory = btn.getAttribute("data-category");
       currentPage = 1;
       renderProducts();
+      
+      // Scroll otomatis dan mulus ke bagian katalog produk
+      scrollToCatalogSection();
     });
   });
+}
+
+/**
+ * Scroll otomatis & halus ke seksi katalog produk
+ */
+function scrollToCatalogSection() {
+  const catalogSection = document.getElementById("katalog");
+  if (!catalogSection) return;
+
+  // Offset kompensasi sticky header & search bar (~90px)
+  const headerOffset = 90;
+  const elementPosition = catalogSection.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+  window.scrollTo({
+    top: offsetPosition,
+    behavior: "smooth"
+  });
+}
+
+function selectCategory(categoryName) {
+  const categoryBtns = document.querySelectorAll(".category-tab-btn");
+  categoryBtns.forEach((btn) => {
+    if (btn.getAttribute("data-category") === categoryName) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  activeCategory = categoryName;
+  currentPage = 1;
+  renderProducts();
+  scrollToCatalogSection();
 }
 
 // ==============================================================================
