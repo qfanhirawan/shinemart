@@ -1201,33 +1201,48 @@ function switchAdminTab(tabName) {
   currentAdminTab = tabName;
   const productsTab = document.getElementById("productsTabSection");
   const bannersTab = document.getElementById("bannersTabSection");
+  const sectionsTab = document.getElementById("sectionsTabSection");
+
   const tabBtnProducts = document.getElementById("tabBtnProducts");
   const tabBtnBanners = document.getElementById("tabBtnBanners");
+  const tabBtnSections = document.getElementById("tabBtnSections");
+
   const btnTopAddBanner = document.getElementById("btnTopAddBanner");
+  const btnTopAddSection = document.getElementById("btnTopAddSection");
+
+  // Reset semua tab konten
+  if (productsTab) productsTab.classList.add("hidden");
+  if (bannersTab) bannersTab.classList.add("hidden");
+  if (sectionsTab) sectionsTab.classList.add("hidden");
+
+  // Reset tombol top bar
+  if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
+  if (btnTopAddSection) btnTopAddSection.classList.add("hidden");
+
+  // Reset styling tab buttons
+  const inactiveClass = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
+  if (tabBtnProducts) tabBtnProducts.className = inactiveClass;
+  if (tabBtnBanners) tabBtnBanners.className = inactiveClass;
+  if (tabBtnSections) tabBtnSections.className = inactiveClass;
 
   if (tabName === "banners") {
-    if (productsTab) productsTab.classList.add("hidden");
     if (bannersTab) bannersTab.classList.remove("hidden");
     if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
-
     if (tabBtnBanners) {
       tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4]";
     }
-    if (tabBtnProducts) {
-      tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
-    }
-
     loadSupabaseBannersList();
+  } else if (tabName === "sections") {
+    if (sectionsTab) sectionsTab.classList.remove("hidden");
+    if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
+    if (tabBtnSections) {
+      tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
+    }
+    loadSupabaseSectionsList();
   } else {
-    if (bannersTab) bannersTab.classList.add("hidden");
     if (productsTab) productsTab.classList.remove("hidden");
-    if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
-
     if (tabBtnProducts) {
       tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
-    }
-    if (tabBtnBanners) {
-      tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
     }
   }
 }
@@ -1996,5 +2011,559 @@ function closeImagePreviewModal(event) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closeImagePreviewModal();
+    closeSectionModal();
+    closeProductPickerModal();
   }
 });
+
+/**
+ * ==============================================================================
+ * DYNAMIC PROMOTIONAL SECTIONS / CATALOG MANAGER (KLIK INDOMARET STYLE)
+ * Modul Lengkap CRUD Seksi Promosi + Pemilih Produk (Product Picker)
+ * ==============================================================================
+ */
+let liveSupabaseSections = [];
+let selectedSectionProducts = []; // Array produk yang sedang dipilih untuk seksi ini
+
+/**
+ * Memuat daftar seksi promo dari database Supabase
+ */
+async function loadSupabaseSectionsList() {
+  const tbody = document.getElementById("supabaseSectionsTableBody");
+  const countBadge = document.getElementById("supabaseSectionsCount");
+  const topBadge = document.getElementById("adminSectionCountBadge");
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="text-center py-8 text-xs text-slate-400">
+        <i class="fas fa-spinner fa-spin mr-1.5 text-sky-500"></i> Memuat seksi promo dari database Supabase...
+      </td>
+    </tr>
+  `;
+
+  const supabaseClient = getSupabaseClient();
+  if (!supabaseClient) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-8 text-xs text-pink-500">
+          Supabase belum terkonfigurasi.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  try {
+    // 1. Ambil data seksi
+    const { data: sections, error: secError } = await supabaseClient
+      .from("promotional_sections")
+      .select("*")
+      .order("display_order", { ascending: true });
+
+    if (secError) throw secError;
+
+    // 2. Ambil data relasi items + products
+    const { data: items, error: itemError } = await supabaseClient
+      .from("promotional_section_items")
+      .select("*, products(*)")
+      .order("sort_order", { ascending: true });
+
+    if (itemError) console.warn("Error items:", itemError);
+
+    // Gabungkan item ke seksi
+    const itemsBySec = {};
+    (items || []).forEach((it) => {
+      if (!itemsBySec[it.section_id]) itemsBySec[it.section_id] = [];
+      if (it.products) itemsBySec[it.section_id].push(it.products);
+    });
+
+    liveSupabaseSections = (sections || []).map((sec) => ({
+      ...sec,
+      products: itemsBySec[sec.id] || []
+    }));
+
+    if (countBadge) countBadge.textContent = `${liveSupabaseSections.length} Seksi`;
+    if (topBadge) topBadge.textContent = liveSupabaseSections.length;
+
+    renderSupabaseSectionsTable(liveSupabaseSections);
+  } catch (err) {
+    console.error("Gagal load sections:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-8 text-xs text-pink-500">
+          Gagal memuat data seksi promo: ${err.message || err}. Pastikan tabel 'promotional_sections' sudah dibuat di Supabase.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Render tabel seksi promo di Admin
+ */
+function renderSupabaseSectionsTable(sections) {
+  const tbody = document.getElementById("supabaseSectionsTableBody");
+  if (!tbody) return;
+
+  if (sections.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-10 text-xs text-slate-400">
+          <i class="fas fa-layer-group text-3xl mb-2 text-slate-300 block"></i>
+          Belum ada Seksi Promo. Klik tombol <strong>"Buat Seksi Promo Baru"</strong> untuk menambahkan tema koleksi promo Shinemart.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = sections.map((sec, idx) => {
+    const bannerImg = formatGoogleDriveImageUrl(sec.banner_image_url);
+    const prodCount = sec.products ? sec.products.length : 0;
+    const isActive = Boolean(sec.is_active);
+
+    // Mini thumbnails preview produk
+    const miniThumbnailsHtml = (sec.products || []).slice(0, 5).map((p) => {
+      const pImg = formatGoogleDriveImageUrl(p.image_url || p.imageUrl);
+      return `
+        <div class="w-8 h-8 rounded-lg bg-white border border-slate-200 overflow-hidden shrink-0 p-0.5" title="${p.name}">
+          <img src="${pImg}" alt="${p.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <tr class="hover:bg-sky-50/30 border-b border-slate-100 transition text-xs">
+        <td class="py-3 px-3 font-mono text-slate-400 text-center">${idx + 1}</td>
+        
+        <!-- Banner Kiri -->
+        <td class="py-3 px-3">
+          <div class="w-20 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm relative group cursor-pointer" onclick="openProductImageModal('${bannerImg}', '${sec.title.replace(/'/g, "\\'")}', 'Banner Seksi')">
+            <img src="${bannerImg}" alt="${sec.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';">
+            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs font-bold">
+              <i class="fas fa-search-plus"></i>
+            </div>
+          </div>
+        </td>
+
+        <!-- Info Seksi -->
+        <td class="py-3 px-4">
+          <div class="font-extrabold text-slate-800 text-sm mb-1">${sec.title}</div>
+          <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <i class="fas fa-link text-[#38b6ff]"></i>
+            <span class="truncate max-w-[200px]">${sec.see_all_url || '#katalog'}</span>
+          </div>
+        </td>
+
+        <!-- Daftar Produk -->
+        <td class="py-3 px-4">
+          <div class="flex items-center gap-1 mb-1.5">
+            ${miniThumbnailsHtml}
+            ${prodCount > 5 ? `<span class="text-[10px] text-slate-400 font-bold ml-1">+${prodCount - 5} lainnya</span>` : ''}
+          </div>
+          <span class="text-[11px] font-bold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded-md inline-block">
+            ${prodCount} Produk Terhubung
+          </span>
+        </td>
+
+        <!-- Urutan -->
+        <td class="py-3 px-3 text-center font-bold text-slate-700">
+          #${sec.display_order}
+        </td>
+
+        <!-- Status Saklar -->
+        <td class="py-3 px-3 text-center">
+          <button onclick="toggleSectionStatus('${sec.id}', ${!isActive})"
+            class="px-2.5 py-1 rounded-full text-[10px] font-extrabold transition shadow-sm ${
+              isActive ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+            }">
+            <i class="fas ${isActive ? 'fa-check-circle' : 'fa-pause-circle'} mr-1"></i>
+            ${isActive ? 'Aktif' : 'Nonaktif'}
+          </button>
+        </td>
+
+        <!-- Aksi -->
+        <td class="py-3 px-4 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openEditSectionModal('${sec.id}')"
+              class="px-2.5 py-1.5 rounded-xl bg-sky-50 hover:bg-[#38b6ff] text-[#0077d6] hover:text-white transition font-bold text-xs"
+              title="Edit Seksi Promo">
+              <i class="fas fa-edit mr-1"></i> Edit
+            </button>
+            <button onclick="deleteSectionFromSupabase('${sec.id}', '${sec.title.replace(/'/g, "\\'")}')"
+              class="px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-500 text-pink-600 hover:text-white transition font-bold text-xs"
+              title="Hapus Seksi Promo">
+              <i class="fas fa-trash-alt mr-1"></i> Hapus
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+/**
+ * Buka modal tambah seksi
+ */
+function openAddSectionModal() {
+  const form = document.getElementById("sectionForm");
+  if (form) form.reset();
+
+  document.getElementById("sectionId").value = "";
+  document.getElementById("sectionModalTitle").textContent = "Buat Seksi Promo Baru";
+  document.getElementById("sectionDisplayOrderInput").value = liveSupabaseSections.length + 1;
+  document.getElementById("sectionSeeAllUrlInput").value = "#katalog";
+  document.getElementById("sectionIsActiveInput").checked = true;
+
+  updateSectionBannerPreview("");
+  selectedSectionProducts = [];
+  renderSelectedProductsList();
+
+  const modal = document.getElementById("sectionModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+/**
+ * Buka modal edit seksi
+ */
+function openEditSectionModal(sectionId) {
+  const sec = liveSupabaseSections.find((s) => String(s.id) === String(sectionId));
+  if (!sec) return;
+
+  document.getElementById("sectionId").value = sec.id;
+  document.getElementById("sectionModalTitle").textContent = "Edit Seksi Promo";
+  document.getElementById("sectionTitleInput").value = sec.title;
+  document.getElementById("sectionDisplayOrderInput").value = sec.display_order;
+  document.getElementById("sectionSeeAllUrlInput").value = sec.see_all_url || "#katalog";
+  document.getElementById("sectionBannerUrlInput").value = sec.banner_image_url;
+  document.getElementById("sectionIsActiveInput").checked = Boolean(sec.is_active);
+
+  updateSectionBannerPreview(sec.banner_image_url);
+  selectedSectionProducts = [...(sec.products || [])];
+  renderSelectedProductsList();
+
+  const modal = document.getElementById("sectionModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeSectionModal() {
+  const modal = document.getElementById("sectionModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function updateSectionBannerPreview(url) {
+  const img = document.getElementById("sectionBannerPreviewImg");
+  if (img) {
+    img.src = formatGoogleDriveImageUrl(url) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800";
+  }
+}
+
+/**
+ * Render list produk yang sedang dipilih di dalam form seksi
+ */
+function renderSelectedProductsList() {
+  const container = document.getElementById("selectedProductsListContainer");
+  const countBadge = document.getElementById("selectedProductsCountBadge");
+  if (!container) return;
+
+  if (countBadge) countBadge.textContent = `${selectedSectionProducts.length} Produk`;
+
+  if (selectedSectionProducts.length === 0) {
+    container.innerHTML = `
+      <span class="text-[11px] text-slate-400 mx-auto">Belum ada produk yang dipilih. Klik tombol "+ Pilih Produk" di atas.</span>
+    `;
+    return;
+  }
+
+  container.innerHTML = selectedSectionProducts.map((p, idx) => {
+    const pImg = formatGoogleDriveImageUrl(p.image_url || p.imageUrl);
+    return `
+      <div class="w-20 bg-white p-2 rounded-2xl border border-slate-200 text-center shrink-0 relative group shadow-sm">
+        <img src="${pImg}" alt="${p.name}" class="w-12 h-12 object-contain mx-auto mb-1" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+        <span class="block text-[10px] font-bold text-slate-700 truncate">${p.name}</span>
+        <span class="block text-[9px] text-[#0077d6] font-semibold">${formatRupiah(p.price)}</span>
+        
+        <!-- Tombol Hapus Produk dari Seksi -->
+        <button type="button" onclick="removeProductFromSection(${idx})"
+          class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow transition"
+          title="Hapus Produk dari Seksi">
+          ✕
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+function removeProductFromSection(index) {
+  selectedSectionProducts.splice(index, 1);
+  renderSelectedProductsList();
+}
+
+/**
+ * Simpan Seksi Promo ke Supabase
+ */
+async function handleSaveSection(event) {
+  event.preventDefault();
+
+  const id = document.getElementById("sectionId")?.value;
+  const title = document.getElementById("sectionTitleInput")?.value?.trim();
+  const display_order = Number(document.getElementById("sectionDisplayOrderInput")?.value) || 1;
+  const see_all_url = document.getElementById("sectionSeeAllUrlInput")?.value?.trim() || "#katalog";
+  const banner_image_url = document.getElementById("sectionBannerUrlInput")?.value?.trim();
+  const is_active = document.getElementById("sectionIsActiveInput")?.checked;
+
+  if (!title || !banner_image_url) {
+    showAdminToast("Judul dan URL Banner wajib diisi!", "error");
+    return;
+  }
+
+  const supabaseClient = getSupabaseClient();
+  if (!supabaseClient) return;
+
+  const btn = document.getElementById("btnSaveSection");
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan...`;
+  }
+
+  try {
+    let sectionId = id;
+
+    if (sectionId) {
+      // 1. Update Tabel promotional_sections
+      const { error: updateError } = await supabaseClient
+        .from("promotional_sections")
+        .update({
+          title,
+          display_order,
+          see_all_url,
+          banner_image_url,
+          is_active
+        })
+        .eq("id", sectionId);
+
+      if (updateError) throw updateError;
+
+      // 2. Hapus relasi lama
+      await supabaseClient
+        .from("promotional_section_items")
+        .delete()
+        .eq("section_id", sectionId);
+    } else {
+      // Insert Seksi Baru
+      const { data: newSec, error: insertError } = await supabaseClient
+        .from("promotional_sections")
+        .insert([{
+          title,
+          display_order,
+          see_all_url,
+          banner_image_url,
+          is_active
+        }])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      sectionId = newSec.id;
+    }
+
+    // 3. Masukkan item produk relasi
+    if (selectedSectionProducts.length > 0) {
+      const itemsPayload = selectedSectionProducts.map((p, idx) => ({
+        section_id: sectionId,
+        product_id: p.id,
+        sort_order: idx + 1
+      }));
+
+      const { error: itemsError } = await supabaseClient
+        .from("promotional_section_items")
+        .insert(itemsPayload);
+
+      if (itemsError) throw itemsError;
+    }
+
+    showAdminToast("Seksi Promo berhasil disimpan ke database!", "success");
+    closeSectionModal();
+    loadSupabaseSectionsList();
+  } catch (err) {
+    console.error("Gagal simpan seksi:", err);
+    showAdminToast(`Gagal menyimpan: ${err.message || err}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+/**
+ * Toggle Status Aktif / Nonaktif Seksi Promo
+ */
+async function toggleSectionStatus(sectionId, newStatus) {
+  const supabaseClient = getSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("promotional_sections")
+      .update({ is_active: newStatus })
+      .eq("id", sectionId);
+
+    if (error) throw error;
+
+    showAdminToast(`Seksi promo berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}!`, "success");
+    loadSupabaseSectionsList();
+  } catch (err) {
+    showAdminToast(`Gagal mengubah status: ${err.message}`, "error");
+  }
+}
+
+/**
+ * Hapus Seksi Promo dari Supabase
+ */
+async function deleteSectionFromSupabase(sectionId, title) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus seksi promo "${title}"?\nProduk di dalamnya tidak akan terhapus dari katalog.`)) {
+    return;
+  }
+
+  const supabaseClient = getSupabaseClient();
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("promotional_sections")
+      .delete()
+      .eq("id", sectionId);
+
+    if (error) throw error;
+
+    showAdminToast("Seksi promo berhasil dihapus!", "success");
+    loadSupabaseSectionsList();
+  } catch (err) {
+    showAdminToast(`Gagal menghapus seksi: ${err.message}`, "error");
+  }
+}
+
+/**
+ * ==============================================================================
+ * MODAL PRODUCT PICKER (PENCARIAN & PEMILIHAN PRODUK)
+ * ==============================================================================
+ */
+function openProductPickerModal() {
+  const modal = document.getElementById("productPickerModal");
+  const searchInput = document.getElementById("productPickerSearchInput");
+  if (searchInput) searchInput.value = "";
+
+  renderProductPickerList("");
+
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeProductPickerModal() {
+  const modal = document.getElementById("productPickerModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function filterProductPickerList() {
+  const query = document.getElementById("productPickerSearchInput")?.value || "";
+  const category = document.getElementById("productPickerCategoryFilter")?.value || "all";
+  renderProductPickerList(query, category);
+}
+
+function renderProductPickerList(query = "", category = "all") {
+  const container = document.getElementById("productPickerListContainer");
+  if (!container) return;
+
+  const q = (query || "").toLowerCase().trim();
+  const selectedCat = (category || "all").toLowerCase().trim();
+  const allProducts = liveSupabaseProducts || [];
+
+  let filtered = allProducts;
+
+  // Filter Kategori
+  if (selectedCat && selectedCat !== "all") {
+    filtered = filtered.filter((p) => (p.category || "").toLowerCase().trim() === selectedCat);
+  }
+
+  // Filter Nama / Teks
+  if (q) {
+    filtered = filtered.filter((p) => 
+      (p.name || "").toLowerCase().includes(q) || 
+      (p.category || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8 text-slate-400">
+        <i class="fas fa-box-open text-2xl mb-2 text-slate-300 block"></i>
+        Tidak ditemukan produk yang cocok ${q ? `dengan "${query}"` : ""} ${selectedCat !== 'all' ? `di kategori ini` : ""}.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.slice(0, 150).map((prod) => {
+    const isSelected = selectedSectionProducts.some((p) => String(p.id) === String(prod.id));
+    const pImg = formatGoogleDriveImageUrl(prod.image_url || prod.imageUrl);
+
+    return `
+      <div onclick="togglePickProduct('${prod.id}')"
+        class="flex items-center justify-between p-2.5 rounded-2xl border cursor-pointer transition ${
+          isSelected ? 'border-[#38b6ff] bg-sky-50/70 shadow-sm' : 'border-slate-100 hover:bg-slate-50'
+        }">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 overflow-hidden p-1 shrink-0">
+            <img src="${pImg}" alt="${prod.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          </div>
+          <div>
+            <div class="font-bold text-slate-800 text-xs">${prod.name}</div>
+            <div class="text-[11px] text-slate-400 font-medium">
+              <span class="text-[#0077d6] font-bold">${formatRupiah(prod.price)}</span> &bull; 
+              <span class="capitalize text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">${prod.category || 'Sembako'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition ${
+          isSelected ? 'bg-[#38b6ff] text-white shadow-sm' : 'border-2 border-slate-300 text-transparent'
+        }">
+          ✓
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function togglePickProduct(productId) {
+  const prod = liveSupabaseProducts.find((p) => String(p.id) === String(productId));
+  if (!prod) return;
+
+  const existingIdx = selectedSectionProducts.findIndex((p) => String(p.id) === String(productId));
+  if (existingIdx > -1) {
+    selectedSectionProducts.splice(existingIdx, 1);
+  } else {
+    selectedSectionProducts.push(prod);
+  }
+
+  filterProductPickerList();
+  renderSelectedProductsList();
+}
+
