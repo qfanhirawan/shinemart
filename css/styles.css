@@ -199,6 +199,23 @@ body {
   animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Modal Stacking Hierarchy - memastikan modal pratinjau & keranjang selalu muncul di depan */
+#sectionDetailModal {
+  z-index: 50 !important;
+}
+
+#productPreviewModal {
+  z-index: 70 !important;
+}
+
+#cartModal {
+  z-index: 80 !important;
+}
+
+.toast-notification {
+  z-index: 90 !important;
+}
+
 @keyframes modalPop {
   0% {
     opacity: 0;

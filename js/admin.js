@@ -42,71 +42,200 @@ function formatGoogleDriveImageUrl(url) {
 let parsedExcelProducts = [];
 let liveSupabaseProducts = [];
 
-// Session Storage Key untuk Login Admin
-const ADMIN_SESSION_KEY = "shinemart_admin_authenticated";
-const ADMIN_CREDENTIALS = {
-  user: "admin",
-  pass: "shinemart2026"
-};
+let adminSupabaseInstance = null;
+
+// Konfigurasi Database Supabase
+const DEFAULT_SUPABASE_URL = "https://amuqgtdyecgdxclqwanj.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_G-am3ojwBmpNqbZDi5qciA_6fn37rX9";
+
+/**
+ * Singleton Supabase Client khusus Admin
+ * Otomatis menangani persistensi sesi login admin (JWT Token) di browser
+ */
+function getAdminSupabaseClient() {
+  if (adminSupabaseInstance) return adminSupabaseInstance;
+
+  const url = localStorage.getItem("shinemart_supabase_url") || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem("shinemart_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
+
+  if (typeof supabase !== "undefined" && url && key) {
+    try {
+      adminSupabaseInstance = supabase.createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+      return adminSupabaseInstance;
+    } catch (e) {
+      console.warn("Gagal inisialisasi Supabase:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+// Alias helper agar kompatibel di semua modul admin
+function getSupabaseClient() {
+  return getAdminSupabaseClient();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  checkAdminAuth();
+  initAdminSettings();
   setupAdminListeners();
+  checkAdminAuth();
+
+  // Dengarkan perubahan state auth Supabase
+  const client = getAdminSupabaseClient();
+  if (client && client.auth) {
+    client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        checkAdminAuth();
+      }
+    });
+  }
 });
 
 /**
- * Cek status autentikasi Admin
+ * Cek status autentikasi resmi Admin via Supabase Auth Session
  */
-function checkAdminAuth() {
-  const isAuth = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+async function checkAdminAuth() {
   const loginOverlay = document.getElementById("loginOverlaySection");
   const mainContent = document.getElementById("adminMainContent");
   const logoutBtn = document.getElementById("adminLogoutBtn");
+  const userBadge = document.getElementById("adminUserBadge");
+  const userEmailEl = document.getElementById("adminUserEmail");
 
-  if (isAuth) {
-    if (loginOverlay) loginOverlay.classList.add("hidden");
-    if (mainContent) mainContent.classList.remove("hidden");
-    if (logoutBtn) logoutBtn.classList.remove("hidden");
-    loadSupabaseProductsList();
-    loadSupabaseBannersList();
-  } else {
+  const client = getAdminSupabaseClient();
+  if (!client) {
     if (loginOverlay) loginOverlay.classList.remove("hidden");
     if (mainContent) mainContent.classList.add("hidden");
     if (logoutBtn) logoutBtn.classList.add("hidden");
+    if (userBadge) userBadge.classList.add("hidden");
+    return;
+  }
+
+  try {
+    const { data: { session } } = await client.auth.getSession();
+
+    if (session && session.user) {
+      if (loginOverlay) loginOverlay.classList.add("hidden");
+      if (mainContent) mainContent.classList.remove("hidden");
+      if (logoutBtn) logoutBtn.classList.remove("hidden");
+      if (userBadge) {
+        userBadge.classList.remove("hidden");
+        if (userEmailEl) userEmailEl.textContent = session.user.email || "Admin";
+      }
+
+      // Muat data live produk, banner, dan seksi promosi
+      loadSupabaseProductsList();
+      loadSupabaseBannersList();
+      if (typeof loadSupabaseSectionsList === "function") {
+        loadSupabaseSectionsList();
+      }
+    } else {
+      if (loginOverlay) loginOverlay.classList.remove("hidden");
+      if (mainContent) mainContent.classList.add("hidden");
+      if (logoutBtn) logoutBtn.classList.add("hidden");
+      if (userBadge) userBadge.classList.add("hidden");
+    }
+  } catch (err) {
+    console.error("Gagal memeriksa sesi login Supabase:", err);
+    if (loginOverlay) loginOverlay.classList.remove("hidden");
+    if (mainContent) mainContent.classList.add("hidden");
+    if (logoutBtn) logoutBtn.classList.add("hidden");
+    if (userBadge) userBadge.classList.add("hidden");
   }
 }
 
 /**
- * Handler Submit Form Login
+ * Handler Submit Form Login via Supabase Auth
  */
-function handleAdminLogin(event) {
+async function handleAdminLogin(event) {
   event.preventDefault();
-  const userInput = document.getElementById("adminUsernameInput");
+  const emailInput = document.getElementById("adminEmailInput");
   const passInput = document.getElementById("adminPasswordInput");
   const errorMsg = document.getElementById("loginErrorMsg");
+  const errorText = document.getElementById("loginErrorText");
+  const loginBtn = document.getElementById("adminLoginBtn");
 
-  const username = userInput ? userInput.value.trim() : "";
+  const email = emailInput ? emailInput.value.trim() : "";
   const password = passInput ? passInput.value.trim() : "";
 
-  if (username === ADMIN_CREDENTIALS.user && password === ADMIN_CREDENTIALS.pass) {
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-    if (errorMsg) errorMsg.classList.add("hidden");
-    showAdminToast("Login berhasil! Selamat datang di Admin Panel.", "success");
-    checkAdminAuth();
-  } else {
+  if (!email || !password) {
+    if (errorText) errorText.textContent = "Email dan password wajib diisi!";
     if (errorMsg) errorMsg.classList.remove("hidden");
-    if (passInput) passInput.value = "";
+    return;
+  }
+
+  const client = getAdminSupabaseClient();
+  if (!client) {
+    if (errorText) errorText.textContent = "Koneksi Supabase belum terkonfigurasi.";
+    if (errorMsg) errorMsg.classList.remove("hidden");
+    return;
+  }
+
+  // Tampilkan indikator loading pada tombol login
+  const originalBtnHtml = loginBtn ? loginBtn.innerHTML : "";
+  if (loginBtn) {
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Memverifikasi...`;
+  }
+  if (errorMsg) errorMsg.classList.add("hidden");
+
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      let friendlyMsg = "Email atau Password tidak cocok!";
+      const errMsgLower = (error.message || "").toLowerCase();
+      if (errMsgLower.includes("email not confirmed")) {
+        friendlyMsg = "Email belum dikonfirmasi di Supabase. Anda dapat mematikan fitur 'Confirm email' di menu Auth Settings Supabase.";
+      } else if (errMsgLower.includes("invalid login credentials")) {
+        friendlyMsg = "Email atau Password salah! Periksa kembali akun di menu Authentication Supabase.";
+      } else {
+        friendlyMsg = error.message;
+      }
+
+      if (errorText) errorText.textContent = friendlyMsg;
+      if (errorMsg) errorMsg.classList.remove("hidden");
+      if (passInput) passInput.value = "";
+    } else if (data && data.session) {
+      if (errorMsg) errorMsg.classList.add("hidden");
+      showAdminToast("Login berhasil! Selamat datang di Admin Panel.", "success");
+      await checkAdminAuth();
+    }
+  } catch (err) {
+    console.error("Kesalahan proses login Supabase:", err);
+    if (errorText) errorText.textContent = `Gagal login: ${err.message}`;
+    if (errorMsg) errorMsg.classList.remove("hidden");
+  } finally {
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = originalBtnHtml;
+    }
   }
 }
 
 /**
- * Handler Logout Admin
+ * Handler Logout Admin via Supabase Auth
  */
-function handleAdminLogout() {
+async function handleAdminLogout() {
   if (confirm("Apakah Anda yakin ingin keluar dari Admin Panel?")) {
-    sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    showAdminToast("Anda telah keluar.", "info");
-    checkAdminAuth();
+    const client = getAdminSupabaseClient();
+    if (client) {
+      try {
+        await client.auth.signOut();
+      } catch (err) {
+        console.warn("Gagal sign out dari Supabase:", err);
+      }
+    }
+    showAdminToast("Anda telah keluar dari sesi admin.", "info");
+    await checkAdminAuth();
   }
 }
 
@@ -125,29 +254,6 @@ function togglePasswordVisibility() {
     passInput.type = "password";
     if (icon) icon.className = "fas fa-eye";
   }
-}
-
-// Konfigurasi Database Supabase
-const DEFAULT_SUPABASE_URL = "https://amuqgtdyecgdxclqwanj.supabase.co";
-const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_G-am3ojwBmpNqbZDi5qciA_6fn37rX9";
-
-function getAdminSupabaseClient() {
-  const url = localStorage.getItem("shinemart_supabase_url") || DEFAULT_SUPABASE_URL;
-  const key = localStorage.getItem("shinemart_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
-  if (typeof supabase !== "undefined" && url && key) {
-    try {
-      return supabase.createClient(url, key);
-    } catch (e) {
-      console.warn("Gagal inisialisasi Supabase:", e);
-      return null;
-    }
-  }
-  return null;
-}
-
-// Alias helper agar kompatibel di semua modul admin
-function getSupabaseClient() {
-  return getAdminSupabaseClient();
 }
 
 function initAdminSettings() {
@@ -170,12 +276,15 @@ function saveSupabaseConfig() {
   if (url && key) {
     localStorage.setItem("shinemart_supabase_url", url);
     localStorage.setItem("shinemart_supabase_anon_key", key);
+    adminSupabaseInstance = null;
     showAdminToast("Kredensial Supabase berhasil disimpan!", "success");
-    loadSupabaseProductsList();
+    checkAdminAuth();
   } else {
     localStorage.removeItem("shinemart_supabase_url");
     localStorage.removeItem("shinemart_supabase_anon_key");
+    adminSupabaseInstance = null;
     showAdminToast("Konfigurasi Supabase dihapus.", "info");
+    checkAdminAuth();
   }
 }
 
@@ -1841,18 +1950,26 @@ CREATE INDEX IF NOT EXISTS idx_banners_is_active ON public.banners (is_active);
 -- 2. Aktifkan Row Level Security (RLS)
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 
--- 3. Policy Akses Tabel banners
+-- 3. Policy Akses Tabel banners (Aman dengan Supabase Auth)
 DROP POLICY IF EXISTS "Public can view active banners" ON public.banners;
-CREATE POLICY "Public can view active banners" ON public.banners FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "Allow anon insert banners" ON public.banners;
-CREATE POLICY "Allow anon insert banners" ON public.banners FOR INSERT WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow anon update banners" ON public.banners;
-CREATE POLICY "Allow anon update banners" ON public.banners FOR UPDATE USING (true);
-
 DROP POLICY IF EXISTS "Allow anon delete banners" ON public.banners;
-CREATE POLICY "Allow anon delete banners" ON public.banners FOR DELETE USING (true);
+DROP POLICY IF EXISTS "Public Read Only Banners" ON public.banners;
+DROP POLICY IF EXISTS "Admin Full Control Banners" ON public.banners;
+
+-- Pengunjung (publik) hanya bisa membaca banner:
+CREATE POLICY "Public Read Only Banners" 
+ON public.banners FOR SELECT 
+TO anon, authenticated 
+USING (true);
+
+-- Hanya Admin login yang bisa Tambah, Ubah, Hapus banner:
+CREATE POLICY "Admin Full Control Banners" 
+ON public.banners FOR ALL 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
 
 -- 4. Konfigurasi Bucket Supabase Storage untuk upload file gambar banner
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -1869,16 +1986,23 @@ SET public = true, file_size_limit = 5242880,
 
 -- 5. Policy Akses Row Level Security untuk Storage Bucket 'banners'
 DROP POLICY IF EXISTS "Public Access Banners Storage" ON storage.objects;
-CREATE POLICY "Public Access Banners Storage" ON storage.objects FOR SELECT USING (bucket_id = 'banners');
-
 DROP POLICY IF EXISTS "Anon Insert Banners Storage" ON storage.objects;
-CREATE POLICY "Anon Insert Banners Storage" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'banners');
-
 DROP POLICY IF EXISTS "Anon Update Banners Storage" ON storage.objects;
-CREATE POLICY "Anon Update Banners Storage" ON storage.objects FOR UPDATE USING (bucket_id = 'banners');
-
 DROP POLICY IF EXISTS "Anon Delete Banners Storage" ON storage.objects;
-CREATE POLICY "Anon Delete Banners Storage" ON storage.objects FOR DELETE USING (bucket_id = 'banners');
+DROP POLICY IF EXISTS "Admin Manage Banners Storage" ON storage.objects;
+
+-- Publik bisa melihat foto banner:
+CREATE POLICY "Public Access Banners Storage" 
+ON storage.objects FOR SELECT 
+TO anon, authenticated 
+USING (bucket_id = 'banners');
+
+-- Hanya Admin login yang bisa upload, ubah, dan hapus foto banner:
+CREATE POLICY "Admin Manage Banners Storage" 
+ON storage.objects FOR ALL 
+TO authenticated 
+USING (bucket_id = 'banners') 
+WITH CHECK (bucket_id = 'banners');
 
 -- 6. Masukkan Data Awal (Seed Data)
 INSERT INTO public.banners (badge_text, title, description, button_text, button_url, image_url, sort_order, is_active)

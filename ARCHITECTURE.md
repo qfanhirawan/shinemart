@@ -62,22 +62,26 @@ CREATE TABLE IF NOT EXISTS public.products (
 -- Aktifkan Row Level Security (RLS)
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
--- Policy 1: Pengunjung publik diizinkan membaca katalog produk (SELECT)
-CREATE POLICY "Public Read Access" 
+-- Policy 1: Pengunjung publik hanya diizinkan membaca katalog produk (SELECT)
+CREATE POLICY "Public Read Only Products" 
 ON public.products 
 FOR SELECT 
+TO anon, authenticated 
 USING (true);
 
--- Policy 2: Admin diizinkan menambah / memperbarui / menghapus produk (ALL)
-CREATE POLICY "Admin Full Access" 
+-- Policy 2: Hanya Admin yang terotentikasi via Supabase Auth yang diizinkan mengelola produk (ALL)
+CREATE POLICY "Admin Full Control Products" 
 ON public.products 
 FOR ALL 
-USING (true);
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
 ```
 
-#### 2.2. Supabase Client Integration
+#### 2.2. Supabase Client & Authentication Integration
 - Diinisialisasi secara dinamis di `app.js` dan `admin.js` melalui library resmi `@supabase/supabase-js@2` (CDN).
-- URL dan Key tersimpan aman di `localStorage` per peramban (`shinemart_supabase_url` dan `shinemart_supabase_anon_key`) atau konstanta fallback.
+- Sistem Admin di `admin.html` terproteksi resmi menggunakan **Supabase Auth** (`supabase.auth.signInWithPassword`), sehingga seluruh aksi penulisan database dan upload storage diverifikasi melalui JWT token aman.
+- URL dan Publishable Key tersimpan aman di `localStorage` per peramban (`shinemart_supabase_url` dan `shinemart_supabase_anon_key`) atau konstanta fallback.
 
 ---
 

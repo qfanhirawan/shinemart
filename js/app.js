@@ -507,6 +507,7 @@ function openCartModal() {
   if (modal) {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
+    document.body.classList.add("overflow-hidden");
   }
 }
 
@@ -515,6 +516,10 @@ function closeCartModal() {
   if (modal) {
     modal.classList.add("hidden");
     modal.classList.remove("flex");
+    const sectionModal = document.getElementById("sectionDetailModal");
+    if (!sectionModal || sectionModal.classList.contains("hidden")) {
+      document.body.classList.remove("overflow-hidden");
+    }
   }
 }
 
@@ -1037,12 +1042,53 @@ function updateCategoryCounts() {
 
 function setupEventListeners() {
   const searchInput = document.getElementById("searchInput");
+  let searchScrollTimeout = null;
+
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       searchQuery = e.target.value.toLowerCase().trim();
       currentPage = 1;
       renderProducts();
+
+      // Saat melakukan pencarian produk, langsung slide halus ke bagian katalog
+      if (searchQuery.length > 0) {
+        clearTimeout(searchScrollTimeout);
+        if (!e.isTrusted) {
+          // Klik filter cepat (Minyak 2L, Beras, dll) -> langsung slide seketika
+          scrollToCatalogSection();
+        } else {
+          // Diketik langsung oleh pengguna -> jeda 150ms agar animasi slide mulus saat mengetik
+          searchScrollTimeout = setTimeout(() => {
+            scrollToCatalogSection();
+          }, 150);
+        }
+      }
     });
+
+    // Menangani tombol Enter: langsung slide seketika ke katalog dan sembunyikan keyboard di mobile
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        clearTimeout(searchScrollTimeout);
+        scrollToCatalogSection();
+        if (searchQuery.length > 0) {
+          searchInput.blur();
+        }
+      }
+    });
+
+    // Klik ikon kaca pembesar (search icon) untuk langsung slide ke katalog
+    const searchIcon = searchInput.parentElement ? searchInput.parentElement.querySelector(".fa-search") : null;
+    if (searchIcon) {
+      searchIcon.style.cursor = "pointer";
+      searchIcon.addEventListener("click", () => {
+        if (searchQuery.length > 0) {
+          scrollToCatalogSection();
+        } else {
+          searchInput.focus();
+        }
+      });
+    }
   }
 
   const categoryBtns = document.querySelectorAll(".category-tab-btn");
@@ -1067,10 +1113,17 @@ function scrollToCatalogSection() {
   const catalogSection = document.getElementById("katalog");
   if (!catalogSection) return;
 
-  // Offset kompensasi sticky header & search bar (~90px)
-  const headerOffset = 90;
+  // Hitung kompensasi tinggi sticky header & sticky search bar secara dinamis
+  const header = document.querySelector("header");
+  const searchSection = document.getElementById("searchSection") || document.querySelector("section.sticky");
+
+  const headerHeight = header ? header.getBoundingClientRect().height : 80;
+  const searchHeight = searchSection ? searchSection.getBoundingClientRect().height : 90;
+  const totalOffset = headerHeight + searchHeight + 16; // Margin 16px agar rapi di bawah search bar
+
+  const currentScrollY = window.scrollY || window.pageYOffset || 0;
   const elementPosition = catalogSection.getBoundingClientRect().top;
-  const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+  const offsetPosition = Math.max(0, elementPosition + currentScrollY - totalOffset);
 
   window.scrollTo({
     top: offsetPosition,
@@ -1275,6 +1328,7 @@ function openProductPreview(productId) {
   if (modal) {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
+    document.body.classList.add("overflow-hidden");
   }
 }
 
@@ -1283,12 +1337,16 @@ function closeProductPreview() {
   if (modal) {
     modal.classList.add("hidden");
     modal.classList.remove("flex");
+    const sectionModal = document.getElementById("sectionDetailModal");
+    if (!sectionModal || sectionModal.classList.contains("hidden")) {
+      document.body.classList.remove("overflow-hidden");
+    }
   }
 }
 
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
-  toast.className = `fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl text-white font-bold text-xs md:text-sm shadow-2xl transition-all duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 ${
+  toast.className = `toast-notification fixed bottom-6 right-6 z-[90] px-5 py-3 rounded-2xl text-white font-bold text-xs md:text-sm shadow-2xl transition-all duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 ${
     type === 'success' ? 'bg-gradient-to-r from-[#38b6ff] to-[#0099ff]' : 'bg-slate-800'
   }`;
   
@@ -1999,6 +2057,16 @@ window.addEventListener("hashchange", () => {
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    const previewModal = document.getElementById("productPreviewModal");
+    const cartModal = document.getElementById("cartModal");
+    if (previewModal && !previewModal.classList.contains("hidden")) {
+      closeProductPreview();
+      return;
+    }
+    if (cartModal && !cartModal.classList.contains("hidden")) {
+      closeCartModal();
+      return;
+    }
     closeSectionDetailModal();
   }
 });
