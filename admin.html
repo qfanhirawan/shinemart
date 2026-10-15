@@ -146,8 +146,14 @@
     <!-- ================= ADMIN NAVIGATION TABS ================= -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 sm:p-4 rounded-3xl border border-slate-200/90 shadow-sm">
       <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-auto">
+        <button id="tabBtnOrders" onclick="switchAdminTab('orders')"
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative">
+          <i class="fas fa-bell text-[#ff66c4] animate-pulse"></i>
+          <span>Live Orders</span>
+          <span id="adminOrdersLiveBadge" class="bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-0.5">0</span>
+        </button>
         <button id="tabBtnProducts" onclick="switchAdminTab('products')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
           <i class="fas fa-box"></i>
           <span>Kelola Produk</span>
         </button>
@@ -162,6 +168,11 @@
           <i class="fas fa-sliders-h text-[#38b6ff]"></i>
           <span>Seksi Promo Shinemart</span>
           <span id="adminSectionCountBadge" class="bg-sky-100 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
+        </button>
+        <button id="tabBtnAppSettings" onclick="switchAdminTab('appSettings')"
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          <i class="fas fa-mobile-alt text-emerald-600"></i>
+          <span>Pengaturan App Mobile</span>
         </button>
       </div>
 
@@ -186,8 +197,128 @@
       </div>
     </div>
 
+    <!-- ================= 0. LIVE ORDERS TAB SECTION (REALTIME) ================= -->
+    <div id="ordersTabSection" class="space-y-6">
+
+      <!-- Status Summary Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div onclick="filterOrdersByStatus('ALL')" class="cursor-pointer bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-[#38b6ff] transition shadow-sm">
+          <div class="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+            <span>Semua Pesanan</span>
+            <i class="fas fa-receipt text-slate-400"></i>
+          </div>
+          <div id="statCountAll" class="text-xl sm:text-2xl font-black text-slate-800">0</div>
+        </div>
+
+        <div onclick="filterOrdersByStatus('PENDING')" class="cursor-pointer bg-amber-50/60 p-4 rounded-2xl border-2 border-amber-200 hover:border-amber-400 transition shadow-sm">
+          <div class="flex items-center justify-between text-xs text-amber-700 font-bold mb-1">
+            <span>Menunggu Bayar</span>
+            <i class="fas fa-clock text-amber-500"></i>
+          </div>
+          <div id="statCountPending" class="text-xl sm:text-2xl font-black text-amber-800">0</div>
+        </div>
+
+        <div onclick="filterOrdersByStatus('PICKING')" class="cursor-pointer bg-sky-50/70 p-4 rounded-2xl border-2 border-sky-300 hover:border-[#0077d6] transition shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-[#0077d6] font-bold mb-1">
+            <span>Perlu Disiapkan</span>
+            <span class="flex h-2.5 w-2.5 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ff66c4]"></span>
+            </span>
+          </div>
+          <div id="statCountPicking" class="text-xl sm:text-2xl font-black text-[#0077d6]">0</div>
+        </div>
+
+        <div onclick="filterOrdersByStatus('DELIVERING')" class="cursor-pointer bg-blue-50/70 p-4 rounded-2xl border-2 border-blue-200 hover:border-blue-500 transition shadow-sm">
+          <div class="flex items-center justify-between text-xs text-blue-700 font-bold mb-1">
+            <span>Sedang Diantar</span>
+            <i class="fas fa-motorcycle text-blue-500"></i>
+          </div>
+          <div id="statCountDelivering" class="text-xl sm:text-2xl font-black text-blue-800">0</div>
+        </div>
+
+        <div onclick="filterOrdersByStatus('COMPLETED')" class="cursor-pointer bg-emerald-50/60 p-4 rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 transition shadow-sm col-span-2 sm:col-span-1">
+          <div class="flex items-center justify-between text-xs text-emerald-700 font-bold mb-1">
+            <span>Selesai</span>
+            <i class="fas fa-check-circle text-emerald-500"></i>
+          </div>
+          <div id="statCountCompleted" class="text-xl sm:text-2xl font-black text-emerald-800">0</div>
+        </div>
+      </div>
+
+      <!-- Main Live Orders Management Card -->
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+        
+        <!-- Header Row -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-bolt animate-pulse"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base md:text-lg font-extrabold text-slate-900">Live Orders Masuk (Real-time)</h2>
+                <span id="realtimeLiveIndicator" class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Realtime Aktif
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">Pesanan dari Mobile App Shinemart langsung muncul detik ini juga dilengkapi notifikasi lonceng</p>
+            </div>
+          </div>
+
+          <!-- Controls: Sound Toggle & Filter Buttons -->
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button id="orderSoundToggleBtn" onclick="toggleOrderSound()"
+              class="px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 bg-pink-50 text-[#ff66c4] border-pink-200"
+              title="Aktifkan / Matikan Suara Bell Pesanan Baru">
+              <i class="fas fa-volume-up" id="orderSoundIcon"></i>
+              <span id="orderSoundLabel">Suara: Nyala</span>
+            </button>
+            <button onclick="loadAdminOrdersList()"
+              class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-200"
+              title="Refresh Data Pesanan">
+              <i class="fas fa-sync-alt text-xs"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Chips Row -->
+        <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none text-xs">
+          <button id="orderFilterChip_ALL" onclick="filterOrdersByStatus('ALL')" class="px-3.5 py-1.5 rounded-xl font-bold bg-[#0077d6] text-white shadow-sm transition shrink-0">
+            Semua
+          </button>
+          <button id="orderFilterChip_PENDING" onclick="filterOrdersByStatus('PENDING')" class="px-3.5 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition shrink-0">
+            Menunggu Pembayaran
+          </button>
+          <button id="orderFilterChip_PICKING" onclick="filterOrdersByStatus('PICKING')" class="px-3.5 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition shrink-0">
+            Perlu Disiapkan (Picking)
+          </button>
+          <button id="orderFilterChip_DELIVERING" onclick="filterOrdersByStatus('DELIVERING')" class="px-3.5 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition shrink-0">
+            Sedang Diantar
+          </button>
+          <button id="orderFilterChip_COMPLETED" onclick="filterOrdersByStatus('COMPLETED')" class="px-3.5 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition shrink-0">
+            Selesai
+          </button>
+          <button id="orderFilterChip_CANCELLED" onclick="filterOrdersByStatus('CANCELLED')" class="px-3.5 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition shrink-0">
+            Dibatalkan
+          </button>
+        </div>
+
+        <!-- Live Orders List Container -->
+        <div id="adminOrdersContainer" class="space-y-3 min-h-[220px]">
+          <div class="text-center py-12 text-slate-400 text-xs">
+            <i class="fas fa-spinner fa-spin text-xl text-[#38b6ff] mb-2 block"></i>
+            Memuat pesanan live dari Supabase...
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- END LIVE ORDERS TAB SECTION -->
+
     <!-- ================= 1. PRODUCTS TAB SECTION ================= -->
-    <div id="productsTabSection" class="space-y-8">
+    <div id="productsTabSection" class="hidden space-y-8">
 
     <!-- 1. BULK UPLOAD EXCEL SECTION -->
     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
@@ -363,12 +494,13 @@
               <th class="py-3 px-3">Harga</th>
               <th class="py-3 px-3">Satuan</th>
               <th class="py-3 px-3">Stok</th>
+              <th class="py-3 px-3 text-center">Status Tayang (App)</th>
               <th class="py-3 px-3 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="supabaseProductsTableBody">
             <tr>
-              <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+              <td colspan="9" class="text-center py-8 text-xs text-slate-400">
                 <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar produk dari database...
               </td>
             </tr>
@@ -538,6 +670,130 @@
 
     </div>
     <!-- END SECTIONS TAB SECTION -->
+
+    <!-- ================= 4. APP SETTINGS TAB SECTION (KHUSUS MOBILE APP) ================= -->
+    <div id="appSettingsTabSection" class="hidden space-y-6">
+
+      <!-- Operasional Pengiriman & Buka Tutup Toko -->
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-store"></i>
+            </div>
+            <div>
+              <h2 class="text-base md:text-lg font-extrabold text-slate-900">Operasional Pengantaran Kilat Mobile App</h2>
+              <p class="text-xs text-slate-400">Atur status penerimaan order instan, radius jarak, dan ongkir yang berlaku di aplikasi HP</p>
+            </div>
+          </div>
+          <button onclick="saveStoreOperationalSettings()"
+            class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+            <i class="fas fa-save"></i>
+            <span>Simpan Pengaturan</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Kolom Kiri: Buka / Tutup Toko -->
+          <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-extrabold text-slate-800 text-sm">Status Penerimaan Pesanan</h3>
+                <p class="text-xs text-slate-400">Aktifkan untuk menerima pesanan kilat 15-25 menit dari aplikasi HP</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="settingStoreOpenToggle" class="sr-only peer" checked onchange="updateStoreOpenStatusUI()">
+                <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div id="storeOpenBadgeBox" class="p-3 rounded-xl bg-emerald-100/70 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2">
+              <i class="fas fa-check-circle text-emerald-600 text-sm"></i>
+              <span id="storeOpenStatusText">Toko Sedang BUKA (Menerima Pesanan Instan)</span>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 text-xs mb-1">Catatan Saat Toko Tutup (Tampil di HP Pelanggan)</label>
+              <textarea id="settingStoreCloseNotes" rows="2" placeholder="Toko sedang tutup sementara. Pesanan kilat akan dibuka kembali pukul 07.00 WIB."
+                class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 text-xs outline-none focus:border-[#38b6ff] transition"></textarea>
+            </div>
+          </div>
+
+          <!-- Kolom Kanan: Jarak & Ongkir -->
+          <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-4 text-xs">
+            <h3 class="font-extrabold text-slate-800 text-sm">Tarif Ongkos Kirim & Jarak</h3>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Ongkir Dasar (Flat)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                  <input type="number" id="settingBaseDeliveryFee" value="10000" step="500"
+                    class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+                </div>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Tarif per KM</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                  <input type="number" id="settingDeliveryFeePerKm" value="2500" step="500"
+                    class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Radius Maksimal (KM)</label>
+                <div class="relative">
+                  <input type="number" id="settingMaxDistanceKm" value="10" step="0.5"
+                    class="w-full pl-3 pr-9 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">KM</span>
+                </div>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Min. Belanja Gratis Ongkir</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                  <input type="number" id="settingFreeDeliveryMinSpend" value="30000" step="5000"
+                    class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Nomor WhatsApp Toko (Kasir / CS)</label>
+              <div class="relative">
+                <i class="fab fa-whatsapp absolute left-3.5 top-1/2 -translate-y-1/2 text-[#25D366] text-sm"></i>
+                <input type="text" id="settingStoreWhatsapp" value="6287782603733" placeholder="6287782603733"
+                  class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#25D366] transition">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Panduan Singkat Banner Mobile -->
+      <div class="bg-gradient-to-r from-sky-50 to-pink-50 p-6 rounded-3xl border border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl text-[#ff66c4]">
+            <i class="fas fa-images"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-sm">Kelola Banner Slider Mobile App</h3>
+            <p class="text-xs text-slate-500">Banner promosi di halaman Home Mobile App otomatis sinkron dengan menu Banner Hero.</p>
+          </div>
+        </div>
+        <button onclick="switchAdminTab('banners')"
+          class="px-4 py-2.5 bg-white text-[#ff66c4] font-extrabold rounded-xl text-xs border border-pink-200 hover:bg-pink-50 shadow-sm transition shrink-0 flex items-center gap-2">
+          <span>Buka Tab Banner Hero</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </div>
+    <!-- END APP SETTINGS TAB SECTION -->
 
   </main>
   <div id="pasteModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
@@ -1233,8 +1489,123 @@
     </div>
   </div>
 
+  <!-- ================= MODAL DETAIL PESANAN & CHECKLIST PICKING ================= -->
+  <div id="orderDetailModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+      
+      <!-- Header Modal Detail Pesanan -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#38b6ff] to-[#0077d6] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="modalOrderNumber" class="font-extrabold text-sm md:text-base leading-none font-mono">SHN-...</h3>
+              <span id="modalOrderStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Status</span>
+            </div>
+            <span id="modalOrderTimestamp" class="text-[11px] text-sky-200">-</span>
+          </div>
+        </div>
+        <button onclick="closeOrderDetailModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Customer Info & Picking Items) -->
+      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        
+        <!-- Customer & Delivery Info Card -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-slate-400 block">Penerima Pesanan</span>
+              <span id="modalCustomerName" class="font-extrabold text-slate-800 text-sm">-</span>
+            </div>
+            <!-- Tombol Hubungi WhatsApp Pembeli (#25D366) -->
+            <button id="modalCustomerWaBtn" onclick="openOrderCustomerWhatsApp()"
+              class="px-3.5 py-2 bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition self-start sm:self-auto">
+              <i class="fab fa-whatsapp text-sm"></i>
+              <span id="modalCustomerPhoneLabel">Chat via WhatsApp</span>
+            </button>
+          </div>
+
+          <div class="pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-slate-400 block">Alamat Pengantaran:</span>
+              <p id="modalShippingAddress" class="text-slate-700 font-medium leading-relaxed">-</p>
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-bold text-slate-400 block">Catatan Pesanan:</span>
+              <p id="modalDeliveryNotes" class="text-slate-600 italic">-</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Checklist Picking Barang (Untuk Staff Rak) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h4 class="font-extrabold text-slate-800 text-xs sm:text-sm">Checklist Pengambilan Barang (Picking)</h4>
+              <span id="modalPickingProgressBadge" class="bg-sky-50 text-[#0077d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-200">
+                0 / 0 Selesai
+              </span>
+            </div>
+            <span class="text-[10px] text-slate-400">Centang saat barang diambil dari rak</span>
+          </div>
+
+          <div id="modalOrderItemsContainer" class="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
+            <!-- Items injected by JS -->
+          </div>
+        </div>
+
+        <!-- Total Tagihan -->
+        <div class="p-3.5 bg-sky-50/70 border border-sky-100 rounded-2xl flex items-center justify-between">
+          <span class="font-bold text-slate-700 text-xs">Total Pembayaran:</span>
+          <span id="modalOrderTotalAmount" class="font-black text-base text-[#0077d6]">Rp 0</span>
+        </div>
+
+        <!-- Quick Status Update Buttons for Staff -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <label class="block font-bold text-slate-700 text-xs">Ubah Status Pesanan Toko:</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button onclick="updateOrderStatusFromModal('SEDANG DIKEMAS')"
+              class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+              <i class="fas fa-box-open text-amber-600"></i>
+              <span>Kemas Barang</span>
+            </button>
+            <button onclick="updateOrderStatusFromModal('DIANTAR')"
+              class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-[#0077d6] border border-blue-200 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+              <i class="fas fa-motorcycle text-blue-600"></i>
+              <span>Diantar Kurir</span>
+            </button>
+            <button onclick="updateOrderStatusFromModal('SELESAI')"
+              class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+              <i class="fas fa-check-circle text-emerald-600"></i>
+              <span>Selesai</span>
+            </button>
+            <button onclick="updateOrderStatusFromModal('BATAL')"
+              class="px-3 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+              <i class="fas fa-times-circle text-pink-600"></i>
+              <span>Batalkan</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeOrderDetailModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          Tutup
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=4.0-auth"></script>
+  <script src="js/admin.js?v=4.5-live-orders"></script>
 </body>
 
 </html>
