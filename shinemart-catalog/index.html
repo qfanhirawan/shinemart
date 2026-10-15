@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shine Mart (Shinemart) - Minimarket & Frozen Food Utan Jati Jakarta Barat</title>
+  <meta name="description"
+    content="Katalog digital Shine Mart (Shinemart Minimarket & Frozen Food). Belanja sembako, makanan beku, minuman, dan kebutuhan harian terlengkap di Utan Jati via WhatsApp Kasir.">
+  <meta name="keywords"
+    content="Shine Mart, Shinemart, Shine Mart Utan Jati, Minimarket Shine Mart, Shinemart Frozen Food, Katalog Shine Mart, Toko Sembako Utan Jati, Kalideres Jakarta Barat">
+
+  <!-- Favicon & Icons for Google Search & Browsers (Google Favicon Guidelines) -->
+  <link rel="icon" href="https://shinemart.id/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="https://shinemart.id/favicon-48.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://shinemart.id/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="https://shinemart.id/favicon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://shinemart.id/favicon-192.png">
+
+  <!-- Open Graph / Meta Favicon -->
+  <meta property="og:image" content="https://shinemart.id/favicon.png">
+  <meta property="og:title" content="Shine Mart (Shinemart) - Minimarket & Frozen Food">
+  <meta property="og:description" content="Katalog digital minimarket Shine Mart & Frozen Food Utan Jati. Belanja mudah & cepat via WhatsApp Kasir.">
+  <meta property="og:url" content="https://shinemart.id">
+
+  <!-- Google Structured Data (Local Business & Brand Alternate Names) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ConvenienceStore",
+    "name": "Shine Mart",
+    "alternateName": ["Shinemart", "Shine Mart Minimarket", "Shinemart Frozen Food"],
+    "url": "https://shinemart.id",
+    "logo": "https://shinemart.id/favicon.png",
+    "image": "https://shinemart.id/favicon.png",
+    "telephone": "+6285198963411",
+    "email": "djihan@shinemart.id",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Jl. Utan Jati No.32A, Pegadungan",
+      "addressLocality": "Kalideres",
+      "addressRegion": "Jakarta Barat",
+      "postalCode": "11830",
+      "addressCountry": "ID"
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+      ],
+      "opens": "07:00",
+      "closes": "22:00"
+    },
+    "sameAs": [
+      "https://instagram.com/shinemart.id",
+      "https://tiktok.com/@shinemart.id",
+      "https://threads.net/@shinemart.id"
+    ]
+  }
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e8f7ff',
+              100: '#cceeff',
+              500: '#38b6ff',
+              600: '#0099ff',
+              700: '#0077d6',
+              800: '#005fa8',
+              900: '#003966',
+            },
+            accent: {
+              50: '#fff0f8',
+              100: '#ffe0f3',
+              500: '#ff66c4',
+              600: '#e043a5',
+              700: '#b82b82',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Custom Styles System -->
+  <link rel="stylesheet" href="css/styles.css?v=2.2">
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-[#ff66c4] selection:text-white">
+
+  <!-- ================= TOP NOTICE BAR ================= -->
+  <div
+    class="bg-gradient-to-r from-[#38b6ff] to-[#ff66c4] text-white text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2 shadow-sm">
+    <span
+      class="bg-white/20 backdrop-blur-sm text-white text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border border-white/30">INFO
+      TOKO</span>
+    <span>⚡ Buka Setiap Hari 07.00 - 22.00 WIB | Pesan Multi-Item via WhatsApp dikirim cepat!</span>
+  </div>
+
+  <!-- ================= MAIN HEADER / NAVBAR ================= -->
+  <header class="header-glass sticky top-0 z-30 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+
+        <!-- Official Brand Logo -->
+        <a href="index.html" class="flex items-center group">
+          <img src="assets/images/shinemart_logo.svg" alt="Shinemart Minimarket & Frozen Food"
+            class="h-12 md:h-14 w-auto object-contain group-hover:scale-105 transition-transform"
+            onerror="this.onerror=null; this.src='assets/images/shinemart_logo.png';">
+        </a>
+
+        <!-- Location Badge (Middle Desktop) -->
+        <div
+          class="hidden md:flex items-center gap-3 bg-slate-100 hover:bg-sky-50 px-4 py-2 rounded-2xl transition cursor-pointer border border-transparent hover:border-sky-200"
+          onclick="openGeneralWhatsApp('lokasi')">
+          <div class="w-8 h-8 rounded-full bg-sky-100 text-[#0077d6] flex items-center justify-center">
+            <i class="fas fa-map-marker-alt text-sm"></i>
+          </div>
+          <div class="text-left text-xs">
+            <span class="text-slate-400 block font-medium">Lokasi Store Anda:</span>
+            <span class="font-bold text-slate-800 flex items-center gap-1">
+              Jl. Utan Jati No.32A
+              <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- Action Buttons: Shopping Cart & WhatsApp Contact -->
+        <div class="flex items-center gap-2.5">
+
+          <!-- Shopping Cart Header Button -->
+          <button id="headerCartBtn" onclick="openCartModal()"
+            class="relative px-3.5 py-2.5 bg-sky-50 hover:bg-sky-100 text-[#0077d6] font-extrabold rounded-full text-xs md:text-sm flex items-center gap-2 transition border border-sky-200 shadow-sm">
+            <i class="fas fa-shopping-cart text-base text-[#0077d6]"></i>
+            <span class="hidden sm:inline font-bold">Keranjang</span>
+            <span id="cartCountBadge"
+              class="hidden absolute -top-1.5 -right-1.5 bg-[#ff66c4] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
+              0
+            </span>
+          </button>
+
+          <!-- WhatsApp Kasir CTA Button -->
+          <button onclick="openGeneralWhatsApp('kasir')"
+            class="brand-pulse-btn bg-gradient-to-r from-[#38b6ff] to-[#0099ff] hover:from-[#0099ff] hover:to-[#0077d6] text-white font-extrabold px-4 md:px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-sky-400/30 transition-all text-xs md:text-sm">
+            <i class="fab fa-whatsapp text-lg md:text-xl"></i>
+            <span class="hidden sm:inline">Chat Kasir WA</span>
+            <span class="sm:hidden">Kasir</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= HERO & BANNER SLIDER SECTION ================= -->
+  <section class="py-6 px-4 max-w-7xl mx-auto">
+    <div class="banner-container relative">
+      <div id="bannerWrapper" class="banner-track">
+        <!-- Banner Slides Injected via JavaScript -->
+      </div>
+
+      <!-- Slide Indicator Dots -->
+      <div id="bannerDots"
+        class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 z-10 bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full">
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SEARCH BAR & FAST FILTER ================= -->
+  <section id="searchSection" class="py-4 px-4 max-w-7xl mx-auto sticky top-20 z-20">
+    <div
+      class="bg-white p-3 md:p-4 rounded-2xl shadow-lg border border-slate-200/80 flex flex-col md:flex-row items-center gap-3">
+
+      <!-- Live Search Input -->
+      <div class="relative w-full flex-1">
+        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
+        <input type="text" id="searchInput" placeholder="Cari beras, minyak goreng, frozen food, susu, sabun, snack..."
+          class="w-full pl-11 pr-4 py-3 bg-slate-100 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl text-sm md:text-base font-medium outline-none border border-transparent focus:border-[#38b6ff] transition-all">
+      </div>
+
+      <!-- Quick Badges -->
+      <div
+        class="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs font-semibold">
+        <span class="text-slate-400 whitespace-nowrap hidden lg:inline">Paling Dicari:</span>
+        <button
+          onclick="const el = document.getElementById('promoSection'); if(el) el.scrollIntoView({behavior: 'smooth'});"
+          class="px-3.5 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg transition whitespace-nowrap shadow-sm font-extrabold flex items-center gap-1.5">
+          ⚡ Promo Spesial
+        </button>
+        <button
+          onclick="document.getElementById('searchInput').value='Minyak'; document.getElementById('searchInput').dispatchEvent(new Event('input'))"
+          class="px-3 py-1.5 bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 rounded-lg transition whitespace-nowrap">
+          🔥 Minyak 2L
+        </button>
+        <button
+          onclick="document.getElementById('searchInput').value='Beras'; document.getElementById('searchInput').dispatchEvent(new Event('input'))"
+          class="px-3 py-1.5 bg-slate-100 hover:bg-pink-100 text-slate-700 hover:text-pink-800 rounded-lg transition whitespace-nowrap">
+          🌾 Beras 5kg
+        </button>
+        <button
+          onclick="document.getElementById('searchInput').value='Nugget'; document.getElementById('searchInput').dispatchEvent(new Event('input'))"
+          class="px-3 py-1.5 bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 rounded-lg transition whitespace-nowrap">
+          🧊 Frozen Food
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= CATEGORY GRID ================= -->
+  <section class="py-8 px-4 max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Kategori Produk</h2>
+        <p class="text-xs md:text-sm text-slate-500">Pilih kategori untuk memfilter produk katalog <span class="sm:hidden text-[#0077d6] font-semibold">(geser kanan 👉)</span></p>
+      </div>
+      <span class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full border border-sky-100">14 Kategori</span>
+    </div>
+
+    <!-- Category Buttons: 1 Baris Horizontal Slider di Mobile, Grid di Desktop -->
+    <div class="flex overflow-x-auto pb-3 scrollbar-none sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+
+      <!-- Semua -->
+      <button data-category="all"
+        class="category-tab-btn category-card active p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-th-large"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800">Semua Produk</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-all">0</span>
+        </div>
+      </button>
+
+      <!-- 1. Bumbu & Rempah -->
+      <button data-category="bumbu & rempah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-mortar-pestle"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Bumbu & Rempah">Bumbu & Rempah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-bumbu-rempah">0</span>
+        </div>
+      </button>
+
+      <!-- 2. Frozen Food -->
+      <button data-category="frozen food"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-snowflake"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Frozen Food">Frozen Food</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-frozen-food">0</span>
+        </div>
+      </button>
+
+      <!-- 3. Kebersihan Rumah -->
+      <button data-category="kebersihan rumah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-broom"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Kebersihan Rumah">Kebersihan Rumah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-kebersihan-rumah">0</span>
+        </div>
+      </button>
+
+      <!-- 4. Makanan Kaleng & Olahan -->
+      <button data-category="makanan kaleng & olahan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-fish"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Makanan Kaleng & Olahan">Makanan Kaleng</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-makanan-kaleng-olahan">0</span>
+        </div>
+      </button>
+
+      <!-- 5. Makanan Ringan & Snack -->
+      <button data-category="makanan ringan & snack"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-cookie-bite"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Makanan Ringan & Snack">Snack & Ringan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-makanan-ringan-snack">0</span>
+        </div>
+      </button>
+
+      <!-- 6. Mi, Pasta & Makanan Instan -->
+      <button data-category="mi, pasta & makanan instan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-bowl-food"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Mi, Pasta & Makanan Instan">Mi & Makanan Instan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-mi-pasta-makanan-instan">0</span>
+        </div>
+      </button>
+
+      <!-- 7. Minuman -->
+      <button data-category="minuman"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-glass-water"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Minuman">Minuman</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-minuman">0</span>
+        </div>
+      </button>
+
+      <!-- 8. Obat & Kesehatan -->
+      <button data-category="obat & kesehatan"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-prescription-bottle-medical"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Obat & Kesehatan">Obat & Kesehatan</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-obat-kesehatan">0</span>
+        </div>
+      </button>
+
+      <!-- 9. Perawatan Pribadi -->
+      <button data-category="perawatan pribadi"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-spa"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perawatan Pribadi">Perawatan Pribadi</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perawatan-pribadi">0</span>
+        </div>
+      </button>
+
+      <!-- 10. Perawatan Rumah -->
+      <button data-category="perawatan rumah"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-pump-soap"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perawatan Rumah">Perawatan Rumah</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perawatan-rumah">0</span>
+        </div>
+      </button>
+
+      <!-- 11. Perlengkapan Rumah Tangga -->
+      <button data-category="perlengkapan rumah tangga"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-kitchen-set"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Perlengkapan Rumah Tangga">Alat Rumah Tangga</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-perlengkapan-rumah-tangga">0</span>
+        </div>
+      </button>
+
+      <!-- 12. Rokok & Tembakau -->
+      <button data-category="rokok & tembakau"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-stone-200 text-stone-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-smoking"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Rokok & Tembakau">Rokok & Tembakau</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-rokok-tembakau">0</span>
+        </div>
+      </button>
+
+      <!-- 13. Sembako -->
+      <button data-category="sembako"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-yellow-100 text-yellow-800 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-wheat-awn"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Sembako">Sembako</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-sembako">0</span>
+        </div>
+      </button>
+
+      <!-- 14. Susu & Produk Bayi -->
+      <button data-category="susu & produk bayi"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-baby"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Susu & Produk Bayi">Susu & Bayi</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-susu-produk-bayi">0</span>
+        </div>
+      </button>
+
+      <!-- 15. Tisu & Produk Kertas -->
+      <button data-category="tisu & produk kertas"
+        class="category-tab-btn category-card p-3.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg shrink-0">
+          <i class="fas fa-scroll"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-xs font-bold block truncate text-slate-800" title="Tisu & Produk Kertas">Tisu & Kertas</span>
+          <span class="text-[11px] text-slate-400 font-medium" id="count-tisu-produk-kertas">0</span>
+        </div>
+      </button>
+
+    </div>
+  </section>
+
+  <!-- ================= PROMO PRODUK SPESIAL (1 BARIS HORIZONTAL SCROLL) ================= -->
+  <section id="promoSection" class="hidden py-6 px-4 max-w-7xl mx-auto">
+    <div class="bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 p-4 sm:p-6 rounded-3xl border-2 border-pink-200/80 shadow-sm relative overflow-hidden">
+      <!-- Background Decorative Blobs -->
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-pink-200/40 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-rose-200/40 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Header Section Promo -->
+      <div class="flex items-center justify-between mb-4 relative z-10">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-600 text-white flex items-center justify-center text-base sm:text-lg shadow-md shadow-pink-500/20">
+            <i class="fas fa-bolt text-yellow-300"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">Promo Spesial Hari Ini</h2>
+              <span id="promoBadgeCount" class="text-[10px] sm:text-xs font-black bg-rose-600 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse">0 Promo</span>
+            </div>
+            <p class="text-[11px] sm:text-xs text-slate-500">Geser ke samping untuk melihat penawaran diskon &amp; Buy 1 Get 1</p>
+          </div>
+        </div>
+
+        <!-- Scroll Buttons (Desktop) -->
+        <div class="flex items-center gap-1.5 hidden sm:flex">
+          <button onclick="scrollPromoCarousel(-1)" class="w-8 h-8 rounded-full bg-white hover:bg-pink-100 text-slate-700 hover:text-pink-600 flex items-center justify-center border border-pink-200 shadow-sm transition active:scale-95" title="Geser ke kiri">
+            <i class="fas fa-chevron-left text-xs"></i>
+          </button>
+          <button onclick="scrollPromoCarousel(1)" class="w-8 h-8 rounded-full bg-white hover:bg-pink-100 text-slate-700 hover:text-pink-600 flex items-center justify-center border border-pink-200 shadow-sm transition active:scale-95" title="Geser ke kanan">
+            <i class="fas fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Horizontal 1 Baris Scroll Container (Swipeable) -->
+      <div id="promoCarouselContainer" class="flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none scroll-smooth relative z-10" style="scrollbar-width: none; -ms-overflow-style: none;">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DYNAMIC PROMOTIONAL SECTIONS (KLIK INDOMARET STYLE) ================= -->
+  <div id="dynamicPromotionalSectionsContainer">
+    <!-- Di-inject secara dinamis dari tabel Supabase: promotional_sections & promotional_section_items -->
+  </div>
+
+  <!-- ================= PRODUCT CATALOG GRID SECTION (PRODUK REGULER) ================= -->
+  <section id="katalog" class="py-6 px-4 max-w-7xl mx-auto min-h-[500px]">
+
+    <!-- Section Title & Info -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-slate-200">
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <span>Katalog Produk</span>
+          <span
+            class="text-xs font-semibold text-[#38b6ff] bg-sky-50 px-3 py-1 rounded-full border border-sky-200">Katalog
+            Digital</span>
+        </h2>
+        <p class="text-xs md:text-sm text-slate-500 mt-1" id="productCountInfo">Memuat produk katalog...</p>
+      </div>
+
+      <div class="mt-3 sm:mt-0 flex items-center gap-3 text-xs font-medium text-slate-500">
+        <button onclick="openCartModal()"
+          class="px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#ff66c4] rounded-xl font-bold flex items-center gap-2 border border-pink-200 transition shadow-sm">
+          <i class="fas fa-shopping-bag text-sm"></i>
+          <span>Lihat Keranjang Belanja</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Product Cards Grid (2 Kolom di Mobile agar muat 4 produk per layar viewport) -->
+    <div id="productGridContainer" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- Pagination / Load More Controls -->
+    <div id="paginationContainer" class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-slate-200">
+      <div id="paginationInfo" class="text-xs text-slate-500 font-medium order-2 sm:order-1 text-center sm:text-left">
+        Menampilkan 0 dari 0 produk
+      </div>
+      <div id="paginationButtons" class="flex items-center gap-1.5 order-1 sm:order-2 flex-wrap justify-center">
+        <!-- Injected via app.js -->
+      </div>
+    </div>
+
+    <!-- Empty Search Results State -->
+    <div id="emptyStateContainer"
+      class="hidden text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 my-6">
+      <div
+        class="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+        <i class="fas fa-search-minus"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-800 mb-1">Produk Tidak Ditemukan</h3>
+      <p class="text-sm text-slate-500 max-w-md mx-auto mb-6">Maaf, kami tidak menemukan barang yang sesuai dengan kata
+        kunci atau filter yang Anda cari.</p>
+      <button
+        onclick="document.getElementById('searchInput').value=''; searchQuery=''; activeCategory='all'; document.querySelectorAll('.category-tab-btn')[0].click();"
+        class="px-5 py-2.5 bg-[#38b6ff] text-white font-bold rounded-xl text-sm hover:bg-[#0099ff] transition">
+        Lihat Semua Produk
+      </button>
+    </div>
+
+  </section>
+
+  <!-- ================= STORE FEATURES & HOW TO ORDER ================= -->
+  <section
+    class="py-12 bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white my-12 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+      <div class="text-center max-w-2xl mx-auto mb-10">
+        <span
+          class="text-[#ff66c4] text-xs font-extrabold uppercase tracking-widest bg-pink-950/80 border border-pink-500/30 px-3 py-1 rounded-full">Cara
+          Belanja Praktis</span>
+        <h2 class="text-2xl md:text-4xl font-extrabold mt-3 mb-2">Pesan Multi-Item via WhatsApp Kasir</h2>
+        <p class="text-sky-100 text-sm md:text-base">Pilih berbagai produk ke keranjang, pesan sekaligus dengan 1 klik:
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <div
+          class="bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-sky-500/20 flex flex-col items-center text-center">
+          <div
+            class="w-14 h-14 rounded-2xl bg-[#38b6ff] text-white font-black text-2xl flex items-center justify-center mb-4 shadow-lg shadow-sky-500/30">
+            1
+          </div>
+          <h3 class="text-lg font-bold mb-2">Klik "+ Keranjang"</h3>
+          <p class="text-xs md:text-sm text-slate-300">Pilih aneka sembako, minuman, dan frozen food kesukaan Anda ke
+            dalam keranjang belanja.</p>
+        </div>
+
+        <div
+          class="bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-pink-500/20 flex flex-col items-center text-center">
+          <div
+            class="w-14 h-14 rounded-2xl bg-[#ff66c4] text-white font-black text-2xl flex items-center justify-center mb-4 shadow-lg shadow-pink-500/30">
+            2
+          </div>
+          <h3 class="text-lg font-bold mb-2">Cek Daftar Pesanan</h3>
+          <p class="text-xs md:text-sm text-slate-300">Buka modal keranjang, atur jumlah pembelian barang, dan pantau
+            total perkiraan harga.</p>
+        </div>
+
+        <div
+          class="bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-sky-500/20 flex flex-col items-center text-center">
+          <div
+            class="w-14 h-14 rounded-2xl bg-emerald-400 text-emerald-950 font-black text-2xl flex items-center justify-center mb-4 shadow-lg">
+            3
+          </div>
+          <h3 class="text-lg font-bold mb-2">Pesan via WhatsApp</h3>
+          <p class="text-xs md:text-sm text-slate-300">Sistem otomatis menyusun format daftar pesanan lengkap dan
+            mengirimkannya langsung ke kasir!</p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= STORE LOCATION & OPERATING HOURS ================= -->
+  <section id="lokasi" class="py-12 px-4 max-w-7xl mx-auto">
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12">
+
+        <!-- Left Info Details -->
+        <div class="lg:col-span-5 p-6 md:p-10 flex flex-col justify-between">
+          <div>
+            <span
+              class="text-xs font-bold text-[#0077d6] bg-sky-50 px-3 py-1 rounded-full uppercase tracking-wider">Lokasi
+              Toko Fisik</span>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-3 mb-4">Kunjungi Minimarket Shinemart</h2>
+
+            <div class="space-y-4 text-sm text-slate-600">
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-sky-100 text-[#0077d6] flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <div>
+                  <strong class="block text-slate-800 font-bold">Alamat Utama:</strong>
+                  <span>Jl. Utan Jati No.32A, Pegadungan, Kec. Kalideres, Jakarta Barat</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-pink-100 text-[#ff66c4] flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="far fa-clock"></i>
+                </div>
+                <div>
+                  <strong class="block text-slate-800 font-bold">Jam Operasional Toko:</strong>
+                  <span>Senin - Minggu: 07:00 - 22:00 WIB</span>
+                  <span class="block text-xs text-[#0077d6] font-semibold mt-0.5">Buka Setiap Hari (Termasuk Hari Libur
+                    Nasional)</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fab fa-whatsapp"></i>
+                </div>
+                <div>
+                  <strong class="block text-slate-800 font-bold">Layanan WhatsApp Kasir:</strong>
+                  <span>+62 851-9896-3411</span>
+                  <span class="block text-xs text-slate-400">Pemesanan Multi-Item dilayani dengan cepat</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-sky-100 text-[#0077d6] flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fas fa-envelope"></i>
+                </div>
+                <div>
+                  <strong class="block text-slate-800 font-bold">Email Resmi:</strong>
+                  <a href="mailto:djihan@shinemart.id" class="text-[#0077d6] hover:underline font-medium">djihan@shinemart.id</a>
+                  <span class="block text-xs text-slate-400">Kerjasama & Layanan Informasi</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-8 pt-6 border-t border-slate-100 flex gap-3">
+            <button onclick="openGeneralWhatsApp('lokasi')"
+              class="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <i class="fas fa-directions text-[#38b6ff]"></i>
+              <span>Petunjuk Arah</span>
+            </button>
+            <button onclick="openCartModal()"
+              class="flex-1 py-3 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <i class="fas fa-shopping-cart"></i>
+              <span>Buka Keranjang</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Right Google Maps Embed -->
+        <div class="lg:col-span-7 min-h-[340px] bg-slate-200 relative">
+          <iframe title="Lokasi Shinemart Google Maps"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.9745137536967!2d106.7114056!3d-6.1476798!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f90012a40439%3A0x884f4a912dfc19b8!2sShine%20Mart!5e0!3m2!1sid!2sid!4v1726000000000!5m2!1sid!2sid"
+            width="100%" height="100%" style="border:0; min-height: 350px;" allowfullscreen="" loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-slate-900 text-slate-400 pt-16 pb-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
+
+        <!-- Col 1: Brand Info -->
+        <div class="md:col-span-1">
+          <a href="index.html" class="inline-block mb-4">
+            <img src="assets/images/shinemart_logo.svg" alt="Shinemart Logo"
+              class="h-10 w-auto bg-white p-1.5 rounded-xl border border-slate-700"
+              onerror="this.onerror=null; this.src='assets/images/shinemart_logo.png';">
+          </a>
+          <p class="text-xs text-slate-400 leading-relaxed mb-6">
+            Minimarket &amp; Frozen Food pilihan keluarga dengan katalog digital terlengkap. Belanja kebutuhan sembako,
+            minuman, frozen food, dan snack segar mudah via WhatsApp.
+          </p>
+          <!-- Social Icons -->
+          <div class="flex items-center gap-3">
+            <a href="https://instagram.com/shinemart.id" target="_blank" rel="noopener noreferrer" title="Instagram @shinemart.id"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#e1306c] text-white flex items-center justify-center transition">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://threads.net/@shinemart.id" target="_blank" rel="noopener noreferrer" title="Threads @shinemart.id"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-black text-white flex items-center justify-center transition p-2">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+                <path d="M141.537 88.9883C140.71 88.5919 139.87 88.2104 139.019 87.8451C137.587 60.5305 122.244 44.7224 97.4586 44.7224C71.8241 44.7224 53.6499 64.9261 53.6499 96.0823C53.6499 127.238 71.8241 147.442 97.4586 147.442C116.634 147.442 129.81 135.864 135.617 121.282L120.312 113.682C116.837 122.428 108.411 129.351 97.4586 129.351C81.4424 129.351 71.0205 115.111 71.0205 96.0823C71.0205 77.0538 81.4424 62.8136 97.4586 62.8136C112.551 62.8136 120.672 73.6841 121.905 90.7136C114.708 89.288 106.822 88.9482 98.4109 89.7042C73.9161 91.9084 59.882 105.074 59.882 121.905C59.882 137.288 72.8464 148.914 89.7042 148.914C105.72 148.914 116.291 140.547 122.046 128.432C125.797 139.524 134.664 147.442 147.388 147.442C164.717 147.442 176 133.565 176 110.826C176 74.3495 147.882 44.7224 97.4586 44.7224C46.8521 44.7224 16 76.5446 16 122.952C16 169.36 46.8521 201.182 97.4586 201.182C126.837 201.182 150.318 190.528 163.784 171.748L150.046 160.038C139.814 174.195 120.803 183.091 97.4586 183.091C57.4332 183.091 33.7298 157.065 33.7298 122.952C33.7298 88.8399 57.4332 62.8136 97.4586 62.8136C138.163 62.8136 159.27 86.8397 159.27 110.826C159.27 124.636 153.292 131.066 146.402 131.066C140.71 131.066 136.657 127.324 136.657 120.009C136.657 118.064 137.07 115.828 137.897 113.308C139.724 107.697 141.537 98.7183 141.537 88.9883ZM100.009 107.241C111.455 106.212 119.559 107.411 122.428 108.432C121.282 121.366 113.627 131.066 99.8682 131.066C88.6367 131.066 77.9431 123.633 77.9431 113.682C77.9431 103.731 88.5638 107.241 100.009 107.241Z" />
+              </svg>
+            </a>
+            <a href="https://tiktok.com/@shinemart.id" target="_blank" rel="noopener noreferrer" title="TikTok @shinemart.id"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#ff66c4] text-white flex items-center justify-center transition">
+              <i class="fab fa-tiktok"></i>
+            </a>
+            <a href="javascript:void(0)" onclick="openGeneralWhatsApp()" title="WhatsApp Kasir"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-[#25d366] text-white flex items-center justify-center transition">
+              <i class="fab fa-whatsapp"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Col 2: Kategori Populer -->
+        <div>
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Kategori Populer</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="#katalog" onclick="activeCategory='sembako'; renderProducts();"
+                class="hover:text-[#38b6ff] transition">Sembako & Beras Super</a></li>
+            <li><a href="#katalog" onclick="activeCategory='frozen'; renderProducts();"
+                class="hover:text-[#38b6ff] transition">Frozen Food / Makanan Beku</a></li>
+            <li><a href="#katalog" onclick="activeCategory='minuman'; renderProducts();"
+                class="hover:text-[#38b6ff] transition">Minuman & Susu UHT</a></li>
+            <li><a href="#katalog" onclick="activeCategory='snack'; renderProducts();"
+                class="hover:text-[#ff66c4] transition">Snack & Biskuit</a></li>
+            <li><a href="#katalog" onclick="activeCategory='kebersihan'; renderProducts();"
+                class="hover:text-[#38b6ff] transition">Perlengkapan Kebersihan</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Layanan Pelanggan -->
+        <div>
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Layanan Pelanggan</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="#lokasi" class="hover:text-[#38b6ff] transition">Lokasi Store & Peta</a></li>
+            <li><a href="#katalog" class="hover:text-[#ff66c4] transition">Cek Promo Hari Ini</a></li>
+            <li><a href="javascript:void(0)" onclick="openGeneralWhatsApp('kasir')"
+                class="hover:text-[#38b6ff] transition">Kontak Layanan Kasir</a></li>
+            <li><a href="mailto:djihan@shinemart.id"
+                class="hover:text-[#38b6ff] transition flex items-center gap-1.5 pt-1 text-slate-300">
+                <i class="fas fa-envelope text-[#38b6ff]"></i> djihan@shinemart.id
+              </a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Jam & Pemberitahuan -->
+        <div>
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Jam Layanan WA</h4>
+          <div class="bg-slate-800/80 p-4 rounded-xl text-xs space-y-2 border border-slate-700">
+            <div class="flex justify-between">
+              <span>Senin - Minggu:</span>
+              <span class="text-[#38b6ff] font-bold">07:00 - 22:00</span>
+            </div>
+            <div class="pt-2 border-t border-slate-700 text-[11px] text-slate-400">
+              *Pesanan WhatsApp yang masuk di luar jam operasional akan diproses pada pagi berikutnya.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Disclaimer -->
+      <div class="mt-8 text-center text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-4">
+        <p>© 2026 Minimarket Shinemart. Hak Cipta Dilindungi.</p>
+        <p class="text-[11px]">Katalog Digital & Belanja Praktis Multi-Item via WhatsApp Kasir</p>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ================= FLOATING ACTION BUTTONS ================= -->
+  <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+    <!-- Floating Cart Button -->
+    <button onclick="openCartModal()"
+      class="relative w-14 h-14 rounded-full bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white flex items-center justify-center text-2xl shadow-2xl border-2 border-white hover:scale-110 transition-transform"
+      title="Buka Keranjang Belanja">
+      <i class="fas fa-shopping-cart"></i>
+      <span id="floatingCartCount"
+        class="hidden absolute -top-1 -right-1 bg-[#38b6ff] text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+        0
+      </span>
+    </button>
+
+    <!-- Floating WhatsApp Button -->
+    <button onclick="openGeneralWhatsApp('kasir')"
+      class="w-14 h-14 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl border-2 border-white bg-[#25d366] hover:scale-110 transition-transform"
+      title="Hubungi Kasir WhatsApp">
+      <i class="fab fa-whatsapp"></i>
+    </button>
+  </div>
+
+  <!-- ================= MODAL KERANJANG BELANJA (MULTI-ITEM CART) ================= -->
+  <div id="cartModal" onclick="if(event.target === this) closeCartModal()" class="modal-backdrop fixed inset-0 z-[80] hidden items-center justify-center p-4">
+    <div
+      class="modal-content bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#ff66c4] to-[#38b6ff] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Keranjang Belanja Shinemart</h3>
+            <span id="cartTotalItemsCount" class="text-[11px] text-sky-200">0 item terdaftar</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="clearCart()" class="text-xs text-pink-300 hover:text-pink-100 font-bold px-2 py-1"
+            title="Kosongkan Keranjang">
+            Kosongkan
+          </button>
+          <button onclick="closeCartModal()"
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body / Items List -->
+      <div class="p-4 overflow-y-auto flex-1 space-y-3" id="cartItemsContainer">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Empty State Notice -->
+      <div id="cartEmptyNotice" class="hidden p-10 text-center flex-1 flex flex-col items-center justify-center">
+        <div class="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-3xl mb-3">
+          <i class="fas fa-cart-arrow-down"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm mb-1">Keranjang Masih Kosong</h4>
+        <p class="text-xs text-slate-400 max-w-xs mb-4">Silakan pilih produk kebutuhan Anda pada katalog dengan menekan
+          tombol "+ Keranjang".</p>
+        <button onclick="closeCartModal()"
+          class="px-5 py-2 bg-[#38b6ff] text-white font-bold rounded-xl text-xs hover:bg-[#0099ff] transition">
+          Mulai Belanja Sekarang
+        </button>
+      </div>
+
+      <!-- Footer / Checkout Section -->
+      <div id="cartFooterSection" class="p-4 bg-slate-50 border-t border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Perkiraan:</span>
+          <span id="cartTotalPrice" class="text-xl font-black text-[#0077d6]">Rp 0</span>
+        </div>
+
+        <!-- Tombol Checkout WhatsApp Multi-Item -->
+        <button onclick="checkoutCartViaWhatsApp()"
+          class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition text-sm">
+          <i class="fab fa-whatsapp text-xl"></i>
+          <span>Pesan Sekarang via WhatsApp</span>
+        </button>
+        <p class="text-[11px] text-center text-slate-400 mt-2">
+          Format rincian seluruh produk akan otomatis tersusun rapi di chat WhatsApp kasir.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL PREVIEW DETAIL PRODUK (1:1 RATIO) ================= -->
+  <div id="productPreviewModal" onclick="if(event.target === this) closeProductPreview()" class="modal-backdrop fixed inset-0 z-[70] hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#38b6ff] to-[#0077d6] flex items-center justify-center text-white text-sm">
+            <i class="fas fa-eye"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm md:text-base leading-none">Detail Produk</h3>
+            <span class="text-[11px] text-sky-200">Pratinjau Foto & Informasi Produk</span>
+          </div>
+        </div>
+        <button onclick="closeProductPreview()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- 1:1 Square Image Container (No Cropping) -->
+        <div class="preview-image-wrap rounded-2xl border border-slate-200 shadow-inner bg-slate-50 relative">
+          <img id="previewImage" src="" alt="Preview Produk" class="w-full h-full object-contain p-3" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+          <span id="previewCategory" class="absolute top-3 right-3 bg-[#38b6ff] text-white text-[11px] font-extrabold px-2.5 py-1 rounded-md uppercase shadow-sm"></span>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span id="previewStock" class="badge-stock px-2.5 py-0.5 rounded-full text-xs font-bold">Ready</span>
+            <span id="previewUnit" class="text-xs text-slate-400 font-medium">1 Pcs</span>
+          </div>
+          <h2 id="previewName" class="text-lg md:text-xl font-extrabold text-slate-900 leading-snug"></h2>
+          <div class="mt-2">
+            <span id="previewPrice" class="text-2xl font-black text-[#0077d6]"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+        <button id="previewAddCartBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm transition">
+          <i class="fas fa-cart-plus text-base"></i>
+          <span>+ Tambahkan ke Keranjang</span>
+        </button>
+        <button id="previewWaBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition">
+          <i class="fab fa-whatsapp text-emerald-600 text-base"></i>
+          <span>Tanya / Beli Langsung via WhatsApp</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL / HALAMAN DETAIL KOLEKSI SEKSI PROMO ================= -->
+  <div id="sectionDetailModal" onclick="if(event.target === this) closeSectionDetailModal()" class="modal-backdrop fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4 md:p-6 items-center justify-center">
+    <div class="modal-content bg-slate-50 w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/40 my-auto flex flex-col max-h-[92vh] relative">
+      
+      <!-- Top Navigation Bar -->
+      <div class="p-3 sm:p-4 bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 flex items-center justify-between">
+        <button onclick="closeSectionDetailModal()" class="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#0077d6] bg-slate-100 hover:bg-sky-50 px-3 py-2 rounded-xl border border-slate-200 transition">
+          <i class="fas fa-arrow-left text-xs"></i>
+          <span>Kembali ke Beranda</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openCartModal()" class="flex items-center gap-1.5 text-xs font-bold text-[#ff66c4] bg-pink-50 hover:bg-pink-100 px-3 py-2 rounded-xl border border-pink-200 transition">
+            <i class="fas fa-shopping-bag"></i>
+            <span class="hidden sm:inline">Keranjang Belanja</span>
+            <span id="sectionDetailCartBadge" class="bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-0.5">0</span>
+          </button>
+          <button onclick="closeSectionDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm transition">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner Header Koleksi Promosi -->
+      <div id="sectionDetailBannerHeader" class="p-4 sm:p-6 md:p-8 relative overflow-hidden text-slate-900 border-b border-slate-200">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Grid Semua Produk Dalam Seksi Promo Ini -->
+      <div class="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-50">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
+            <span>Daftar Semua Produk Promo</span>
+            <span id="sectionDetailProductCount" class="text-xs font-bold text-[#0077d6] bg-sky-100 px-2.5 py-0.5 rounded-full">0 Produk</span>
+          </h4>
+          <span class="text-[11px] text-slate-400 font-medium">Bisa langsung klik tombol + untuk memesan</span>
+        </div>
+
+        <div id="sectionDetailProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="p-3.5 sm:p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <span class="flex items-center gap-1.5 text-center sm:text-left">
+          <i class="fas fa-bolt text-amber-500"></i>
+          <span>Harga promo khusus berlaku selama persediaan masih ada di gerai Shinemart.</span>
+        </span>
+        <button onclick="closeSectionDetailModal()" class="w-full sm:w-auto px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition shadow-sm">
+          Tutup &amp; Lanjut Belanja
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Application Logic JavaScript Khusus Pengunjung -->
+  <script src="js/app.js?v=3.8"></script>
+</body>
+
+</html>
