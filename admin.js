@@ -3755,6 +3755,7 @@ async function loadStoreOperationalSettings() {
       const feePerKm = document.getElementById("settingDeliveryFeePerKm");
       const maxDist = document.getElementById("settingMaxDistanceKm");
       const minFree = document.getElementById("settingFreeDeliveryMinSpend");
+      const waInput = document.getElementById("settingStoreWhatsapp");
 
       if (toggle) toggle.checked = !!liveStoreSettings.is_store_open;
       if (notes) notes.value = liveStoreSettings.auto_close_notes || "";
@@ -3762,6 +3763,7 @@ async function loadStoreOperationalSettings() {
       if (feePerKm) feePerKm.value = liveStoreSettings.delivery_fee_per_km || 2500;
       if (maxDist) maxDist.value = liveStoreSettings.max_delivery_distance_km || 10;
       if (minFree) minFree.value = liveStoreSettings.free_delivery_min_spend || 30000;
+      if (waInput && liveStoreSettings.store_whatsapp) waInput.value = liveStoreSettings.store_whatsapp;
 
       updateStoreOpenStatusUI();
     }
@@ -3786,6 +3788,7 @@ async function saveStoreOperationalSettings() {
   const feePerKm = document.getElementById("settingDeliveryFeePerKm");
   const maxDist = document.getElementById("settingMaxDistanceKm");
   const minFree = document.getElementById("settingFreeDeliveryMinSpend");
+  const waInput = document.getElementById("settingStoreWhatsapp");
 
   const payload = {
     id: "main_store",
@@ -3795,6 +3798,7 @@ async function saveStoreOperationalSettings() {
     delivery_fee_per_km: Number(feePerKm?.value) || 2500,
     max_delivery_distance_km: Number(maxDist?.value) || 10,
     free_delivery_min_spend: Number(minFree?.value) || 30000,
+    store_whatsapp: waInput ? waInput.value.trim() : "6287782603733",
     updated_at: new Date().toISOString()
   };
 

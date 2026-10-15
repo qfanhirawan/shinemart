@@ -145,32 +145,32 @@
 
     <!-- ================= ADMIN NAVIGATION TABS ================= -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 sm:p-4 rounded-3xl border border-slate-200/90 shadow-sm">
-      <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-auto">
+      <div class="flex items-center gap-1.5 sm:gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 w-full sm:w-auto overflow-x-auto scrollbar-none">
         <button id="tabBtnOrders" onclick="switchAdminTab('orders')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative whitespace-nowrap shrink-0">
           <i class="fas fa-bell text-[#ff66c4] animate-pulse"></i>
           <span>Live Orders</span>
           <span id="adminOrdersLiveBadge" class="bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-0.5">0</span>
         </button>
         <button id="tabBtnProducts" onclick="switchAdminTab('products')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
           <i class="fas fa-box"></i>
           <span>Kelola Produk</span>
         </button>
         <button id="tabBtnBanners" onclick="switchAdminTab('banners')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
           <i class="fas fa-images text-[#ff66c4]"></i>
           <span>Banner Hero</span>
           <span id="adminBannerCountBadge" class="bg-pink-100 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
         </button>
         <button id="tabBtnSections" onclick="switchAdminTab('sections')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
           <i class="fas fa-sliders-h text-[#38b6ff]"></i>
           <span>Seksi Promo Shinemart</span>
           <span id="adminSectionCountBadge" class="bg-sky-100 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
         </button>
         <button id="tabBtnAppSettings" onclick="switchAdminTab('appSettings')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900">
+          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
           <i class="fas fa-mobile-alt text-emerald-600"></i>
           <span>Pengaturan App Mobile</span>
         </button>
@@ -1606,6 +1606,68 @@
 
   <!-- Script Khusus Admin -->
   <script src="js/admin.js?v=4.5-live-orders"></script>
+
+  <!-- Inline Tab Switcher Fallback (Anti-Cache) -->
+  <script>
+    function switchAdminTab(tabName) {
+      if (typeof window.currentAdminTab !== 'undefined') window.currentAdminTab = tabName;
+      
+      const ordersTab = document.getElementById("ordersTabSection");
+      const productsTab = document.getElementById("productsTabSection");
+      const bannersTab = document.getElementById("bannersTabSection");
+      const sectionsTab = document.getElementById("sectionsTabSection");
+      const appSettingsTab = document.getElementById("appSettingsTabSection");
+
+      const tabBtnOrders = document.getElementById("tabBtnOrders");
+      const tabBtnProducts = document.getElementById("tabBtnProducts");
+      const tabBtnBanners = document.getElementById("tabBtnBanners");
+      const tabBtnSections = document.getElementById("tabBtnSections");
+      const tabBtnAppSettings = document.getElementById("tabBtnAppSettings");
+
+      const btnTopAddBanner = document.getElementById("btnTopAddBanner");
+      const btnTopAddSection = document.getElementById("btnTopAddSection");
+
+      if (ordersTab) ordersTab.classList.add("hidden");
+      if (productsTab) productsTab.classList.add("hidden");
+      if (bannersTab) bannersTab.classList.add("hidden");
+      if (sectionsTab) sectionsTab.classList.add("hidden");
+      if (appSettingsTab) appSettingsTab.classList.add("hidden");
+
+      if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
+      if (btnTopAddSection) btnTopAddSection.classList.add("hidden");
+
+      const inactiveClass = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0";
+      if (tabBtnOrders) tabBtnOrders.className = inactiveClass;
+      if (tabBtnProducts) tabBtnProducts.className = inactiveClass;
+      if (tabBtnBanners) tabBtnBanners.className = inactiveClass;
+      if (tabBtnSections) tabBtnSections.className = inactiveClass;
+      if (tabBtnAppSettings) tabBtnAppSettings.className = inactiveClass;
+
+      if (tabName === "orders") {
+        if (ordersTab) ordersTab.classList.remove("hidden");
+        if (tabBtnOrders) tabBtnOrders.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative whitespace-nowrap shrink-0";
+        if (typeof loadAdminOrdersList === "function") loadAdminOrdersList();
+      } else if (tabName === "banners") {
+        if (bannersTab) bannersTab.classList.remove("hidden");
+        if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
+        if (tabBtnBanners) tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4] whitespace-nowrap shrink-0";
+        if (typeof loadSupabaseBannersList === "function") loadSupabaseBannersList();
+      } else if (tabName === "sections") {
+        if (sectionsTab) sectionsTab.classList.remove("hidden");
+        if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
+        if (tabBtnSections) tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] whitespace-nowrap shrink-0";
+        if (typeof loadSupabaseSectionsList === "function") loadSupabaseSectionsList();
+      } else if (tabName === "appSettings") {
+        if (appSettingsTab) appSettingsTab.classList.remove("hidden");
+        if (tabBtnAppSettings) tabBtnAppSettings.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-emerald-600 whitespace-nowrap shrink-0";
+        if (typeof loadStoreOperationalSettings === "function") loadStoreOperationalSettings();
+      } else {
+        if (productsTab) productsTab.classList.remove("hidden");
+        if (tabBtnProducts) tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] whitespace-nowrap shrink-0";
+        if (typeof loadSupabaseProductsList === "function") loadSupabaseProductsList();
+      }
+    }
+  </script>
 </body>
 
 </html>
