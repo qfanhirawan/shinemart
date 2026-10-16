@@ -2069,9 +2069,142 @@ VALUES
     true
 );`;
 
-function openSqlGuideModal() {
+const SQL_MOBILE_PROMOS_SCRIPT = `-- ==============================================================================
+-- SHINEMART SUPABASE MIGRATION: SEPARATE MOBILE PROMOS & DYNAMIC BANNERS
+-- Script ini membuat tabel terpisah khusus untuk Mobile App:
+-- 1. public.mobile_banners (Dynamic Banner Slider Mobile)
+-- 2. public.mobile_promotional_sections (Seksi Promo Khusus Mobile App)
+--
+-- Jalankan script ini di SQL Editor pada dashboard Supabase Anda.
+-- ==============================================================================
+
+-- 1. TABEL DYNAMIC BANNER KHUSUS MOBILE APP (public.mobile_banners)
+CREATE TABLE IF NOT EXISTS public.mobile_banners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    badge TEXT DEFAULT '⚡ FLASH SALE • DISKON 40%',
+    title TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    action_type TEXT DEFAULT 'category', -- 'category' | 'voucher'
+    action_value TEXT DEFAULT 'sembako', -- kategori atau kode voucher
+    sort_order INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_banners_sort ON public.mobile_banners (sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_mobile_banners_active ON public.mobile_banners (is_active);
+
+ALTER TABLE public.mobile_banners ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view active mobile banners" ON public.mobile_banners;
+CREATE POLICY "Public can view active mobile banners" ON public.mobile_banners FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow anon insert mobile banners" ON public.mobile_banners;
+CREATE POLICY "Allow anon insert mobile banners" ON public.mobile_banners FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow anon update mobile banners" ON public.mobile_banners;
+CREATE POLICY "Allow anon update mobile banners" ON public.mobile_banners FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Allow anon delete mobile banners" ON public.mobile_banners;
+CREATE POLICY "Allow anon delete mobile banners" ON public.mobile_banners FOR DELETE USING (true);
+
+-- Seed Data Awal Banner Mobile
+INSERT INTO public.mobile_banners (badge, title, image_url, action_type, action_value, sort_order, is_active)
+VALUES
+('⚡ FLASH SALE • DISKON 40%', 'Diskon Sembako & Kebutuhan Pokok Dapur', 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80', 'category', 'sembako', 1, true),
+('🛵 BEBAS ONGKIR SEPUASNYA', 'Gratis Ongkir Kilat 15-25 Menit', 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80', 'voucher', 'ONGKIRGRATIS', 2, true),
+('🧊 FROZEN SPECIAL • CASHBACK 20%', 'Stok Frozen Food & Olahan Segar Terlengkap', 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=1200&q=80', 'category', 'frozen', 3, true)
+ON CONFLICT DO NOTHING;
+
+-- 2. TABEL SEKSI PROMO KHUSUS MOBILE APP (public.mobile_promotional_sections)
+CREATE TABLE IF NOT EXISTS public.mobile_promotional_sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    subtitle TEXT DEFAULT 'Koleksi promo pilihan hemat Shinemart',
+    badge TEXT DEFAULT 'PROMO SPESIAL',
+    icon TEXT DEFAULT '🔥',
+    icon_bg TEXT DEFAULT '#0077D6',
+    poster_image TEXT NOT NULL,
+    category_filter TEXT DEFAULT 'sembako',
+    sort_order INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_promo_sort ON public.mobile_promotional_sections (sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_mobile_promo_active ON public.mobile_promotional_sections (is_active);
+
+ALTER TABLE public.mobile_promotional_sections ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view active mobile sections" ON public.mobile_promotional_sections;
+CREATE POLICY "Public can view active mobile sections" ON public.mobile_promotional_sections FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow anon insert mobile sections" ON public.mobile_promotional_sections;
+CREATE POLICY "Allow anon insert mobile sections" ON public.mobile_promotional_sections FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow anon update mobile sections" ON public.mobile_promotional_sections;
+CREATE POLICY "Allow anon update mobile sections" ON public.mobile_promotional_sections FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Allow anon delete mobile sections" ON public.mobile_promotional_sections;
+CREATE POLICY "Allow anon delete mobile sections" ON public.mobile_promotional_sections FOR DELETE USING (true);
+
+-- Seed Data Awal Seksi Promo Mobile
+INSERT INTO public.mobile_promotional_sections (title, subtitle, badge, icon, icon_bg, poster_image, category_filter, sort_order, is_active)
+VALUES
+('Sembako Murah', 'Koleksi promo pilihan hemat Shinemart', 'PROMO SPESIAL', '🔥', '#0077D6', 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80', 'sembako', 1, true),
+('Frozen Food Pilihan', 'Nugget, sosis & stok olahan beku segar', 'KILAT & BEKU', '🧊', '#38B6FF', 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=600&q=80', 'frozen', 2, true),
+('Minuman & Snack Segar', 'Segarkan harimu dengan aneka camilan favorit', 'HEMAT SEGAR', '🥤', '#FF66C4', 'https://images.unsplash.com/photo-1621996346565-e3d5d6281741?auto=format&fit=crop&w=600&q=80', 'minuman', 3, true)
+ON CONFLICT DO NOTHING;
+
+-- 3. Publikasi Realtime untuk HP
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'mobile_banners') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.mobile_banners;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'mobile_promotional_sections') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.mobile_promotional_sections;
+  END IF;
+END $$;`;
+
+let currentActiveSqlScript = SQL_MOBILE_PROMOS_SCRIPT;
+
+function switchSqlScriptTab(tabName) {
+  const btnMobile = document.getElementById("sqlTabBtnMobile");
+  const btnBanners = document.getElementById("sqlTabBtnBanners");
+  const btnSections = document.getElementById("sqlTabBtnSections");
+  const btnSettings = document.getElementById("sqlTabBtnSettings");
   const codeEl = document.getElementById("sqlScriptContent");
-  if (codeEl) codeEl.textContent = SQL_BANNERS_SCRIPT;
+  const descEl = document.getElementById("sqlScriptDescription");
+  const tipEl = document.getElementById("sqlScriptTipText");
+
+  const inactiveClass = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap";
+  const activeClass = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-white text-[#0077d6] shadow-sm whitespace-nowrap";
+
+  if (btnMobile) btnMobile.className = inactiveClass;
+  if (btnBanners) btnBanners.className = inactiveClass;
+  if (btnSections) btnSections.className = inactiveClass;
+  if (btnSettings) btnSettings.className = inactiveClass;
+
+  if (tabName === "banners") {
+    if (btnBanners) btnBanners.className = activeClass;
+    currentActiveSqlScript = SQL_BANNERS_SCRIPT;
+    if (descEl) descEl.textContent = "Script tabel banners untuk slider promosi di halaman utama Website (Desktop/Katalog Online):";
+    if (tipEl) tipEl.textContent = "Otomatis membuat tabel banners, konfigurasi bucket storage banners, serta policy akses RLS.";
+  } else if (tabName === "sections") {
+    if (btnSections) btnSections.className = activeClass;
+    currentActiveSqlScript = typeof SQL_SECTIONS_SCRIPT !== "undefined" ? SQL_SECTIONS_SCRIPT : SQL_BANNERS_SCRIPT;
+    if (descEl) descEl.textContent = "Script tabel promotional_sections & promotional_section_items untuk seksi promo website:";
+    if (tipEl) tipEl.textContent = "Membuat tabel seksi promo beranda dan relasi produk pilihan per-item.";
+  } else if (tabName === "settings") {
+    if (btnSettings) btnSettings.className = activeClass;
+    currentActiveSqlScript = typeof SQL_STORE_SETTINGS_SCRIPT !== "undefined" ? SQL_STORE_SETTINGS_SCRIPT : SQL_MOBILE_PROMOS_SCRIPT;
+    if (descEl) descEl.textContent = "Script tabel store_settings untuk konfigurasi buka/tutup toko dan tarif ongkir kilat:";
+    if (tipEl) tipEl.textContent = "Menyimpan status toko buka/tutup, radius maksimal, tarif per km, dan gratis ongkir.";
+  } else {
+    if (btnMobile) btnMobile.className = activeClass;
+    currentActiveSqlScript = SQL_MOBILE_PROMOS_SCRIPT;
+    if (descEl) descEl.textContent = "Script SQL khusus Mobile App: tabel mobile_banners dan mobile_promotional_sections:";
+    if (tipEl) tipEl.textContent = "Membuat tabel terpisah untuk Mobile App agar tidak tercampur dengan banner & promo website!";
+  }
+
+  if (codeEl) codeEl.textContent = currentActiveSqlScript;
+}
+
+function openSqlGuideModal(preferredTab = "mobile") {
+  switchSqlScriptTab(preferredTab);
   const modal = document.getElementById("sqlGuideModal");
   if (modal) {
     modal.classList.remove("hidden");
@@ -2088,14 +2221,15 @@ function closeSqlGuideModal() {
 }
 
 function copySqlScript() {
+  const textToCopy = currentActiveSqlScript || SQL_BANNERS_SCRIPT;
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(SQL_BANNERS_SCRIPT).then(() => {
+    navigator.clipboard.writeText(textToCopy).then(() => {
       showAdminToast("Script SQL berhasil disalin ke clipboard!", "success");
     }).catch(() => {
-      fallbackCopyText(SQL_BANNERS_SCRIPT);
+      fallbackCopyText(textToCopy);
     });
   } else {
-    fallbackCopyText(SQL_BANNERS_SCRIPT);
+    fallbackCopyText(textToCopy);
   }
 }
 
@@ -3824,5 +3958,853 @@ async function saveStoreOperationalSettings() {
     showAdminToast(`Gagal menyimpan: ${err.message}`, "error");
   }
 }
+
+/* ==============================================================================
+ * MODUL PENGELOLAAN DYNAMIC BANNERS & SEKSI PROMO TERPISAH (MOBILE VS WEB)
+ * ============================================================================== */
+
+let currentBannerPlatform = "web";
+let currentSectionPlatform = "web";
+let liveMobileBanners = [];
+let liveMobileSections = [];
+
+// 1. SWITCHER PLATFORM UNTUK BANNER (WEBSITE VS MOBILE)
+function switchBannerPlatformTab(platform) {
+  currentBannerPlatform = platform;
+  const btnWeb = document.getElementById("subTabBtnBannerWeb");
+  const btnMobile = document.getElementById("subTabBtnBannerMobile");
+  const webWrapper = document.getElementById("bannerPlatformWebWrapper");
+  const mobileWrapper = document.getElementById("bannerPlatformMobileWrapper");
+  const btnTopAddBanner = document.getElementById("btnTopAddBanner");
+
+  const activeClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#ff66c4] shadow-sm";
+  const inactiveClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+
+  if (platform === "mobile") {
+    if (btnWeb) btnWeb.className = inactiveClass;
+    if (btnMobile) btnMobile.className = activeClass;
+    if (webWrapper) webWrapper.classList.add("hidden");
+    if (mobileWrapper) mobileWrapper.classList.remove("hidden");
+    if (btnTopAddBanner) {
+      btnTopAddBanner.onclick = openAddMobileBannerModal;
+      btnTopAddBanner.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Banner Mobile</span>';
+    }
+    loadMobileBannersList();
+  } else {
+    if (btnWeb) btnWeb.className = activeClass;
+    if (btnMobile) btnMobile.className = inactiveClass;
+    if (webWrapper) webWrapper.classList.remove("hidden");
+    if (mobileWrapper) mobileWrapper.classList.add("hidden");
+    if (btnTopAddBanner) {
+      btnTopAddBanner.onclick = openAddBannerModal;
+      btnTopAddBanner.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Banner Baru</span>';
+    }
+    loadSupabaseBannersList();
+  }
+}
+
+// 2. SWITCHER PLATFORM UNTUK SEKSI PROMO (WEBSITE VS MOBILE)
+function switchSectionPlatformTab(platform) {
+  currentSectionPlatform = platform;
+  const btnWeb = document.getElementById("subTabBtnSectionWeb");
+  const btnMobile = document.getElementById("subTabBtnSectionMobile");
+  const webWrapper = document.getElementById("sectionPlatformWebWrapper");
+  const mobileWrapper = document.getElementById("sectionPlatformMobileWrapper");
+  const btnTopAddSection = document.getElementById("btnTopAddSection");
+
+  const activeClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#0077d6] shadow-sm";
+  const inactiveClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+
+  if (platform === "mobile") {
+    if (btnWeb) btnWeb.className = inactiveClass;
+    if (btnMobile) btnMobile.className = activeClass;
+    if (webWrapper) webWrapper.classList.add("hidden");
+    if (mobileWrapper) mobileWrapper.classList.remove("hidden");
+    if (btnTopAddSection) {
+      btnTopAddSection.onclick = openAddMobileSectionModal;
+      btnTopAddSection.innerHTML = '<i class="fas fa-plus"></i><span>Buat Seksi Promo Mobile</span>';
+    }
+    loadMobileSectionsList();
+  } else {
+    if (btnWeb) btnWeb.className = activeClass;
+    if (btnMobile) btnMobile.className = inactiveClass;
+    if (webWrapper) webWrapper.classList.remove("hidden");
+    if (mobileWrapper) mobileWrapper.classList.add("hidden");
+    if (btnTopAddSection) {
+      btnTopAddSection.onclick = openAddSectionModal;
+      btnTopAddSection.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Seksi Promo</span>';
+    }
+    loadSupabaseSectionsList();
+  }
+}
+
+// ==============================================================================
+// 3. LOGIKA CRUD DYNAMIC BANNER KHUSUS MOBILE APP (public.mobile_banners)
+// ==============================================================================
+
+async function loadMobileBannersList() {
+  const tbody = document.getElementById("mobileBannersTableBody");
+  const countBadge = document.getElementById("mobileBannerCountBadge");
+  const countText = document.getElementById("mobileBannersCountText");
+  const appSettingsBadge = document.getElementById("appSettingsMobileBannerCount");
+  const summaryEl = document.getElementById("activeMobileBannersSummary");
+
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+        <i class="fas fa-spinner fa-spin mr-1.5 text-pink-500"></i> Memuat daftar banner mobile dari Supabase...
+      </td>
+    </tr>
+  `;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-xs text-pink-500 font-bold">Kredensial Supabase belum terkonfigurasi.</td></tr>`;
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("mobile_banners")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      if (error.code === "PGRST205" || String(error.message).includes("schema cache") || String(error.message).includes("mobile_banners")) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-8 px-4">
+              <div class="max-w-md mx-auto space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto">
+                  <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h4 class="font-extrabold text-slate-800 text-sm">Tabel "mobile_banners" Belum Ada di Supabase</h4>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Jalankan script <code>mobile_promos.sql</code> di SQL Editor Supabase untuk membuat tabel banner khusus Mobile App.
+                </p>
+                <button onclick="openSqlGuideModal('mobile')" class="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-extrabold rounded-xl text-xs shadow transition">
+                  <i class="fas fa-code mr-1.5"></i> Salin SQL mobile_promos.sql
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (countBadge) countBadge.textContent = "0";
+        if (countText) countText.textContent = "0 banner";
+        if (appSettingsBadge) appSettingsBadge.textContent = "0 banner";
+        return;
+      }
+      throw error;
+    }
+
+    liveMobileBanners = data || [];
+    renderMobileBannersTable(liveMobileBanners);
+
+    const activeCount = liveMobileBanners.filter(b => b.is_active).length;
+    if (countBadge) countBadge.textContent = liveMobileBanners.length;
+    if (countText) countText.textContent = `${liveMobileBanners.length} banner (${activeCount} aktif)`;
+    if (appSettingsBadge) appSettingsBadge.textContent = `${activeCount} banner aktif`;
+    if (summaryEl) summaryEl.textContent = `${activeCount} dari ${liveMobileBanners.length} banner aktif di aplikasi HP`;
+
+  } catch (err) {
+    console.error("Gagal memuat mobile_banners:", err);
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-xs text-pink-600 font-bold">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function renderMobileBannersTable(banners) {
+  const tbody = document.getElementById("mobileBannersTableBody");
+  if (!tbody) return;
+
+  if (!banners || banners.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-10 px-4 text-xs text-slate-400">
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto mb-2">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <span class="font-bold text-slate-600 block mb-1">Belum ada banner untuk Mobile App</span>
+          <span>Klik tombol <strong>+ Tambah Banner Mobile</strong> di atas untuk membuat banner promosi pertama.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = banners.map((b, idx) => {
+    const imgUrl = formatGoogleDriveImageUrl(b.image_url);
+    const actionDesc = b.action_type === 'voucher' 
+      ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-50 text-pink-700 font-mono text-[11px] font-bold border border-pink-200"><i class="fas fa-ticket-alt"></i> Kupon: ${escapeHtml(b.action_value || '-')}</span>`
+      : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-[#0077d6] text-[11px] font-bold border border-sky-200"><i class="fas fa-th-large"></i> Kategori: ${escapeHtml(b.action_value || 'all')}</span>`;
+
+    return `
+      <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition">
+        <td class="py-3 px-3 text-center font-extrabold text-slate-700 text-xs">
+          ${b.sort_order || idx + 1}
+        </td>
+        <td class="py-3 px-3">
+          <div class="w-28 h-16 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs relative cursor-pointer" onclick="openImagePreviewModal('${encodeURIComponent(imgUrl)}', '${encodeURIComponent(b.title)}')">
+            <img src="${imgUrl}" alt="${escapeHtml(b.title)}" class="w-full h-full object-cover">
+            <span class="absolute bottom-1 right-1 px-1 bg-black/60 text-white text-[8px] font-mono rounded">16:9</span>
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="space-y-0.5">
+            <span class="inline-block px-2 py-0.5 bg-pink-100 text-[#ff66c4] font-black text-[9px] rounded-md uppercase tracking-wider">
+              ${escapeHtml(b.badge || 'PROMO')}
+            </span>
+            <div class="font-bold text-slate-900 text-xs line-clamp-1">${escapeHtml(b.title)}</div>
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          ${actionDesc}
+        </td>
+        <td class="py-3 px-3 text-center">
+          <button type="button" onclick="toggleMobileBannerActive('${b.id}', ${b.is_active})"
+            class="px-3 py-1 rounded-full text-[11px] font-bold transition inline-flex items-center gap-1.5 ${
+              b.is_active 
+                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+            }">
+            <i class="fas ${b.is_active ? 'fa-check-circle' : 'fa-times-circle'} text-[10px]"></i>
+            <span>${b.is_active ? 'Tayang di HP' : 'Nonaktif'}</span>
+          </button>
+        </td>
+        <td class="py-3 px-3 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openEditMobileBannerModal('${b.id}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-sky-50 hover:text-[#0077d6] text-slate-600 flex items-center justify-center transition" title="Edit Banner Mobile">
+              <i class="fas fa-edit text-xs"></i>
+            </button>
+            <button onclick="deleteMobileBanner('${b.id}', '${escapeHtml(b.title)}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-pink-50 hover:text-pink-600 text-slate-600 flex items-center justify-center transition" title="Hapus Banner Mobile">
+              <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function filterMobileBannersTable() {
+  const query = (document.getElementById("mobileBannerSearchInput")?.value || "").toLowerCase().trim();
+  if (!query) {
+    renderMobileBannersTable(liveMobileBanners);
+    return;
+  }
+  const filtered = liveMobileBanners.filter(b => 
+    (b.title || "").toLowerCase().includes(query) ||
+    (b.badge || "").toLowerCase().includes(query) ||
+    (b.action_value || "").toLowerCase().includes(query)
+  );
+  renderMobileBannersTable(filtered);
+}
+
+function openAddMobileBannerModal() {
+  document.getElementById("mobileBannerId").value = "";
+  document.getElementById("mobileBannerExistingImageUrl").value = "";
+  document.getElementById("mobileBannerTitleInput").value = "";
+  document.getElementById("mobileBannerBadgeInput").value = "⚡ FLASH SALE • DISKON 40%";
+  document.getElementById("mobileBannerImageUrlInput").value = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80";
+  document.getElementById("mobileBannerActionTypeInput").value = "category";
+  document.getElementById("mobileBannerActionValueInput").value = "sembako";
+  document.getElementById("mobileBannerSortOrderInput").value = (liveMobileBanners.length + 1).toString();
+  document.getElementById("mobileBannerIsActiveInput").checked = true;
+  document.getElementById("mobileBannerModalTitle").textContent = "Tambah Banner Mobile Baru";
+  handleMobileBannerActionTypeChange();
+  updateMobileBannerLivePreview();
+
+  const modal = document.getElementById("mobileBannerModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function openEditMobileBannerModal(id) {
+  const banner = liveMobileBanners.find(b => String(b.id) === String(id));
+  if (!banner) return;
+
+  document.getElementById("mobileBannerId").value = banner.id;
+  document.getElementById("mobileBannerExistingImageUrl").value = banner.image_url || "";
+  document.getElementById("mobileBannerTitleInput").value = banner.title || "";
+  document.getElementById("mobileBannerBadgeInput").value = banner.badge || "";
+  document.getElementById("mobileBannerImageUrlInput").value = banner.image_url || "";
+  document.getElementById("mobileBannerActionTypeInput").value = banner.action_type || "category";
+  document.getElementById("mobileBannerActionValueInput").value = banner.action_value || "";
+  document.getElementById("mobileBannerSortOrderInput").value = (banner.sort_order || 1).toString();
+  document.getElementById("mobileBannerIsActiveInput").checked = !!banner.is_active;
+  document.getElementById("mobileBannerModalTitle").textContent = "Edit Banner Mobile";
+  handleMobileBannerActionTypeChange();
+  updateMobileBannerLivePreview();
+
+  const modal = document.getElementById("mobileBannerModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeMobileBannerModal() {
+  const modal = document.getElementById("mobileBannerModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function handleMobileBannerActionTypeChange() {
+  const type = document.getElementById("mobileBannerActionTypeInput")?.value;
+  const label = document.getElementById("mobileBannerActionValueLabel");
+  const input = document.getElementById("mobileBannerActionValueInput");
+  if (!label || !input) return;
+
+  if (type === "voucher") {
+    label.textContent = "Kode Kupon Diskon (Misal: ONGKIRGRATIS)";
+    input.placeholder = "Contoh: ONGKIRGRATIS";
+  } else {
+    label.textContent = "Target Kategori Produk (Misal: sembako, frozen)";
+    input.placeholder = "Contoh: sembako";
+  }
+}
+
+function updateMobileBannerLivePreview() {
+  const title = document.getElementById("mobileBannerTitleInput")?.value || "Judul Banner Promo Mobile";
+  const badge = document.getElementById("mobileBannerBadgeInput")?.value || "⚡ FLASH SALE";
+  const rawUrl = document.getElementById("mobileBannerImageUrlInput")?.value || "";
+  const finalUrl = formatGoogleDriveImageUrl(rawUrl);
+
+  const prevTitle = document.getElementById("previewMobileBannerTitle");
+  const prevBadge = document.getElementById("previewMobileBannerBadge");
+  const prevImg = document.getElementById("previewMobileBannerImg");
+
+  if (prevTitle) prevTitle.textContent = title;
+  if (prevBadge) prevBadge.textContent = badge;
+  if (prevImg) prevImg.src = finalUrl;
+}
+
+async function handleMobileBannerFileSelected(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const label = document.getElementById("mobileBannerImageFileLabel");
+  if (label) label.textContent = "Mengunggah...";
+
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) throw new Error("Supabase belum terkonfigurasi!");
+
+    const ext = file.name.split('.').pop() || 'png';
+    const fileName = `mobile_banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('banners')
+      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicData } = supabaseClient.storage
+      .from('banners')
+      .getPublicUrl(fileName);
+
+    if (publicData?.publicUrl) {
+      document.getElementById("mobileBannerImageUrlInput").value = publicData.publicUrl;
+      updateMobileBannerLivePreview();
+      if (label) label.textContent = file.name;
+      showAdminToast("Foto banner mobile berhasil diunggah!", "success");
+    }
+  } catch (err) {
+    console.error("Gagal upload banner mobile:", err);
+    showAdminToast(`Gagal upload foto: ${err.message}`, "error");
+    if (label) label.textContent = "Pilih File Foto";
+  }
+}
+
+async function handleSaveMobileBanner(event) {
+  event.preventDefault();
+  const btn = document.getElementById("btnSaveMobileBanner");
+  const originalHtml = btn?.innerHTML || "Simpan";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+  }
+
+  const id = document.getElementById("mobileBannerId")?.value.trim();
+  const title = document.getElementById("mobileBannerTitleInput")?.value.trim();
+  const badge = document.getElementById("mobileBannerBadgeInput")?.value.trim() || "⚡ PROMO";
+  const rawUrl = document.getElementById("mobileBannerImageUrlInput")?.value.trim();
+  const actionType = document.getElementById("mobileBannerActionTypeInput")?.value || "category";
+  const actionValue = document.getElementById("mobileBannerActionValueInput")?.value.trim() || "all";
+  const sortOrder = parseInt(document.getElementById("mobileBannerSortOrderInput")?.value) || 1;
+  const isActive = document.getElementById("mobileBannerIsActiveInput")?.checked ?? true;
+
+  if (!title || !rawUrl) {
+    showAdminToast("Judul promo dan foto banner wajib diisi!", "warning");
+    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+    return;
+  }
+
+  const payload = {
+    title,
+    badge,
+    image_url: rawUrl,
+    action_type: actionType,
+    action_value: actionValue,
+    sort_order: sortOrder,
+    is_active: isActive
+  };
+
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) throw new Error("Supabase client belum siap!");
+
+    let resError = null;
+    if (id) {
+      const { error } = await supabaseClient.from("mobile_banners").update(payload).eq("id", id);
+      resError = error;
+    } else {
+      const { error } = await supabaseClient.from("mobile_banners").insert([payload]);
+      resError = error;
+    }
+
+    if (resError) throw resError;
+
+    showAdminToast("Banner Mobile App berhasil disimpan!", "success");
+    closeMobileBannerModal();
+    loadMobileBannersList();
+
+  } catch (err) {
+    console.error("Gagal simpan banner mobile:", err);
+    showAdminToast(`Gagal menyimpan banner mobile: ${err.message}`, "error");
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+  }
+}
+
+async function toggleMobileBannerActive(id, currentStatus) {
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) return;
+    const nextStatus = !currentStatus;
+    const { error } = await supabaseClient.from("mobile_banners").update({ is_active: nextStatus }).eq("id", id);
+    if (error) throw error;
+    showAdminToast(`Status tayang banner mobile diubah menjadi ${nextStatus ? 'Aktif' : 'Nonaktif'}`, "success");
+    loadMobileBannersList();
+  } catch (err) {
+    console.error("Gagal toggle status:", err);
+    showAdminToast(`Gagal update status: ${err.message}`, "error");
+  }
+}
+
+async function deleteMobileBanner(id, title) {
+  if (!confirm(`Hapus banner mobile "${title}"?`)) return;
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from("mobile_banners").delete().eq("id", id);
+    if (error) throw error;
+    showAdminToast("Banner mobile berhasil dihapus!", "success");
+    loadMobileBannersList();
+  } catch (err) {
+    console.error("Gagal menghapus banner mobile:", err);
+    showAdminToast(`Gagal menghapus: ${err.message}`, "error");
+  }
+}
+
+
+// ==============================================================================
+// 4. LOGIKA CRUD SEKSI PROMO KHUSUS MOBILE APP (public.mobile_promotional_sections)
+// ==============================================================================
+
+async function loadMobileSectionsList() {
+  const tbody = document.getElementById("mobileSectionsTableBody");
+  const countBadge = document.getElementById("mobileSectionCountBadge");
+  const countText = document.getElementById("mobileSectionsCountText");
+  const appSettingsBadge = document.getElementById("appSettingsMobileSectionCount");
+
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+        <i class="fas fa-spinner fa-spin mr-1.5 text-sky-500"></i> Memuat daftar seksi promo mobile dari Supabase...
+      </td>
+    </tr>
+  `;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-xs text-pink-500 font-bold">Kredensial Supabase belum terkonfigurasi.</td></tr>`;
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("mobile_promotional_sections")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      if (error.code === "PGRST205" || String(error.message).includes("schema cache") || String(error.message).includes("mobile_promotional_sections")) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-8 px-4">
+              <div class="max-w-md mx-auto space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto">
+                  <i class="fas fa-layer-group"></i>
+                </div>
+                <h4 class="font-extrabold text-slate-800 text-sm">Tabel "mobile_promotional_sections" Belum Ada</h4>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Jalankan script <code>mobile_promos.sql</code> di SQL Editor Supabase untuk membuat tabel seksi promo khusus Mobile App.
+                </p>
+                <button onclick="openSqlGuideModal('mobile')" class="px-4 py-2 bg-gradient-to-r from-[#0077d6] to-[#38b6ff] text-white font-extrabold rounded-xl text-xs shadow transition">
+                  <i class="fas fa-code mr-1.5"></i> Salin SQL mobile_promos.sql
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (countBadge) countBadge.textContent = "0";
+        if (countText) countText.textContent = "0 Seksi";
+        if (appSettingsBadge) appSettingsBadge.textContent = "0 seksi";
+        return;
+      }
+      throw error;
+    }
+
+    liveMobileSections = data || [];
+    renderMobileSectionsTable(liveMobileSections);
+
+    const activeCount = liveMobileSections.filter(s => s.is_active).length;
+    if (countBadge) countBadge.textContent = liveMobileSections.length;
+    if (countText) countText.textContent = `${liveMobileSections.length} Seksi (${activeCount} aktif)`;
+    if (appSettingsBadge) appSettingsBadge.textContent = `${activeCount} seksi aktif`;
+
+  } catch (err) {
+    console.error("Gagal memuat mobile_promotional_sections:", err);
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-xs text-pink-600 font-bold">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function renderMobileSectionsTable(sections) {
+  const tbody = document.getElementById("mobileSectionsTableBody");
+  if (!tbody) return;
+
+  if (!sections || sections.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-10 px-4 text-xs text-slate-400">
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto mb-2">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <span class="font-bold text-slate-600 block mb-1">Belum ada seksi promo untuk Mobile App</span>
+          <span>Klik tombol <strong>+ Buat Seksi Promo Mobile</strong> di atas untuk membuat seksi pertama.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = sections.map((s, idx) => {
+    const posterUrl = formatGoogleDriveImageUrl(s.poster_image);
+    return `
+      <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition">
+        <td class="py-3 px-3 text-center font-extrabold text-slate-700 text-xs">
+          ${s.sort_order || idx + 1}
+        </td>
+        <td class="py-3 px-3">
+          <div class="w-20 h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs relative cursor-pointer" onclick="openImagePreviewModal('${encodeURIComponent(posterUrl)}', '${encodeURIComponent(s.title)}')">
+            <img src="${posterUrl}" alt="${escapeHtml(s.title)}" class="w-full h-full object-cover">
+            <span class="absolute bottom-1 right-1 px-1 bg-black/60 text-white text-[8px] font-mono rounded">3:4</span>
+          </div>
+        </td>
+        <td class="py-3 px-4">
+          <div class="space-y-0.5">
+            <div class="font-extrabold text-slate-900 text-xs">${escapeHtml(s.title)}</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1">${escapeHtml(s.subtitle || '-')}</div>
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="flex items-center gap-1.5">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm shadow-xs" style="background:${escapeHtml(s.icon_bg || '#0077D6')};">
+              ${escapeHtml(s.icon || '🔥')}
+            </div>
+            <span class="px-2 py-0.5 bg-pink-100 text-[#ff66c4] font-black text-[9px] rounded uppercase">
+              ${escapeHtml(s.badge || 'PROMO')}
+            </span>
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-[#0077d6] font-bold text-[11px] border border-sky-200">
+            <i class="fas fa-tag text-[10px]"></i> ${escapeHtml(s.category_filter || 'all')}
+          </span>
+        </td>
+        <td class="py-3 px-3 text-center font-bold text-slate-700 text-xs">
+          ${s.sort_order || 1}
+        </td>
+        <td class="py-3 px-3 text-center">
+          <button type="button" onclick="toggleMobileSectionActive('${s.id}', ${s.is_active})"
+            class="px-3 py-1 rounded-full text-[11px] font-bold transition inline-flex items-center gap-1.5 ${
+              s.is_active 
+                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+            }">
+            <i class="fas ${s.is_active ? 'fa-check-circle' : 'fa-times-circle'} text-[10px]"></i>
+            <span>${s.is_active ? 'Aktif di HP' : 'Nonaktif'}</span>
+          </button>
+        </td>
+        <td class="py-3 px-4 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openEditMobileSectionModal('${s.id}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-sky-50 hover:text-[#0077d6] text-slate-600 flex items-center justify-center transition" title="Edit Seksi Promo Mobile">
+              <i class="fas fa-edit text-xs"></i>
+            </button>
+            <button onclick="deleteMobileSection('${s.id}', '${escapeHtml(s.title)}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-pink-50 hover:text-pink-600 text-slate-600 flex items-center justify-center transition" title="Hapus Seksi Promo Mobile">
+              <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function openAddMobileSectionModal() {
+  document.getElementById("mobileSectionId").value = "";
+  document.getElementById("mobileSectionExistingImageUrl").value = "";
+  document.getElementById("mobileSectionTitleInput").value = "";
+  document.getElementById("mobileSectionSubtitleInput").value = "Koleksi promo pilihan hemat Shinemart";
+  document.getElementById("mobileSectionBadgeInput").value = "PROMO SPESIAL";
+  document.getElementById("mobileSectionIconInput").value = "🔥";
+  document.getElementById("mobileSectionIconBgInput").value = "#0077D6";
+  document.getElementById("mobileSectionPosterUrlInput").value = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
+  document.getElementById("mobileSectionCategoryFilterInput").value = "sembako";
+  document.getElementById("mobileSectionSortOrderInput").value = (liveMobileSections.length + 1).toString();
+  document.getElementById("mobileSectionIsActiveInput").checked = true;
+  document.getElementById("mobileSectionModalTitle").textContent = "Buat Seksi Promo Mobile Baru";
+  updateMobileSectionLivePreview();
+
+  const modal = document.getElementById("mobileSectionModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function openEditMobileSectionModal(id) {
+  const section = liveMobileSections.find(s => String(s.id) === String(id));
+  if (!section) return;
+
+  document.getElementById("mobileSectionId").value = section.id;
+  document.getElementById("mobileSectionExistingImageUrl").value = section.poster_image || "";
+  document.getElementById("mobileSectionTitleInput").value = section.title || "";
+  document.getElementById("mobileSectionSubtitleInput").value = section.subtitle || "";
+  document.getElementById("mobileSectionBadgeInput").value = section.badge || "PROMO SPESIAL";
+  document.getElementById("mobileSectionIconInput").value = section.icon || "🔥";
+  document.getElementById("mobileSectionIconBgInput").value = section.icon_bg || "#0077D6";
+  document.getElementById("mobileSectionPosterUrlInput").value = section.poster_image || "";
+  document.getElementById("mobileSectionCategoryFilterInput").value = section.category_filter || "sembako";
+  document.getElementById("mobileSectionSortOrderInput").value = (section.sort_order || 1).toString();
+  document.getElementById("mobileSectionIsActiveInput").checked = !!section.is_active;
+  document.getElementById("mobileSectionModalTitle").textContent = "Edit Seksi Promo Mobile";
+  updateMobileSectionLivePreview();
+
+  const modal = document.getElementById("mobileSectionModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeMobileSectionModal() {
+  const modal = document.getElementById("mobileSectionModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function selectMobileSectionEmoji(emoji) {
+  const input = document.getElementById("mobileSectionIconInput");
+  if (input) {
+    input.value = emoji;
+    updateMobileSectionLivePreview();
+  }
+}
+
+function selectMobileSectionColor(color) {
+  const input = document.getElementById("mobileSectionIconBgInput");
+  if (input) {
+    input.value = color;
+    updateMobileSectionLivePreview();
+  }
+}
+
+function updateMobileSectionLivePreview() {
+  const title = document.getElementById("mobileSectionTitleInput")?.value || "Sembako Murah";
+  const sub = document.getElementById("mobileSectionSubtitleInput")?.value || "Koleksi promo pilihan hemat Shinemart";
+  const badge = document.getElementById("mobileSectionBadgeInput")?.value || "PROMO SPESIAL";
+  const icon = document.getElementById("mobileSectionIconInput")?.value || "🔥";
+  const iconBg = document.getElementById("mobileSectionIconBgInput")?.value || "#0077D6";
+  const rawUrl = document.getElementById("mobileSectionPosterUrlInput")?.value || "";
+  const finalUrl = formatGoogleDriveImageUrl(rawUrl);
+
+  const prevTitle = document.getElementById("previewMobileSectionTitle");
+  const prevSub = document.getElementById("previewMobileSectionSub");
+  const prevPosterTitle = document.getElementById("previewMobileSectionPosterTitle");
+  const prevBadge = document.getElementById("previewMobileSectionBadge");
+  const prevEmoji = document.getElementById("previewMobileSectionEmoji");
+  const prevIconBox = document.getElementById("previewMobileSectionIconBox");
+  const prevPosterImg = document.getElementById("previewMobileSectionPosterImg");
+
+  if (prevTitle) prevTitle.textContent = title;
+  if (prevSub) prevSub.textContent = sub;
+  if (prevPosterTitle) prevPosterTitle.textContent = title;
+  if (prevBadge) prevBadge.textContent = badge;
+  if (prevEmoji) prevEmoji.textContent = icon;
+  if (prevIconBox) prevIconBox.style.backgroundColor = iconBg;
+  if (prevPosterImg) prevPosterImg.src = finalUrl;
+}
+
+async function handleMobileSectionFileSelected(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const label = document.getElementById("mobileSectionPosterFileLabel");
+  if (label) label.textContent = "Mengunggah...";
+
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) throw new Error("Supabase belum terkonfigurasi!");
+
+    const ext = file.name.split('.').pop() || 'png';
+    const fileName = `mobile_section_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('banners')
+      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicData } = supabaseClient.storage
+      .from('banners')
+      .getPublicUrl(fileName);
+
+    if (publicData?.publicUrl) {
+      document.getElementById("mobileSectionPosterUrlInput").value = publicData.publicUrl;
+      updateMobileSectionLivePreview();
+      if (label) label.textContent = file.name;
+      showAdminToast("Foto poster mobile berhasil diunggah!", "success");
+    }
+  } catch (err) {
+    console.error("Gagal upload poster mobile:", err);
+    showAdminToast(`Gagal upload poster: ${err.message}`, "error");
+    if (label) label.textContent = "Pilih File Poster";
+  }
+}
+
+async function handleSaveMobileSection(event) {
+  event.preventDefault();
+  const btn = document.getElementById("btnSaveMobileSection");
+  const originalHtml = btn?.innerHTML || "Simpan";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+  }
+
+  const id = document.getElementById("mobileSectionId")?.value.trim();
+  const title = document.getElementById("mobileSectionTitleInput")?.value.trim();
+  const subtitle = document.getElementById("mobileSectionSubtitleInput")?.value.trim();
+  const badge = document.getElementById("mobileSectionBadgeInput")?.value.trim() || "PROMO SPESIAL";
+  const icon = document.getElementById("mobileSectionIconInput")?.value.trim() || "🔥";
+  const iconBg = document.getElementById("mobileSectionIconBgInput")?.value.trim() || "#0077D6";
+  const rawPoster = document.getElementById("mobileSectionPosterUrlInput")?.value.trim();
+  const categoryFilter = document.getElementById("mobileSectionCategoryFilterInput")?.value || "sembako";
+  const sortOrder = parseInt(document.getElementById("mobileSectionSortOrderInput")?.value) || 1;
+  const isActive = document.getElementById("mobileSectionIsActiveInput")?.checked ?? true;
+
+  if (!title || !rawPoster) {
+    showAdminToast("Judul seksi dan foto poster card wajib diisi!", "warning");
+    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+    return;
+  }
+
+  const payload = {
+    title,
+    subtitle,
+    badge,
+    icon,
+    icon_bg: iconBg,
+    poster_image: rawPoster,
+    category_filter: categoryFilter,
+    sort_order: sortOrder,
+    is_active: isActive
+  };
+
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) throw new Error("Supabase client belum siap!");
+
+    let resError = null;
+    if (id) {
+      const { error } = await supabaseClient.from("mobile_promotional_sections").update(payload).eq("id", id);
+      resError = error;
+    } else {
+      const { error } = await supabaseClient.from("mobile_promotional_sections").insert([payload]);
+      resError = error;
+    }
+
+    if (resError) throw resError;
+
+    showAdminToast("Seksi Promo Mobile App berhasil disimpan!", "success");
+    closeMobileSectionModal();
+    loadMobileSectionsList();
+
+  } catch (err) {
+    console.error("Gagal simpan seksi promo mobile:", err);
+    showAdminToast(`Gagal menyimpan seksi promo mobile: ${err.message}`, "error");
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+  }
+}
+
+async function toggleMobileSectionActive(id, currentStatus) {
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) return;
+    const nextStatus = !currentStatus;
+    const { error } = await supabaseClient.from("mobile_promotional_sections").update({ is_active: nextStatus }).eq("id", id);
+    if (error) throw error;
+    showAdminToast(`Status seksi promo mobile diubah menjadi ${nextStatus ? 'Aktif' : 'Nonaktif'}`, "success");
+    loadMobileSectionsList();
+  } catch (err) {
+    console.error("Gagal toggle status seksi promo:", err);
+    showAdminToast(`Gagal update status: ${err.message}`, "error");
+  }
+}
+
+async function deleteMobileSection(id, title) {
+  if (!confirm(`Hapus seksi promo mobile "${title}"?`)) return;
+  try {
+    const supabaseClient = getAdminSupabaseClient();
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from("mobile_promotional_sections").delete().eq("id", id);
+    if (error) throw error;
+    showAdminToast("Seksi promo mobile berhasil dihapus!", "success");
+    loadMobileSectionsList();
+  } catch (err) {
+    console.error("Gagal menghapus seksi promo mobile:", err);
+    showAdminToast(`Gagal menghapus: ${err.message}`, "error");
+  }
+}
+
+// Inisialisasi awal sinkronisasi badge counter saat script dimuat
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    if (typeof loadMobileBannersList === "function") loadMobileBannersList();
+    if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
+  }, 1000);
+});
+
 
 
