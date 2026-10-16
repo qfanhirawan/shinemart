@@ -134,8 +134,14 @@ async function checkAdminAuth() {
       loadStoreOperationalSettings();
       loadSupabaseProductsList();
       loadSupabaseBannersList();
+      if (typeof loadMobileBannersList === "function") {
+        loadMobileBannersList();
+      }
       if (typeof loadSupabaseSectionsList === "function") {
         loadSupabaseSectionsList();
+      }
+      if (typeof loadMobileSectionsList === "function") {
+        loadMobileSectionsList();
       }
     } else {
       if (loginOverlay) loginOverlay.classList.remove("hidden");
@@ -1369,6 +1375,10 @@ function switchAdminTab(tabName) {
       tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4]";
     }
     loadSupabaseBannersList();
+    if (typeof loadMobileBannersList === "function") loadMobileBannersList();
+    if (typeof switchBannerPlatformTab === "function") {
+      switchBannerPlatformTab(currentBannerPlatform || "web");
+    }
   } else if (tabName === "sections") {
     if (sectionsTab) sectionsTab.classList.remove("hidden");
     if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
@@ -1376,6 +1386,10 @@ function switchAdminTab(tabName) {
       tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
     }
     loadSupabaseSectionsList();
+    if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
+    if (typeof switchSectionPlatformTab === "function") {
+      switchSectionPlatformTab(currentSectionPlatform || "web");
+    }
   } else if (tabName === "appSettings") {
     if (appSettingsTab) appSettingsTab.classList.remove("hidden");
     if (tabBtnAppSettings) {
@@ -1463,6 +1477,8 @@ async function loadSupabaseBannersList() {
     const activeCount = liveSupabaseBanners.filter(b => b.is_active).length;
     if (countBadge) countBadge.textContent = `${liveSupabaseBanners.length} banner (${activeCount} aktif)`;
     if (topBadge) topBadge.textContent = activeCount;
+    const pillBadge = document.getElementById("supabaseBannersCountBadge");
+    if (pillBadge) pillBadge.textContent = liveSupabaseBanners.length;
     if (summaryEl) summaryEl.textContent = `${activeCount} dari ${liveSupabaseBanners.length} banner sedang tayang`;
 
   } catch (err) {
@@ -2391,6 +2407,8 @@ async function loadSupabaseSectionsList() {
 
     if (countBadge) countBadge.textContent = `${liveSupabaseSections.length} Seksi`;
     if (topBadge) topBadge.textContent = liveSupabaseSections.length;
+    const pillBadge = document.getElementById("supabaseSectionsCountBadge");
+    if (pillBadge) pillBadge.textContent = liveSupabaseSections.length;
 
     renderSupabaseSectionsTable(liveSupabaseSections);
   } catch (err) {
@@ -3973,16 +3991,22 @@ function switchBannerPlatformTab(platform) {
   currentBannerPlatform = platform;
   const btnWeb = document.getElementById("subTabBtnBannerWeb");
   const btnMobile = document.getElementById("subTabBtnBannerMobile");
+  const badgeWeb = document.getElementById("supabaseBannersCountBadge");
+  const badgeMobile = document.getElementById("mobileBannerCountBadge");
   const webWrapper = document.getElementById("bannerPlatformWebWrapper");
   const mobileWrapper = document.getElementById("bannerPlatformMobileWrapper");
   const btnTopAddBanner = document.getElementById("btnTopAddBanner");
 
-  const activeClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#ff66c4] shadow-sm";
-  const inactiveClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+  const activeBtnClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#ff66c4] shadow-sm";
+  const inactiveBtnClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+  const activeBadgeClass = "bg-pink-50 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full border border-pink-200";
+  const inactiveBadgeClass = "bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full";
 
   if (platform === "mobile") {
-    if (btnWeb) btnWeb.className = inactiveClass;
-    if (btnMobile) btnMobile.className = activeClass;
+    if (btnWeb) btnWeb.className = inactiveBtnClass;
+    if (btnMobile) btnMobile.className = activeBtnClass;
+    if (badgeWeb) badgeWeb.className = inactiveBadgeClass;
+    if (badgeMobile) badgeMobile.className = activeBadgeClass;
     if (webWrapper) webWrapper.classList.add("hidden");
     if (mobileWrapper) mobileWrapper.classList.remove("hidden");
     if (btnTopAddBanner) {
@@ -3991,13 +4015,15 @@ function switchBannerPlatformTab(platform) {
     }
     loadMobileBannersList();
   } else {
-    if (btnWeb) btnWeb.className = activeClass;
-    if (btnMobile) btnMobile.className = inactiveClass;
+    if (btnWeb) btnWeb.className = activeBtnClass;
+    if (btnMobile) btnMobile.className = inactiveBtnClass;
+    if (badgeWeb) badgeWeb.className = activeBadgeClass;
+    if (badgeMobile) badgeMobile.className = inactiveBadgeClass;
     if (webWrapper) webWrapper.classList.remove("hidden");
     if (mobileWrapper) mobileWrapper.classList.add("hidden");
     if (btnTopAddBanner) {
       btnTopAddBanner.onclick = openAddBannerModal;
-      btnTopAddBanner.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Banner Baru</span>';
+      btnTopAddBanner.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Banner Web</span>';
     }
     loadSupabaseBannersList();
   }
@@ -4008,16 +4034,22 @@ function switchSectionPlatformTab(platform) {
   currentSectionPlatform = platform;
   const btnWeb = document.getElementById("subTabBtnSectionWeb");
   const btnMobile = document.getElementById("subTabBtnSectionMobile");
+  const badgeWeb = document.getElementById("supabaseSectionsCountBadge");
+  const badgeMobile = document.getElementById("mobileSectionCountBadge");
   const webWrapper = document.getElementById("sectionPlatformWebWrapper");
   const mobileWrapper = document.getElementById("sectionPlatformMobileWrapper");
   const btnTopAddSection = document.getElementById("btnTopAddSection");
 
-  const activeClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#0077d6] shadow-sm";
-  const inactiveClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+  const activeBtnClass = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#0077d6] shadow-sm";
+  const inactiveBtnClass = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+  const activeBadgeClass = "bg-sky-50 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full border border-sky-200";
+  const inactiveBadgeClass = "bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full";
 
   if (platform === "mobile") {
-    if (btnWeb) btnWeb.className = inactiveClass;
-    if (btnMobile) btnMobile.className = activeClass;
+    if (btnWeb) btnWeb.className = inactiveBtnClass;
+    if (btnMobile) btnMobile.className = activeBtnClass;
+    if (badgeWeb) badgeWeb.className = inactiveBadgeClass;
+    if (badgeMobile) badgeMobile.className = activeBadgeClass;
     if (webWrapper) webWrapper.classList.add("hidden");
     if (mobileWrapper) mobileWrapper.classList.remove("hidden");
     if (btnTopAddSection) {
@@ -4026,13 +4058,15 @@ function switchSectionPlatformTab(platform) {
     }
     loadMobileSectionsList();
   } else {
-    if (btnWeb) btnWeb.className = activeClass;
-    if (btnMobile) btnMobile.className = inactiveClass;
+    if (btnWeb) btnWeb.className = activeBtnClass;
+    if (btnMobile) btnMobile.className = inactiveBtnClass;
+    if (badgeWeb) badgeWeb.className = activeBadgeClass;
+    if (badgeMobile) badgeMobile.className = inactiveBadgeClass;
     if (webWrapper) webWrapper.classList.remove("hidden");
     if (mobileWrapper) mobileWrapper.classList.add("hidden");
     if (btnTopAddSection) {
       btnTopAddSection.onclick = openAddSectionModal;
-      btnTopAddSection.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Seksi Promo</span>';
+      btnTopAddSection.innerHTML = '<i class="fas fa-plus"></i><span>Tambah Seksi Promo Web</span>';
     }
     loadSupabaseSectionsList();
   }
@@ -4145,8 +4179,11 @@ function renderMobileBannersTable(banners) {
           ${b.sort_order || idx + 1}
         </td>
         <td class="py-3 px-3">
-          <div class="w-28 h-16 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs relative cursor-pointer" onclick="openImagePreviewModal('${encodeURIComponent(imgUrl)}', '${encodeURIComponent(b.title)}')">
-            <img src="${imgUrl}" alt="${escapeHtml(b.title)}" class="w-full h-full object-cover">
+          <div class="w-28 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative group">
+            <img src="${imgUrl}" alt="${escapeHtml(b.title)}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <a href="${imgUrl}" target="_blank" class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold" title="Lihat Foto Full">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
             <span class="absolute bottom-1 right-1 px-1 bg-black/60 text-white text-[8px] font-mono rounded">16:9</span>
           </div>
         </td>
@@ -4345,10 +4382,12 @@ async function handleSaveMobileBanner(event) {
     return;
   }
 
+  const formattedImageUrl = formatGoogleDriveImageUrl(rawUrl);
+
   const payload = {
     title,
     badge,
-    image_url: rawUrl,
+    image_url: formattedImageUrl,
     action_type: actionType,
     action_value: actionValue,
     sort_order: sortOrder,
@@ -4373,6 +4412,7 @@ async function handleSaveMobileBanner(event) {
     showAdminToast("Banner Mobile App berhasil disimpan!", "success");
     closeMobileBannerModal();
     loadMobileBannersList();
+    loadSupabaseBannersList();
 
   } catch (err) {
     console.error("Gagal simpan banner mobile:", err);
@@ -4391,6 +4431,7 @@ async function toggleMobileBannerActive(id, currentStatus) {
     if (error) throw error;
     showAdminToast(`Status tayang banner mobile diubah menjadi ${nextStatus ? 'Aktif' : 'Nonaktif'}`, "success");
     loadMobileBannersList();
+    loadSupabaseBannersList();
   } catch (err) {
     console.error("Gagal toggle status:", err);
     showAdminToast(`Gagal update status: ${err.message}`, "error");
@@ -4406,6 +4447,7 @@ async function deleteMobileBanner(id, title) {
     if (error) throw error;
     showAdminToast("Banner mobile berhasil dihapus!", "success");
     loadMobileBannersList();
+    loadSupabaseBannersList();
   } catch (err) {
     console.error("Gagal menghapus banner mobile:", err);
     showAdminToast(`Gagal menghapus: ${err.message}`, "error");
@@ -4514,8 +4556,11 @@ function renderMobileSectionsTable(sections) {
           ${s.sort_order || idx + 1}
         </td>
         <td class="py-3 px-3">
-          <div class="w-20 h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs relative cursor-pointer" onclick="openImagePreviewModal('${encodeURIComponent(posterUrl)}', '${encodeURIComponent(s.title)}')">
-            <img src="${posterUrl}" alt="${escapeHtml(s.title)}" class="w-full h-full object-cover">
+          <div class="w-20 h-28 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative group">
+            <img src="${posterUrl}" alt="${escapeHtml(s.title)}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+            <a href="${posterUrl}" target="_blank" class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold" title="Lihat Foto Poster">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
             <span class="absolute bottom-1 right-1 px-1 bg-black/60 text-white text-[8px] font-mono rounded">3:4</span>
           </div>
         </td>
@@ -4729,13 +4774,15 @@ async function handleSaveMobileSection(event) {
     return;
   }
 
+  const formattedPoster = formatGoogleDriveImageUrl(rawPoster);
+
   const payload = {
     title,
     subtitle,
     badge,
     icon,
     icon_bg: iconBg,
-    poster_image: rawPoster,
+    poster_image: formattedPoster,
     category_filter: categoryFilter,
     sort_order: sortOrder,
     is_active: isActive
@@ -4759,6 +4806,7 @@ async function handleSaveMobileSection(event) {
     showAdminToast("Seksi Promo Mobile App berhasil disimpan!", "success");
     closeMobileSectionModal();
     loadMobileSectionsList();
+    loadSupabaseSectionsList();
 
   } catch (err) {
     console.error("Gagal simpan seksi promo mobile:", err);
@@ -4777,6 +4825,7 @@ async function toggleMobileSectionActive(id, currentStatus) {
     if (error) throw error;
     showAdminToast(`Status seksi promo mobile diubah menjadi ${nextStatus ? 'Aktif' : 'Nonaktif'}`, "success");
     loadMobileSectionsList();
+    loadSupabaseSectionsList();
   } catch (err) {
     console.error("Gagal toggle status seksi promo:", err);
     showAdminToast(`Gagal update status: ${err.message}`, "error");
@@ -4792,6 +4841,7 @@ async function deleteMobileSection(id, title) {
     if (error) throw error;
     showAdminToast("Seksi promo mobile berhasil dihapus!", "success");
     loadMobileSectionsList();
+    loadSupabaseSectionsList();
   } catch (err) {
     console.error("Gagal menghapus seksi promo mobile:", err);
     showAdminToast(`Gagal menghapus: ${err.message}`, "error");
@@ -4799,12 +4849,18 @@ async function deleteMobileSection(id, title) {
 }
 
 // Inisialisasi awal sinkronisasi badge counter saat script dimuat
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    if (typeof loadMobileBannersList === "function") loadMobileBannersList();
-    if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
-  }, 1000);
-});
+function initAllPromoBadges() {
+  if (typeof loadSupabaseBannersList === "function") loadSupabaseBannersList();
+  if (typeof loadMobileBannersList === "function") loadMobileBannersList();
+  if (typeof loadSupabaseSectionsList === "function") loadSupabaseSectionsList();
+  if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(initAllPromoBadges, 600));
+} else {
+  setTimeout(initAllPromoBadges, 600);
+}
 
 
 
