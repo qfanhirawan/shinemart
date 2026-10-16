@@ -515,93 +515,208 @@
     <!-- ================= 2. BANNERS TAB SECTION ================= -->
     <div id="bannersTabSection" class="hidden space-y-6">
 
-      <!-- Header Banner Management Card -->
-      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
-              <i class="fas fa-images"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="text-base md:text-lg font-extrabold text-slate-900">Kelola Banner Promosi Homepage</h2>
-                <span id="supabaseBannersCount" class="bg-pink-50 text-[#ff66c4] text-xs font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
-                  0 banner
-                </span>
-              </div>
-              <p class="text-xs text-slate-400">Atur konten slide promo (judul, badge, deskripsi, tombol, foto, dan urutan) yang tampil di homepage</p>
-            </div>
+      <!-- Platform Navigation Segment (Website vs Mobile App) -->
+      <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-pink-100 text-[#ff66c4] flex items-center justify-center text-lg shrink-0">
+            <i class="fas fa-images"></i>
           </div>
-
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <button onclick="loadSupabaseBannersList()"
-              class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0"
-              title="Refresh Data Banner">
-              <i class="fas fa-sync-alt text-xs"></i>
-              <span class="hidden sm:inline">Refresh</span>
-            </button>
-            <button onclick="openAddBannerModal()"
-              class="px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition shrink-0">
-              <i class="fas fa-plus"></i>
-              <span>Tambah Banner Baru</span>
-            </button>
+          <div>
+            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Kelola Dynamic Banner &amp; Slider</h2>
+            <p class="text-xs text-slate-400">Pilih target platform untuk membedakan banner website dan mobile app</p>
           </div>
         </div>
 
-        <!-- Quick Tips & Setup Info -->
-        <div class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50/70 to-pink-50/70 border border-sky-100 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <i class="fas fa-info-circle text-[#0077d6] text-base shrink-0"></i>
-            <span class="text-slate-600">
-              Banner diurutkan otomatis berdasarkan <strong>Urutan Slide</strong>. Hanya banner dengan status <strong>Aktif</strong> yang akan tayang di homepage pengunjung.
-            </span>
-          </div>
-          <button onclick="openSqlGuideModal()" class="text-[#0077d6] hover:underline font-bold shrink-0">
-            Panduan SQL Tabel &amp; Storage Supabase &rarr;
+        <!-- Segment Control Pill -->
+        <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 self-start sm:self-auto">
+          <button id="subTabBtnBannerWeb" type="button" onclick="switchBannerPlatformTab('web')"
+            class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#ff66c4] shadow-sm">
+            <i class="fas fa-desktop"></i>
+            <span>Website (Desktop)</span>
+            <span id="supabaseBannersCountBadge" class="bg-pink-50 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full border border-pink-200">0</span>
+          </button>
+          <button id="subTabBtnBannerMobile" type="button" onclick="switchBannerPlatformTab('mobile')"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900">
+            <i class="fas fa-mobile-alt"></i>
+            <span>Mobile App (HP)</span>
+            <span id="mobileBannerCountBadge" class="bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
           </button>
         </div>
       </div>
 
-      <!-- Live Banners Table Card -->
-      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
-          <div class="flex items-center gap-2">
-            <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Daftar Banner Slider</h3>
-            <span id="activeBannersSummary" class="text-xs text-slate-500 font-medium"></span>
+      <!-- ================= 2A. BANNER WEBSITE (DESKTOP) WRAPPER ================= -->
+      <div id="bannerPlatformWebWrapper" class="space-y-6">
+        <!-- Header Banner Management Card -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-extrabold text-slate-900">Banner Hero Website</h3>
+                <span id="supabaseBannersCount" class="bg-pink-50 text-[#ff66c4] text-xs font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                  0 banner
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Slider banner rasio lebar (16:9 / Landscape) lengkap dengan judul, deskripsi, dan tombol CTA katalog.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button onclick="loadSupabaseBannersList()"
+                class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0"
+                title="Refresh Data Banner Web">
+                <i class="fas fa-sync-alt text-xs"></i>
+                <span class="hidden sm:inline">Refresh</span>
+              </button>
+              <button onclick="openAddBannerModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition shrink-0">
+                <i class="fas fa-plus"></i>
+                <span>Tambah Banner Web</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Filter & Search Banner -->
-          <div class="flex items-center gap-2">
-            <div class="relative">
-              <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" id="bannerSearchInput" oninput="filterBannersTable()" placeholder="Cari banner..."
-                class="pl-8 pr-3 py-1.5 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#ff66c4] transition">
+          <!-- Quick Tips & Setup Info -->
+          <div class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50/70 to-pink-50/70 border border-sky-100 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <i class="fas fa-info-circle text-[#0077d6] text-base shrink-0"></i>
+              <span class="text-slate-600">
+                Banner Web tayang di beranda katalog online. Urutan slide diatur otomatis oleh angka <strong>Urutan</strong>.
+              </span>
             </div>
+            <button onclick="openSqlGuideModal()" class="text-[#0077d6] hover:underline font-bold shrink-0">
+              Panduan SQL Supabase &rarr;
+            </button>
           </div>
         </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto rounded-2xl border border-slate-200">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
-                <th class="py-3 px-3 text-center w-16">Urutan</th>
-                <th class="py-3 px-3 w-32">Foto Slide</th>
-                <th class="py-3 px-3">Badge &amp; Judul Promo</th>
-                <th class="py-3 px-3">Tombol Aksi (CTA)</th>
-                <th class="py-3 px-3 text-center w-32">Status Tayang</th>
-                <th class="py-3 px-3 text-center w-28">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="supabaseBannersTableBody">
-              <tr>
-                <td colspan="6" class="text-center py-8 text-xs text-slate-400">
-                  <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar banner dari database Supabase...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Live Banners Table Card -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Daftar Slider Website</h3>
+              <span id="activeBannersSummary" class="text-xs text-slate-500 font-medium"></span>
+            </div>
+
+            <!-- Filter & Search Banner -->
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="bannerSearchInput" oninput="filterBannersTable()" placeholder="Cari banner web..."
+                  class="pl-8 pr-3 py-1.5 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#ff66c4] transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- Table Web Banners -->
+          <div class="overflow-x-auto rounded-2xl border border-slate-200">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
+                  <th class="py-3 px-3 text-center w-16">Urutan</th>
+                  <th class="py-3 px-3 w-32">Foto Slide</th>
+                  <th class="py-3 px-3">Badge &amp; Judul Promo</th>
+                  <th class="py-3 px-3">Tombol Aksi (CTA)</th>
+                  <th class="py-3 px-3 text-center w-32">Status Tayang</th>
+                  <th class="py-3 px-3 text-center w-28">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="supabaseBannersTableBody">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+                    <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar banner dari database Supabase...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 2B. BANNER MOBILE APP WRAPPER ================= -->
+      <div id="bannerPlatformMobileWrapper" class="hidden space-y-6">
+        <!-- Header Mobile Banner Management Card -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-extrabold text-slate-900">Dynamic Banner Mobile App</h3>
+                <span id="mobileBannersCountText" class="bg-pink-50 text-[#ff66c4] text-xs font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                  0 banner
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Banner carousel di halaman depan aplikasi HP pelanggan (mendukung tap langsung ke kategori produk atau klaim kupon).</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button onclick="loadMobileBannersList()"
+                class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0"
+                title="Refresh Banner Mobile">
+                <i class="fas fa-sync-alt text-xs"></i>
+                <span class="hidden sm:inline">Refresh</span>
+              </button>
+              <button onclick="openAddMobileBannerModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition shrink-0">
+                <i class="fas fa-plus"></i>
+                <span>Tambah Banner Mobile</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Tips Mobile Banner -->
+          <div class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-50/70 to-pink-50/70 border border-emerald-100 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <i class="fas fa-mobile-alt text-emerald-600 text-base shrink-0"></i>
+              <span class="text-slate-600">
+                Data disimpan di tabel <code class="bg-white px-1.5 py-0.5 rounded font-mono font-bold text-slate-800 border">public.mobile_banners</code>. Perubahan otomatis tersinkron realtime ke HP pelanggan.
+              </span>
+            </div>
+            <button onclick="openSqlGuideModal('mobile')" class="text-emerald-700 hover:underline font-bold shrink-0">
+              Lihat SQL mobile_banners &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Mobile Banners Table Card -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Daftar Banner HP (Mobile)</h3>
+              <span id="activeMobileBannersSummary" class="text-xs text-slate-500 font-medium"></span>
+            </div>
+
+            <!-- Filter & Search Mobile Banner -->
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="mobileBannerSearchInput" oninput="filterMobileBannersTable()" placeholder="Cari banner mobile..."
+                  class="pl-8 pr-3 py-1.5 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#ff66c4] transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- Table Mobile Banners -->
+          <div class="overflow-x-auto rounded-2xl border border-slate-200">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
+                  <th class="py-3 px-3 text-center w-16">Urutan</th>
+                  <th class="py-3 px-3 w-32">Visual Banner</th>
+                  <th class="py-3 px-3">Badge &amp; Judul Promo Mobile</th>
+                  <th class="py-3 px-3">Tindakan Saat Di-tap</th>
+                  <th class="py-3 px-3 text-center w-32">Status Tayang</th>
+                  <th class="py-3 px-3 text-center w-28">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="mobileBannersTableBody">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+                    <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar banner mobile dari Supabase...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -611,60 +726,149 @@
     <!-- ================= 3. SECTIONS TAB SECTION (DYNAMIC PROMO CAROUSEL MANAGER) ================= -->
     <div id="sectionsTabSection" class="hidden space-y-6">
 
-      <!-- Header & Tombol Tambah -->
-      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center gap-3.5">
-          <div class="w-12 h-12 rounded-2xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-2xl shadow-sm shrink-0">
+      <!-- Platform Navigation Segment (Website vs Mobile App) -->
+      <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-sky-100 text-[#0077d6] flex items-center justify-center text-lg shrink-0">
             <i class="fas fa-layer-group"></i>
           </div>
           <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">Katalog Seksi Promo Shinemart</h2>
-              <span id="supabaseSectionsCount" class="bg-sky-100 text-[#0077d6] font-extrabold text-[11px] px-2.5 py-0.5 rounded-full">
-                0 Seksi
-              </span>
-            </div>
-            <p class="text-xs text-slate-500 mt-0.5">Kelola seksi promosi di beranda: Banner tema di sebelah kiri + deretan produk slider di sebelah kanan.</p>
+            <h2 class="text-base md:text-lg font-extrabold text-slate-900">Kelola Seksi Promo Beranda</h2>
+            <p class="text-xs text-slate-400">Atur seksi koleksi promo produk untuk website dan aplikasi mobile</p>
           </div>
         </div>
 
-        <button onclick="openAddSectionModal()"
-          class="px-5 py-3 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-2xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-400/25 transition">
-          <i class="fas fa-plus"></i>
-          <span>Buat Seksi Promo Baru</span>
-        </button>
-      </div>
-
-      <!-- Tabel Daftar Seksi Promo -->
-      <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm">Daftar Seksi Promo di Beranda</h3>
-          <button onclick="loadSupabaseSectionsList()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition self-start sm:self-auto">
-            <i class="fas fa-rotate"></i> Refresh
+        <!-- Segment Control Pill -->
+        <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 self-start sm:self-auto">
+          <button id="subTabBtnSectionWeb" type="button" onclick="switchSectionPlatformTab('web')"
+            class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-[#0077d6] shadow-sm">
+            <i class="fas fa-desktop"></i>
+            <span>Website (Katalog)</span>
+            <span id="supabaseSectionsCountBadge" class="bg-sky-50 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full border border-sky-200">0</span>
+          </button>
+          <button id="subTabBtnSectionMobile" type="button" onclick="switchSectionPlatformTab('mobile')"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900">
+            <i class="fas fa-mobile-alt"></i>
+            <span>Mobile App (HP)</span>
+            <span id="mobileSectionCountBadge" class="bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
           </button>
         </div>
+      </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
-                <th class="py-3 px-3 text-center w-12">No</th>
-                <th class="py-3 px-3 w-28">Banner Kiri</th>
-                <th class="py-3 px-4">Judul & Info Seksi</th>
-                <th class="py-3 px-4">Produk Pilihan</th>
-                <th class="py-3 px-3 text-center w-20">Urutan</th>
-                <th class="py-3 px-3 text-center w-24">Status</th>
-                <th class="py-3 px-4 text-center w-36">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="supabaseSectionsTableBody">
-              <tr>
-                <td colspan="7" class="text-center py-8 text-xs text-slate-400">
-                  <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat seksi promo dari Supabase...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- ================= 3A. SEKSI PROMO WEBSITE WRAPPER ================= -->
+      <div id="sectionPlatformWebWrapper" class="space-y-6">
+        <!-- Header & Tombol Tambah Web -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Katalog Seksi Promo Website</h3>
+                <span id="supabaseSectionsCount" class="bg-sky-100 text-[#0077d6] font-extrabold text-[11px] px-2.5 py-0.5 rounded-full">
+                  0 Seksi
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Seksi promo website: Banner tegak rasio ~3:4 di sebelah kiri + slider produk pilihan per item di kanan.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button onclick="loadSupabaseSectionsList()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0">
+              <i class="fas fa-rotate"></i> Refresh
+            </button>
+            <button onclick="openAddSectionModal()"
+              class="px-5 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition shrink-0">
+              <i class="fas fa-plus"></i>
+              <span>Buat Seksi Promo Web</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabel Daftar Seksi Promo Website -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm">Daftar Seksi Promo Website</h3>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  <th class="py-3 px-3 text-center w-12">No</th>
+                  <th class="py-3 px-3 w-28">Banner Kiri</th>
+                  <th class="py-3 px-4">Judul &amp; Info Seksi</th>
+                  <th class="py-3 px-4">Produk Pilihan</th>
+                  <th class="py-3 px-3 text-center w-20">Urutan</th>
+                  <th class="py-3 px-3 text-center w-24">Status</th>
+                  <th class="py-3 px-4 text-center w-36">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="supabaseSectionsTableBody">
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-xs text-slate-400">
+                    <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat seksi promo dari Supabase...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 3B. SEKSI PROMO MOBILE APP WRAPPER ================= -->
+      <div id="sectionPlatformMobileWrapper" class="hidden space-y-6">
+        <!-- Header & Tombol Tambah Mobile -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Dynamic Promo Section Mobile App</h3>
+              <span id="mobileSectionsCountText" class="bg-sky-100 text-[#0077d6] font-extrabold text-[11px] px-2.5 py-0.5 rounded-full">
+                0 Seksi
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Seksi promo di layar HP: Icon emoji, badge, poster card di sisi kiri, dan carousel produk otomatis berdasarkan kategori.</p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button onclick="loadMobileSectionsList()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200 shrink-0">
+              <i class="fas fa-rotate"></i> Refresh
+            </button>
+            <button onclick="openAddMobileSectionModal()"
+              class="px-5 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition shrink-0">
+              <i class="fas fa-plus"></i>
+              <span>Buat Seksi Promo Mobile</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabel Daftar Seksi Promo Mobile -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm">Daftar Seksi Promo Mobile App</h3>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  <th class="py-3 px-3 text-center w-12">No</th>
+                  <th class="py-3 px-3 w-24">Poster Card</th>
+                  <th class="py-3 px-4">Judul &amp; Subtitle Mobile</th>
+                  <th class="py-3 px-3">Icon &amp; Badge</th>
+                  <th class="py-3 px-3">Filter Kategori</th>
+                  <th class="py-3 px-3 text-center w-20">Urutan</th>
+                  <th class="py-3 px-3 text-center w-24">Status</th>
+                  <th class="py-3 px-4 text-center w-36">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="mobileSectionsTableBody">
+                <tr>
+                  <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+                    <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat seksi promo mobile dari Supabase...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -774,22 +978,49 @@
 
       </div>
 
-      <!-- Panduan Singkat Banner Mobile -->
-      <div class="bg-gradient-to-r from-sky-50 to-pink-50 p-6 rounded-3xl border border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl text-[#ff66c4]">
-            <i class="fas fa-images"></i>
+      <!-- Pengelolaan Promosi Khusus Mobile App -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Card Kelola Banner Mobile -->
+        <div class="bg-gradient-to-r from-pink-50 to-rose-50 p-6 rounded-3xl border border-pink-200 flex flex-col justify-between gap-4">
+          <div class="flex items-start gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl text-[#ff66c4] shrink-0">
+              <i class="fas fa-images"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-extrabold text-slate-800 text-sm">Dynamic Banner Mobile App</h3>
+                <span id="appSettingsMobileBannerCount" class="bg-pink-100 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full">0 banner</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Kelola slide banner interaktif di aplikasi HP pelanggan. Terhubung ke tabel <code>mobile_banners</code>.</p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-extrabold text-slate-800 text-sm">Kelola Banner Slider Mobile App</h3>
-            <p class="text-xs text-slate-500">Banner promosi di halaman Home Mobile App otomatis sinkron dengan menu Banner Hero.</p>
-          </div>
+          <button onclick="switchAdminTab('banners'); switchBannerPlatformTab('mobile');"
+            class="px-4 py-2.5 bg-white hover:bg-pink-100 text-[#ff66c4] font-extrabold rounded-xl text-xs border border-pink-200 shadow-sm transition self-start flex items-center gap-2">
+            <span>Buka Banner Mobile</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
         </div>
-        <button onclick="switchAdminTab('banners')"
-          class="px-4 py-2.5 bg-white text-[#ff66c4] font-extrabold rounded-xl text-xs border border-pink-200 hover:bg-pink-50 shadow-sm transition shrink-0 flex items-center gap-2">
-          <span>Buka Tab Banner Hero</span>
-          <i class="fas fa-arrow-right"></i>
-        </button>
+
+        <!-- Card Kelola Seksi Promo Mobile -->
+        <div class="bg-gradient-to-r from-sky-50 to-indigo-50 p-6 rounded-3xl border border-sky-200 flex flex-col justify-between gap-4">
+          <div class="flex items-start gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl text-[#0077d6] shrink-0">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-extrabold text-slate-800 text-sm">Seksi Promo Mobile App</h3>
+                <span id="appSettingsMobileSectionCount" class="bg-sky-100 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full">0 seksi</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Kelola seksi promo bertema kartu poster di sebelah kiri dan produk per kategori di HP.</p>
+            </div>
+          </div>
+          <button onclick="switchAdminTab('sections'); switchSectionPlatformTab('mobile');"
+            class="px-4 py-2.5 bg-white hover:bg-sky-100 text-[#0077d6] font-extrabold rounded-xl text-xs border border-sky-200 shadow-sm transition self-start flex items-center gap-2">
+            <span>Buka Seksi Promo Mobile</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -1155,9 +1386,130 @@
     </div>
   </div>
 
+  <!-- ================= MODAL TAMBAH & EDIT DYNAMIC BANNER MOBILE APP ================= -->
+  <div id="mobileBannerModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-sm">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <div>
+            <h3 id="mobileBannerModalTitle" class="font-extrabold text-sm md:text-base leading-none">Tambah Banner Mobile Baru</h3>
+            <span class="text-[11px] text-pink-200">Slider promosi di halaman utama Mobile App</span>
+          </div>
+        </div>
+        <button onclick="closeMobileBannerModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <form id="mobileBannerForm" onsubmit="handleSaveMobileBanner(event)" class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="mobileBannerId">
+        <input type="hidden" id="mobileBannerExistingImageUrl">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Judul Promo Mobile <span class="text-pink-500">*</span></label>
+          <input type="text" id="mobileBannerTitleInput" required placeholder="Contoh: Diskon Sembako & Kebutuhan Pokok Dapur"
+            oninput="updateMobileBannerLivePreview()"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Teks Badge Banner Mobile</label>
+          <input type="text" id="mobileBannerBadgeInput" placeholder="⚡ FLASH SALE • DISKON 40%"
+            oninput="updateMobileBannerLivePreview()"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+        </div>
+
+        <!-- Foto Banner Mobile -->
+        <div class="space-y-2">
+          <label class="font-bold text-slate-700 block">Foto Banner Mobile <span class="text-pink-500">*</span></label>
+          
+          <div class="flex items-center gap-2">
+            <label for="mobileBannerImageFileInput"
+              class="px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#ff66c4] border border-pink-200 rounded-xl font-bold cursor-pointer transition flex items-center gap-1.5 shrink-0">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <span id="mobileBannerImageFileLabel" class="truncate max-w-[150px]">Pilih File Foto</span>
+            </label>
+            <input type="file" id="mobileBannerImageFileInput" accept="image/*" class="hidden" onchange="handleMobileBannerFileSelected(this)">
+            
+            <input type="text" id="mobileBannerImageUrlInput" placeholder="Atau tempel URL gambar (https://...)"
+              oninput="updateMobileBannerLivePreview()"
+              class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition font-mono text-[11px]">
+          </div>
+          <p class="text-[10px] text-slate-400">Rekomendasi rasio gambar mobile banner: 16:9 atau 2:1 (Landscape halus).</p>
+        </div>
+
+        <!-- Tindakan Tap Banner di HP -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Aksi Saat Di-tap di HP</label>
+            <select id="mobileBannerActionTypeInput" onchange="handleMobileBannerActionTypeChange()"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] transition">
+              <option value="category">Buka Kategori Produk</option>
+              <option value="voucher">Klaim Kupon Diskon</option>
+            </select>
+          </div>
+
+          <div>
+            <label id="mobileBannerActionValueLabel" class="block font-bold text-slate-700 mb-1">Pilih Kategori Produk</label>
+            <input type="text" id="mobileBannerActionValueInput" placeholder="Contoh: sembako"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Urutan Slide Mobile</label>
+            <input type="number" id="mobileBannerSortOrderInput" min="1" step="1" value="1" required
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#ff66c4] focus:bg-white transition">
+          </div>
+
+          <div class="pt-4 flex items-center gap-2">
+            <input type="checkbox" id="mobileBannerIsActiveInput" checked class="w-4 h-4 text-[#ff66c4] rounded focus:ring-pink-400 cursor-pointer">
+            <label for="mobileBannerIsActiveInput" class="font-bold text-slate-700 cursor-pointer select-none">
+              Tayang di Mobile App
+            </label>
+          </div>
+        </div>
+
+        <!-- Live Preview Card Mobile -->
+        <div class="p-3 bg-slate-900 rounded-2xl text-white space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-400">
+            <span>Pratinjau Banner di HP:</span>
+            <span class="text-pink-400 font-bold"><i class="fas fa-mobile-alt mr-1"></i> Preview Mobile</span>
+          </div>
+
+          <div class="relative rounded-xl overflow-hidden aspect-[16/9] bg-slate-800 border border-slate-700">
+            <img id="previewMobileBannerImg" src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80" alt="Preview" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-3 flex flex-col justify-end">
+              <span id="previewMobileBannerBadge" class="self-start px-2 py-0.5 bg-[#0077d6] text-white text-[9px] font-black rounded-md mb-1 uppercase tracking-wide">⚡ FLASH SALE • DISKON 40%</span>
+              <h4 id="previewMobileBannerTitle" class="text-xs sm:text-sm font-extrabold text-white leading-tight drop-shadow">Diskon Sembako & Kebutuhan Pokok Dapur</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeMobileBannerModal()"
+            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+            Batal
+          </button>
+          <button type="submit" id="btnSaveMobileBanner"
+            class="px-5 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl transition shadow-md shadow-pink-400/20 flex items-center gap-1.5">
+            <i class="fas fa-save"></i> <span>Simpan Banner Mobile</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= MODAL PANDUAN SQL SUPABASE ================= -->
   <div id="sqlGuideModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+    <div class="modal-content bg-white w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
       <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0077d6] to-[#38b6ff] flex items-center justify-center text-white text-sm">
@@ -1165,7 +1517,7 @@
           </div>
           <div>
             <h3 class="font-extrabold text-sm md:text-base leading-none">Script SQL Setup Supabase</h3>
-            <span class="text-[11px] text-sky-200">Tabel Banners &amp; Bucket Storage</span>
+            <span class="text-[11px] text-sky-200">Pilih script sesuai kebutuhan migrasi tabel &amp; storage</span>
           </div>
         </div>
         <button onclick="closeSqlGuideModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
@@ -1173,9 +1525,33 @@
         </button>
       </div>
 
-      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
-        <p class="text-slate-600">
-          Jika tabel <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">banners</code> atau bucket storage belum dibuat di Supabase, silakan copy script SQL di bawah ini dan jalankan pada menu <strong>SQL Editor</strong> di dashboard Supabase Anda:
+      <!-- Tab Pemilih Script SQL -->
+      <div class="flex items-center gap-2 p-3 bg-slate-100 border-b border-slate-200 overflow-x-auto">
+        <button id="sqlTabBtnMobile" type="button" onclick="switchSqlScriptTab('mobile')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-white text-[#0077d6] shadow-sm whitespace-nowrap">
+          <i class="fas fa-mobile-alt text-emerald-600"></i>
+          <span>1. mobile_promos.sql (Khusus Mobile)</span>
+        </button>
+        <button id="sqlTabBtnBanners" type="button" onclick="switchSqlScriptTab('banners')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+          <i class="fas fa-desktop text-pink-500"></i>
+          <span>2. banners.sql (Web Slider)</span>
+        </button>
+        <button id="sqlTabBtnSections" type="button" onclick="switchSqlScriptTab('sections')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+          <i class="fas fa-layer-group text-sky-500"></i>
+          <span>3. promotional_sections.sql (Web Promo)</span>
+        </button>
+        <button id="sqlTabBtnSettings" type="button" onclick="switchSqlScriptTab('settings')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+          <i class="fas fa-store text-amber-500"></i>
+          <span>4. mobile_settings.sql</span>
+        </button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-3 text-xs">
+        <p id="sqlScriptDescription" class="text-slate-600 font-medium">
+          Salin script SQL di bawah ini dan jalankan pada menu <strong>SQL Editor</strong> di dashboard Supabase Anda:
         </p>
         <div class="relative">
           <pre id="sqlScriptContent" class="bg-slate-900 text-slate-100 p-4 rounded-2xl overflow-x-auto text-[11px] font-mono leading-relaxed max-h-72"></pre>
@@ -1183,9 +1559,9 @@
             <i class="fas fa-copy"></i> Salin SQL
           </button>
         </div>
-        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] space-y-1">
-          <div class="font-bold flex items-center gap-1"><i class="fas fa-lightbulb"></i> Tips:</div>
-          <div>Script ini otomatis membuat tabel <code>banners</code>, konfigurasi bucket storage <code>banners</code> (public), security policy (RLS), serta 3 data banner awal!</div>
+        <div id="sqlScriptTipBox" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[11px] space-y-1">
+          <div class="font-bold flex items-center gap-1"><i class="fas fa-check-circle"></i> Catatan:</div>
+          <div id="sqlScriptTipText">Script ini otomatis membuat tabel <code>mobile_banners</code> dan <code>mobile_promotional_sections</code> beserta RLS dan seed data default!</div>
         </div>
       </div>
 
@@ -1425,6 +1801,186 @@
           <button type="submit" id="btnSaveSection"
             class="px-5 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl transition shadow-md shadow-sky-400/20 flex items-center gap-1.5">
             <i class="fas fa-save"></i> <span>Simpan Seksi Promo</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL TAMBAH & EDIT SEKSI PROMO MOBILE APP ================= -->
+  <div id="mobileSectionModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-sky-600 via-[#0077d6] to-blue-700 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-sm">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div>
+            <h3 id="mobileSectionModalTitle" class="font-extrabold text-sm md:text-base leading-none">Buat Seksi Promo Mobile Baru</h3>
+            <span class="text-[11px] text-sky-200">Seksi promo carousel dengan poster kiri di Mobile App</span>
+          </div>
+        </div>
+        <button onclick="closeMobileSectionModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <form id="mobileSectionForm" onsubmit="handleSaveMobileSection(event)" class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="mobileSectionId">
+        <input type="hidden" id="mobileSectionExistingImageUrl">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Judul Seksi Mobile <span class="text-pink-500">*</span></label>
+            <input type="text" id="mobileSectionTitleInput" required placeholder="Contoh: Sembako Murah"
+              oninput="updateMobileSectionLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Subtitle / Keterangan Singkat</label>
+            <input type="text" id="mobileSectionSubtitleInput" placeholder="Contoh: Koleksi promo pilihan hemat Shinemart"
+              oninput="updateMobileSectionLivePreview()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
+          </div>
+        </div>
+
+        <!-- Icon Emoji & Warna Background Icon -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Icon Emoji Seksi</label>
+            <div class="flex items-center gap-2">
+              <input type="text" id="mobileSectionIconInput" value="🔥"
+                oninput="updateMobileSectionLivePreview()"
+                class="w-16 px-3 py-2 text-center text-lg bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-[#38b6ff] transition">
+              <div class="flex items-center gap-1 flex-wrap">
+                <button type="button" onclick="selectMobileSectionEmoji('🔥')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">🔥</button>
+                <button type="button" onclick="selectMobileSectionEmoji('🧊')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">🧊</button>
+                <button type="button" onclick="selectMobileSectionEmoji('🥤')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">🥤</button>
+                <button type="button" onclick="selectMobileSectionEmoji('🥩')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">🥩</button>
+                <button type="button" onclick="selectMobileSectionEmoji('⚡')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">⚡</button>
+                <button type="button" onclick="selectMobileSectionEmoji('🍪')" class="w-7 h-7 bg-white hover:bg-slate-100 rounded-lg border text-sm flex items-center justify-center">🍪</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Warna Background Icon</label>
+            <div class="flex items-center gap-2">
+              <input type="color" id="mobileSectionIconBgInput" value="#0077D6"
+                oninput="updateMobileSectionLivePreview()"
+                class="w-10 h-10 p-0.5 rounded-xl border border-slate-200 cursor-pointer bg-white">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="selectMobileSectionColor('#0077D6')" class="w-6 h-6 rounded-full border border-slate-300" style="background:#0077D6;" title="Biru Shinemart"></button>
+                <button type="button" onclick="selectMobileSectionColor('#38B6FF')" class="w-6 h-6 rounded-full border border-slate-300" style="background:#38B6FF;" title="Toska"></button>
+                <button type="button" onclick="selectMobileSectionColor('#FF66C4')" class="w-6 h-6 rounded-full border border-slate-300" style="background:#FF66C4;" title="Pink"></button>
+                <button type="button" onclick="selectMobileSectionColor('#10B981')" class="w-6 h-6 rounded-full border border-slate-300" style="background:#10B981;" title="Hijau"></button>
+                <button type="button" onclick="selectMobileSectionColor('#F59E0B')" class="w-6 h-6 rounded-full border border-slate-300" style="background:#F59E0B;" title="Oranye"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Badge Teks Poster Kiri</label>
+          <input type="text" id="mobileSectionBadgeInput" placeholder="PROMO SPESIAL" value="PROMO SPESIAL"
+            oninput="updateMobileSectionLivePreview()"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
+        </div>
+
+        <!-- Poster Card Gambar Kiri -->
+        <div class="space-y-2">
+          <label class="font-bold text-slate-700 block">Foto Poster Card Kiri <span class="text-pink-500">*</span></label>
+          
+          <div class="flex items-center gap-2">
+            <label for="mobileSectionPosterFileInput"
+              class="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077d6] border border-sky-200 rounded-xl font-bold cursor-pointer transition flex items-center gap-1.5 shrink-0">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <span id="mobileSectionPosterFileLabel" class="truncate max-w-[150px]">Pilih File Poster</span>
+            </label>
+            <input type="file" id="mobileSectionPosterFileInput" accept="image/*" class="hidden" onchange="handleMobileSectionFileSelected(this)">
+            
+            <input type="text" id="mobileSectionPosterUrlInput" placeholder="Atau tempel URL gambar poster (https://...)"
+              oninput="updateMobileSectionLivePreview()"
+              class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition font-mono text-[11px]">
+          </div>
+          <p class="text-[10px] text-slate-400">Rekomendasi rasio poster tegak: 3:4 atau 1:1. Tampil di sebelah kiri carousel produk di HP.</p>
+        </div>
+
+        <!-- Filter Kategori Produk Otomatis -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Filter Kategori Produk <span class="text-pink-500">*</span></label>
+          <select id="mobileSectionCategoryFilterInput"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+            <option value="sembako">Sembako</option>
+            <option value="bumbu">Bumbu Dapur</option>
+            <option value="instan">Mi &amp; Makanan Instan</option>
+            <option value="minuman">Minuman Segar</option>
+            <option value="frozen">Frozen Food &amp; Daging Olahan</option>
+            <option value="cemilan">Snack &amp; Biskuit</option>
+            <option value="kebersihan">Perawatan &amp; Kebersihan</option>
+            <option value="all">Semua Kategori (Promo Umum)</option>
+          </select>
+          <p class="text-[10px] text-slate-400 mt-1">Produk dari kategori ini akan otomatis ditarik dan tampil di sebelah kanan poster pada Mobile App pelanggan!</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Urutan Seksi di Mobile</label>
+            <input type="number" id="mobileSectionSortOrderInput" min="1" step="1" value="1" required
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
+          </div>
+
+          <div class="pt-4 flex items-center gap-2">
+            <input type="checkbox" id="mobileSectionIsActiveInput" checked class="w-4 h-4 text-[#0077d6] rounded focus:ring-sky-400 cursor-pointer">
+            <label for="mobileSectionIsActiveInput" class="font-bold text-slate-700 cursor-pointer select-none">
+              Tayang di Mobile App
+            </label>
+          </div>
+        </div>
+
+        <!-- Live Preview Mockup Card Mobile Promo -->
+        <div class="p-3.5 bg-slate-100 rounded-2xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold">
+            <span>Pratinjau Seksi Promo di Mobile App:</span>
+            <span class="text-[#0077d6]"><i class="fas fa-mobile-alt mr-1"></i> Preview HP</span>
+          </div>
+
+          <!-- Header Row Mobile -->
+          <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">
+            <div class="flex items-center gap-2">
+              <div id="previewMobileSectionIconBox" class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-xs" style="background:#0077D6;">
+                <span id="previewMobileSectionEmoji">🔥</span>
+              </div>
+              <div>
+                <h4 id="previewMobileSectionTitle" class="font-extrabold text-slate-800 text-xs leading-none">Sembako Murah</h4>
+                <p id="previewMobileSectionSub" class="text-[10px] text-slate-400 mt-0.5">Koleksi promo pilihan hemat Shinemart</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 bg-sky-50 text-[#0077d6] text-[10px] font-black rounded-full border border-sky-200">Lihat Semua &rarr;</span>
+          </div>
+
+          <!-- Poster Card Preview -->
+          <div class="relative w-36 h-48 rounded-2xl overflow-hidden bg-slate-800 shadow-sm border border-slate-200">
+            <img id="previewMobileSectionPosterImg" src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80" alt="Poster" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-2.5 flex flex-col justify-end">
+              <span id="previewMobileSectionBadge" class="self-start px-2 py-0.5 bg-pink-500 text-white text-[8px] font-black rounded uppercase tracking-wider mb-1">PROMO SPESIAL</span>
+              <h5 id="previewMobileSectionPosterTitle" class="text-[11px] font-extrabold text-white leading-tight">Sembako Murah</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeMobileSectionModal()"
+            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+            Batal
+          </button>
+          <button type="submit" id="btnSaveMobileSection"
+            class="px-5 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl transition shadow-md shadow-sky-400/20 flex items-center gap-1.5">
+            <i class="fas fa-save"></i> <span>Simpan Seksi Promo Mobile</span>
           </button>
         </div>
       </form>
