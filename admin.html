@@ -2161,7 +2161,7 @@
   </div>
 
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=4.5-live-orders"></script>
+  <script src="js/admin.js?v=4.6-mobile-platform-fix"></script>
   <script src="js/admin-orders.js"></script>
 
   <!-- Inline Tab Switcher Fallback (Anti-Cache) -->
@@ -2209,11 +2209,19 @@
         if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
         if (tabBtnBanners) tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4] whitespace-nowrap shrink-0";
         if (typeof loadSupabaseBannersList === "function") loadSupabaseBannersList();
+        if (typeof loadMobileBannersList === "function") loadMobileBannersList();
+        if (typeof switchBannerPlatformTab === "function") {
+          switchBannerPlatformTab(window.currentBannerPlatform || "web");
+        }
       } else if (tabName === "sections") {
         if (sectionsTab) sectionsTab.classList.remove("hidden");
         if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
         if (tabBtnSections) tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] whitespace-nowrap shrink-0";
         if (typeof loadSupabaseSectionsList === "function") loadSupabaseSectionsList();
+        if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
+        if (typeof switchSectionPlatformTab === "function") {
+          switchSectionPlatformTab(window.currentSectionPlatform || "web");
+        }
       } else if (tabName === "appSettings") {
         if (appSettingsTab) appSettingsTab.classList.remove("hidden");
         if (tabBtnAppSettings) tabBtnAppSettings.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-emerald-600 whitespace-nowrap shrink-0";
