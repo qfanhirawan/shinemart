@@ -14,6 +14,19 @@ const DEFAULT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbz_sample_s
 const LOCAL_STORAGE_KEY = "shinemart_products_data";
 
 /**
+ * Utility helper untuk mengamankan string dari XSS saat diinjeksi ke innerHTML
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Otomatis mengonversi URL Google Drive standar / share link
  * menjadi Direct Image URL agar dapat dirender oleh tag <img> di browser.
  */
