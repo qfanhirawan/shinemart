@@ -947,6 +947,11 @@ function handlePromoTypeChange() {
     if (valWrapper) valWrapper.classList.add("hidden");
     if (summaryBox) summaryBox.classList.add("hidden");
     if (b1g1Notice) b1g1Notice.classList.add("hidden");
+    if (valInput) {
+      valInput.min = "0";
+      valInput.step = "any";
+      valInput.removeAttribute("max");
+    }
     return;
   }
 
@@ -958,6 +963,7 @@ function handlePromoTypeChange() {
     if (valUnit) valUnit.textContent = "%";
     if (valInput) {
       valInput.placeholder = "20";
+      valInput.min = "1";
       valInput.max = "99";
       valInput.step = "1";
     }
@@ -969,12 +975,18 @@ function handlePromoTypeChange() {
     if (valInput) {
       valInput.placeholder = "5000";
       valInput.removeAttribute("max");
-      valInput.step = "100";
+      valInput.min = "0";
+      valInput.step = "any";
     }
     if (b1g1Notice) b1g1Notice.classList.add("hidden");
   } else if (type === "b1g1") {
     if (valWrapper) valWrapper.classList.add("hidden");
     if (b1g1Notice) b1g1Notice.classList.remove("hidden");
+    if (valInput) {
+      valInput.min = "0";
+      valInput.step = "any";
+      valInput.removeAttribute("max");
+    }
   }
 
   updatePromoCalculationPreview();
@@ -3807,12 +3819,17 @@ async function updateOrderStatusFromModal(newStatus) {
 
   const orderId = selectedOrderForModal.id;
   try {
-    const { error } = await client
+    const { data, error } = await client
       .from("orders")
       .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .select();
 
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error("Gagal mengupdate di Supabase: 0 baris terpengaruh (cek RLS UPDATE policy).");
+    }
 
     showAdminToast(`Status pesanan berhasil diubah menjadi: ${newStatus}`, "success");
 
