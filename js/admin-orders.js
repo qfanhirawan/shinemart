@@ -205,6 +205,9 @@ function initAdminOrdersRealtime() {
             }, 1500);
           }
 
+          const isPaid = (payload.new && (payload.new.status === 'PAID' || payload.new.status === 'SETTLEMENT'));
+          const wasNotPaid = (!payload.old || (payload.old.status !== 'PAID' && payload.old.status !== 'SETTLEMENT'));
+
           if (payload.eventType === "INSERT") {
             playOrderBellSound();
             if (typeof showAdminToast === "function") {
@@ -212,6 +215,12 @@ function initAdminOrdersRealtime() {
             }
             await loadAdminOrdersList(true);
           } else if (payload.eventType === "UPDATE") {
+            if (isPaid && wasNotPaid) {
+              playOrderBellSound();
+              if (typeof showAdminToast === "function") {
+                showAdminToast(`⚡ Pesanan Lunas! Segera Siapkan #${payload.new.order_number || payload.new.id}`, "success");
+              }
+            }
             const idx = liveAdminOrders.findIndex(o => String(o.id) === String(payload.new.id));
             if (idx > -1) {
               liveAdminOrders[idx] = { ...liveAdminOrders[idx], ...payload.new };
@@ -688,13 +697,23 @@ async function updateOrderStatusFromModal(newStatus) {
   }
 
   const orderId = selectedOrderForModal.id;
+  const staffName = localStorage.getItem("shinemart_admin_name") || "Admin Toko (Web)";
   try {
-    const { error } = await client
+    const { data, error } = await client
       .from("orders")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+      .update({ 
+        status: newStatus, 
+        updated_at: new Date().toISOString(),
+        updated_by: staffName
+      })
+      .eq("id", orderId)
+      .select();
 
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error("Gagal mengupdate di Supabase: 0 baris terpengaruh (cek RLS UPDATE policy).");
+    }
 
     if (typeof showAdminToast === "function") {
       showAdminToast(`Status pesanan berhasil diubah menjadi: ${newStatus}`, "success");
