@@ -1909,21 +1909,65 @@
           <p class="text-[10px] text-slate-400">Rekomendasi rasio poster tegak: 3:4 atau 1:1. Tampil di sebelah kiri carousel produk di HP.</p>
         </div>
 
-        <!-- Filter Kategori Produk Otomatis -->
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Filter Kategori Produk <span class="text-pink-500">*</span></label>
-          <select id="mobileSectionCategoryFilterInput"
-            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
-            <option value="sembako">Sembako</option>
-            <option value="bumbu">Bumbu Dapur</option>
-            <option value="instan">Mi &amp; Makanan Instan</option>
-            <option value="minuman">Minuman Segar</option>
-            <option value="frozen">Frozen Food &amp; Daging Olahan</option>
-            <option value="cemilan">Snack &amp; Biskuit</option>
-            <option value="kebersihan">Perawatan &amp; Kebersihan</option>
-            <option value="all">Semua Kategori (Promo Umum)</option>
-          </select>
-          <p class="text-[10px] text-slate-400 mt-1">Produk dari kategori ini akan otomatis ditarik dan tampil di sebelah kanan poster pada Mobile App pelanggan!</p>
+        <!-- Mode Pemilihan Produk Mobile: Custom Produk Sendiri vs Kategori -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5">Metode Pengisian Produk di Seksi Ini <span class="text-pink-500">*</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#38b6ff] transition">
+                <input type="radio" name="mobileSectionProductMode" value="custom" id="mobileProductModeCustom" checked onchange="toggleMobileSectionProductMode('custom')" class="text-[#0077d6] focus:ring-sky-400">
+                <div>
+                  <span class="block font-bold text-slate-800 text-[11px]">Pilih Produk Sendiri</span>
+                  <span class="block text-[10px] text-slate-400">Pilih sembako / produk apa saja</span>
+                </div>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#38b6ff] transition">
+                <input type="radio" name="mobileSectionProductMode" value="category" id="mobileProductModeCategory" onchange="toggleMobileSectionProductMode('category')" class="text-[#0077d6] focus:ring-sky-400">
+                <div>
+                  <span class="block font-bold text-slate-800 text-[11px]">Otomatis Kategori</span>
+                  <span class="block text-[10px] text-slate-400">Tarik semua produk kategori</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Wrapper A: Pilih Produk Sendiri (Custom Picker) -->
+          <div id="mobileSectionCustomProductsWrapper" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-extrabold text-slate-800 text-xs">Produk Terpilih di Seksi HP</span>
+                <span id="selectedMobileProductsCountBadge" class="ml-1 text-[11px] font-bold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded-full">0 Produk</span>
+              </div>
+              <button type="button" onclick="openProductPickerModal('mobile')"
+                class="px-3.5 py-1.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:opacity-90 transition">
+                <i class="fas fa-plus"></i>
+                <span>Pilih Produk</span>
+              </button>
+            </div>
+
+            <!-- List Thumbnail Produk Terpilih Mobile -->
+            <div id="selectedMobileProductsListContainer" class="flex gap-2 overflow-x-auto p-2 bg-white rounded-2xl border border-slate-200 min-h-[95px] items-center">
+              <span class="text-[11px] text-slate-400 mx-auto">Belum ada produk yang dipilih. Klik tombol "+ Pilih Produk" di atas.</span>
+            </div>
+            <p class="text-[10px] text-slate-400">Produk yang Anda centang di sini akan tampil di sebelah kanan poster pada Mobile App pelanggan!</p>
+          </div>
+
+          <!-- Wrapper B: Filter Kategori Produk Otomatis -->
+          <div id="mobileSectionCategoryWrapper" class="hidden">
+            <label class="block font-bold text-slate-700 mb-1">Kategori Produk Otomatis</label>
+            <select id="mobileSectionCategoryFilterInput"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+              <option value="sembako">Sembako</option>
+              <option value="bumbu">Bumbu Dapur</option>
+              <option value="instan">Mi &amp; Makanan Instan</option>
+              <option value="minuman">Minuman Segar</option>
+              <option value="frozen">Frozen Food &amp; Daging Olahan</option>
+              <option value="cemilan">Snack &amp; Biskuit</option>
+              <option value="kebersihan">Perawatan &amp; Kebersihan</option>
+              <option value="all">Semua Kategori (Promo Umum)</option>
+            </select>
+            <p class="text-[10px] text-slate-400 mt-1">Produk dari kategori ini akan otomatis ditarik dan tampil di sebelah kanan poster pada Mobile App pelanggan!</p>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 items-center">
@@ -2161,7 +2205,7 @@
   </div>
 
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=4.8-nominal-fix"></script>
+  <script src="js/admin.js?v=5.0-mobile-promo-custom-picker"></script>
   <script src="js/admin-orders.js"></script>
 
   <!-- Inline Tab Switcher Fallback (Anti-Cache) -->
