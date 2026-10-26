@@ -3997,7 +3997,7 @@ function updateStoreOpenStatusUI() {
 }
 
 /**
- * Muat Pengaturan Toko dari Supabase
+ * Muat Pengaturan Toko & Lokasi Toko dari Supabase
  */
 async function loadStoreOperationalSettings() {
   const client = getAdminSupabaseClient();
@@ -4007,11 +4007,31 @@ async function loadStoreOperationalSettings() {
     const { data, error } = await client
       .from("store_settings")
       .select("*")
-      .eq("id", "main_store")
-      .single();
+      .in("id", ["main_store", "store_location"]);
 
-    if (data) {
-      liveStoreSettings = { ...liveStoreSettings, ...data };
+    if (data && data.length > 0) {
+      const mainRow = data.find(r => r.id === "main_store");
+      const locRow = data.find(r => r.id === "store_location");
+
+      if (mainRow) {
+        liveStoreSettings = { ...liveStoreSettings, ...mainRow };
+      }
+
+      let locObj = {
+        name: "Shinemart Hub Utama",
+        address: "Jl. Jenderal Sudirman No. 10, Samarinda Kota",
+        lat: -0.502106,
+        lng: 117.153709
+      };
+      if (locRow && locRow.auto_close_notes) {
+        try {
+          const parsed = JSON.parse(locRow.auto_close_notes);
+          if (parsed && parsed.lat !== undefined && parsed.lng !== undefined) {
+            locObj = { ...locObj, ...parsed };
+          }
+        } catch (_) {}
+      }
+
       const toggle = document.getElementById("settingStoreOpenToggle");
       const notes = document.getElementById("settingStoreCloseNotes");
       const baseFee = document.getElementById("settingBaseDeliveryFee");
@@ -4019,14 +4039,22 @@ async function loadStoreOperationalSettings() {
       const maxDist = document.getElementById("settingMaxDistanceKm");
       const minFree = document.getElementById("settingFreeDeliveryMinSpend");
       const waInput = document.getElementById("settingStoreWhatsapp");
+      const storeNameInput = document.getElementById("settingStoreName");
+      const storeAddrInput = document.getElementById("settingStoreAddress");
+      const storeLatInput = document.getElementById("settingStoreLat");
+      const storeLngInput = document.getElementById("settingStoreLng");
 
       if (toggle) toggle.checked = !!liveStoreSettings.is_store_open;
       if (notes) notes.value = liveStoreSettings.auto_close_notes || "";
-      if (baseFee) baseFee.value = liveStoreSettings.base_delivery_fee || 10000;
-      if (feePerKm) feePerKm.value = liveStoreSettings.delivery_fee_per_km || 2500;
-      if (maxDist) maxDist.value = liveStoreSettings.max_delivery_distance_km || 10;
-      if (minFree) minFree.value = liveStoreSettings.free_delivery_min_spend || 30000;
+      if (baseFee) baseFee.value = liveStoreSettings.base_delivery_fee ?? 10000;
+      if (feePerKm) feePerKm.value = liveStoreSettings.delivery_fee_per_km ?? 2500;
+      if (maxDist) maxDist.value = liveStoreSettings.max_delivery_distance_km ?? 10;
+      if (minFree) minFree.value = liveStoreSettings.free_delivery_min_spend ?? 30000;
       if (waInput && liveStoreSettings.store_whatsapp) waInput.value = liveStoreSettings.store_whatsapp;
+      if (storeNameInput) storeNameInput.value = locObj.name || "Shinemart Hub Utama";
+      if (storeAddrInput) storeAddrInput.value = locObj.address || "";
+      if (storeLatInput) storeLatInput.value = locObj.lat ?? -0.502106;
+      if (storeLngInput) storeLngInput.value = locObj.lng ?? 117.153709;
 
       updateStoreOpenStatusUI();
     }
@@ -4036,7 +4064,111 @@ async function loadStoreOperationalSettings() {
 }
 
 /**
- * Simpan Pengaturan Operasional Toko ke Supabase
+ * Cari Titik Koordinat Lokasi Toko di Web Admin via OpenStreetMap
+ */
+async function searchAdminStoreLocation() {
+  const input = document.getElementById("settingStoreSearchInput");
+  const resultsBox = document.getElementById("settingStoreSearchResults");
+  if (!input || !resultsBox) return;
+
+  const q = input.value.trim();
+  if (!q) {
+    showAdminToast("Masukkan nama jalan atau daerah toko yang ingin dicari.", "info");
+    return;
+  }
+
+  // Cek apakah input langsung berupa koordinat lat,lng
+  const coordMatch = q.match(/(-?\d{1,2}\.\d{3,10})\s*,\s*(-?\d{1,3}\.\d{3,10})/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    const latEl = document.getElementById("settingStoreLat");
+    const lngEl = document.getElementById("settingStoreLng");
+    if (latEl) latEl.value = lat;
+    if (lngEl) lngEl.value = lng;
+    resultsBox.classList.add("hidden");
+    showAdminToast(`Koordinat (${lat}, ${lng}) berhasil diterapkan!`, "success");
+    return;
+  }
+
+  resultsBox.classList.remove("hidden");
+  resultsBox.innerHTML = `<div class="p-3 text-slate-400 text-xs"><i class="fas fa-spinner fa-spin mr-1.5"></i> Mencari titik lokasi...</div>`;
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=5`);
+    const list = await res.json();
+    if (!Array.isArray(list) || list.length === 0) {
+      resultsBox.innerHTML = `<div class="p-3 text-rose-500 text-xs">Lokasi tidak ditemukan. Coba kata kunci yang lebih umum.</div>`;
+      return;
+    }
+
+    resultsBox.innerHTML = list.map((item) => {
+      const safeName = String(item.display_name || "").replace(/'/g, "\\'");
+      return `
+        <div onclick="applyAdminStoreLocationResult(${parseFloat(item.lat)}, ${parseFloat(item.lon)}, '${safeName}')"
+          class="p-2.5 hover:bg-sky-50 cursor-pointer transition flex items-center justify-between gap-2">
+          <div class="truncate">
+            <div class="font-bold text-slate-800 text-xs truncate">${item.display_name}</div>
+            <div class="text-[10px] text-slate-400 font-mono">Lat: ${item.lat}, Lng: ${item.lon}</div>
+          </div>
+          <span class="px-2.5 py-1 bg-sky-100 text-[#0077d6] font-extrabold rounded-lg text-[10px] shrink-0">Pilih Titik</span>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    resultsBox.innerHTML = `<div class="p-3 text-rose-500 text-xs">Gagal mencari lokasi: ${err.message}</div>`;
+  }
+}
+
+function applyAdminStoreLocationResult(lat, lng, displayName) {
+  const latEl = document.getElementById("settingStoreLat");
+  const lngEl = document.getElementById("settingStoreLng");
+  const addrEl = document.getElementById("settingStoreAddress");
+  const resultsBox = document.getElementById("settingStoreSearchResults");
+
+  if (latEl) latEl.value = Number(lat).toFixed(6);
+  if (lngEl) lngEl.value = Number(lng).toFixed(6);
+  if (addrEl && displayName) addrEl.value = displayName;
+  if (resultsBox) resultsBox.classList.add("hidden");
+
+  showAdminToast("Titik lokasi toko berhasil dipilih! Klik Simpan Pengaturan.", "info");
+}
+
+function detectAdminStoreGps() {
+  if (!navigator.geolocation) {
+    showAdminToast("Browser tidak mendukung Geolocation GPS.", "error");
+    return;
+  }
+  showAdminToast("Mendeteksi titik GPS Anda saat ini...", "info");
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const latEl = document.getElementById("settingStoreLat");
+      const lngEl = document.getElementById("settingStoreLng");
+      const addrEl = document.getElementById("settingStoreAddress");
+      if (latEl) latEl.value = lat;
+      if (lngEl) lngEl.value = lng;
+
+      try {
+        const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const revData = await rev.json();
+        if (revData && revData.display_name && addrEl) {
+          addrEl.value = revData.display_name;
+        }
+      } catch (_) {}
+
+      showAdminToast(`Titik GPS (${lat}, ${lng}) diterapkan! Klik Simpan Pengaturan.`, "success");
+    },
+    (err) => {
+      showAdminToast(`Gagal mengambil GPS: ${err.message}`, "error");
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+/**
+ * Simpan Pengaturan Operasional Toko & Lokasi Toko ke Supabase
  */
 async function saveStoreOperationalSettings() {
   const client = getAdminSupabaseClient();
@@ -4052,23 +4184,46 @@ async function saveStoreOperationalSettings() {
   const maxDist = document.getElementById("settingMaxDistanceKm");
   const minFree = document.getElementById("settingFreeDeliveryMinSpend");
   const waInput = document.getElementById("settingStoreWhatsapp");
+  const storeNameInput = document.getElementById("settingStoreName");
+  const storeAddrInput = document.getElementById("settingStoreAddress");
+  const storeLatInput = document.getElementById("settingStoreLat");
+  const storeLngInput = document.getElementById("settingStoreLng");
 
-  const payload = {
+  const nowIso = new Date().toISOString();
+
+  const mainPayload = {
     id: "main_store",
     is_store_open: toggle ? toggle.checked : true,
     auto_close_notes: notes ? notes.value.trim() : "",
-    base_delivery_fee: Number(baseFee?.value) || 10000,
-    delivery_fee_per_km: Number(feePerKm?.value) || 2500,
+    base_delivery_fee: Number(baseFee?.value) || 0,
+    delivery_fee_per_km: Number(feePerKm?.value) || 0,
     max_delivery_distance_km: Number(maxDist?.value) || 10,
-    free_delivery_min_spend: Number(minFree?.value) || 30000,
+    free_delivery_min_spend: Number(minFree?.value) || 0,
     store_whatsapp: waInput ? waInput.value.trim() : "6287782603733",
-    updated_at: new Date().toISOString()
+    updated_at: nowIso
+  };
+
+  const locPayload = {
+    id: "store_location",
+    is_store_open: true,
+    auto_close_notes: JSON.stringify({
+      name: storeNameInput ? storeNameInput.value.trim() : "Shinemart Hub Utama",
+      address: storeAddrInput ? storeAddrInput.value.trim() : "",
+      lat: parseFloat(storeLatInput?.value) || -0.502106,
+      lng: parseFloat(storeLngInput?.value) || 117.153709
+    }),
+    base_delivery_fee: mainPayload.base_delivery_fee,
+    delivery_fee_per_km: mainPayload.delivery_fee_per_km,
+    max_delivery_distance_km: mainPayload.max_delivery_distance_km,
+    free_delivery_min_spend: mainPayload.free_delivery_min_spend,
+    store_whatsapp: mainPayload.store_whatsapp,
+    updated_at: nowIso
   };
 
   try {
     const { error } = await client
       .from("store_settings")
-      .upsert(payload, { onConflict: "id" });
+      .upsert([mainPayload, locPayload], { onConflict: "id" });
 
     if (error) {
       if (error.message?.includes("store_settings") || error.code === "PGRST205") {
@@ -4078,9 +4233,9 @@ async function saveStoreOperationalSettings() {
       throw error;
     }
 
-    liveStoreSettings = { ...liveStoreSettings, ...payload };
+    liveStoreSettings = { ...liveStoreSettings, ...mainPayload };
     updateStoreOpenStatusUI();
-    showAdminToast("Pengaturan operasional toko berhasil disimpan!", "success");
+    showAdminToast("Lokasi toko & pengaturan tarif ongkir berhasil disimpan!", "success");
 
   } catch (err) {
     console.error("Gagal menyimpan store_settings:", err);
