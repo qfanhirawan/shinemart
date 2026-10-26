@@ -3037,9 +3037,21 @@ async function deleteSectionFromSupabase(sectionId, title) {
  * MODAL PRODUCT PICKER (PENCARIAN & PEMILIHAN PRODUK)
  * ==============================================================================
  */
-function openProductPickerModal() {
+let activeProductPickerTarget = "website";
+let selectedMobileSectionProducts = [];
+
+function openProductPickerModal(target = "website") {
+  activeProductPickerTarget = target;
   const modal = document.getElementById("productPickerModal");
+  const modalTitle = document.getElementById("productPickerModalTitle");
   const searchInput = document.getElementById("productPickerSearchInput");
+
+  if (modalTitle) {
+    modalTitle.textContent = target === "mobile" 
+      ? "Pilih Produk Seksi Promo Mobile (HP)" 
+      : "Pilih Produk untuk Seksi Promo";
+  }
+
   if (searchInput) searchInput.value = "";
 
   renderProductPickerList("");
@@ -3098,7 +3110,10 @@ function renderProductPickerList(query = "", category = "all") {
   }
 
   container.innerHTML = filtered.slice(0, 150).map((prod) => {
-    const isSelected = selectedSectionProducts.some((p) => String(p.id) === String(prod.id));
+    const isSelected = activeProductPickerTarget === "mobile"
+      ? selectedMobileSectionProducts.some((p) => String(p.id) === String(prod.id))
+      : selectedSectionProducts.some((p) => String(p.id) === String(prod.id));
+
     const pImg = formatGoogleDriveImageUrl(prod.image_url || prod.imageUrl);
 
     return `
@@ -3133,15 +3148,81 @@ function togglePickProduct(productId) {
   const prod = liveSupabaseProducts.find((p) => String(p.id) === String(productId));
   if (!prod) return;
 
-  const existingIdx = selectedSectionProducts.findIndex((p) => String(p.id) === String(productId));
-  if (existingIdx > -1) {
-    selectedSectionProducts.splice(existingIdx, 1);
+  if (activeProductPickerTarget === "mobile") {
+    const existingIdx = selectedMobileSectionProducts.findIndex((p) => String(p.id) === String(productId));
+    if (existingIdx > -1) {
+      selectedMobileSectionProducts.splice(existingIdx, 1);
+    } else {
+      selectedMobileSectionProducts.push(prod);
+    }
+    filterProductPickerList();
+    renderSelectedMobileProductsList();
   } else {
-    selectedSectionProducts.push(prod);
+    const existingIdx = selectedSectionProducts.findIndex((p) => String(p.id) === String(productId));
+    if (existingIdx > -1) {
+      selectedSectionProducts.splice(existingIdx, 1);
+    } else {
+      selectedSectionProducts.push(prod);
+    }
+    filterProductPickerList();
+    renderSelectedProductsList();
+  }
+}
+
+function renderSelectedMobileProductsList() {
+  const container = document.getElementById("selectedMobileProductsListContainer");
+  const countBadge = document.getElementById("selectedMobileProductsCountBadge");
+  if (!container) return;
+
+  if (countBadge) countBadge.textContent = `${selectedMobileSectionProducts.length} Produk`;
+
+  if (selectedMobileSectionProducts.length === 0) {
+    container.innerHTML = `
+      <span class="text-[11px] text-slate-400 mx-auto">Belum ada produk yang dipilih. Klik tombol "+ Pilih Produk" di atas.</span>
+    `;
+    return;
   }
 
-  filterProductPickerList();
-  renderSelectedProductsList();
+  container.innerHTML = selectedMobileSectionProducts.map((p, idx) => {
+    const pImg = formatGoogleDriveImageUrl(p.image_url || p.imageUrl);
+    return `
+      <div class="w-20 bg-slate-50 p-2 rounded-2xl border border-slate-200 text-center shrink-0 relative group shadow-sm">
+        <img src="${pImg}" alt="${p.name}" class="w-12 h-12 object-contain mx-auto mb-1 rounded-lg" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';">
+        <span class="block text-[10px] font-bold text-slate-700 truncate" title="${p.name}">${p.name}</span>
+        <span class="block text-[9px] text-[#0077d6] font-semibold">${formatRupiah(p.price)}</span>
+        
+        <!-- Tombol Hapus Produk dari Seksi Mobile -->
+        <button type="button" onclick="removeProductFromMobileSection(${idx})"
+          class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow transition"
+          title="Hapus Produk dari Seksi">
+          ✕
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+function removeProductFromMobileSection(idx) {
+  selectedMobileSectionProducts.splice(idx, 1);
+  renderSelectedMobileProductsList();
+  if (typeof filterProductPickerList === "function") filterProductPickerList();
+}
+
+function toggleMobileSectionProductMode(mode) {
+  const customWrapper = document.getElementById("mobileSectionCustomProductsWrapper");
+  const catWrapper = document.getElementById("mobileSectionCategoryWrapper");
+  const customRadio = document.getElementById("mobileProductModeCustom");
+  const catRadio = document.getElementById("mobileProductModeCategory");
+
+  if (mode === "custom") {
+    if (customRadio) customRadio.checked = true;
+    if (customWrapper) customWrapper.classList.remove("hidden");
+    if (catWrapper) catWrapper.classList.add("hidden");
+  } else {
+    if (catRadio) catRadio.checked = true;
+    if (customWrapper) customWrapper.classList.add("hidden");
+    if (catWrapper) catWrapper.classList.remove("hidden");
+  }
 }
 
 // =========================================================================
@@ -4611,9 +4692,24 @@ function renderMobileSectionsTable(sections) {
           </div>
         </td>
         <td class="py-3 px-3">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-[#0077d6] font-bold text-[11px] border border-sky-200">
-            <i class="fas fa-tag text-[10px]"></i> ${escapeHtml(s.category_filter || 'all')}
-          </span>
+          ${(() => {
+            const isCustom = (s.category_filter && String(s.category_filter).startsWith('custom:')) || (Array.isArray(s.product_ids) && s.product_ids.length > 0);
+            if (isCustom) {
+              let count = 0;
+              if (Array.isArray(s.product_ids)) count = s.product_ids.length;
+              else if (String(s.category_filter).startsWith('custom:')) count = String(s.category_filter).replace('custom:', '').split(',').filter(Boolean).length;
+              return `
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-200">
+                  <i class="fas fa-check-double text-[10px]"></i> ${count} Produk Pilihan
+                </span>
+              `;
+            }
+            return `
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-[#0077d6] font-bold text-[11px] border border-sky-200">
+                <i class="fas fa-tag text-[10px]"></i> ${escapeHtml(s.category_filter || 'all')}
+              </span>
+            `;
+          })()}
         </td>
         <td class="py-3 px-3 text-center font-bold text-slate-700 text-xs">
           ${s.sort_order || 1}
@@ -4647,7 +4743,7 @@ function renderMobileSectionsTable(sections) {
 function openAddMobileSectionModal() {
   document.getElementById("mobileSectionId").value = "";
   document.getElementById("mobileSectionExistingImageUrl").value = "";
-  document.getElementById("mobileSectionTitleInput").value = "";
+  document.getElementById("mobileSectionTitleInput").value = "Sembako Murah";
   document.getElementById("mobileSectionSubtitleInput").value = "Koleksi promo pilihan hemat Shinemart";
   document.getElementById("mobileSectionBadgeInput").value = "PROMO SPESIAL";
   document.getElementById("mobileSectionIconInput").value = "🔥";
@@ -4657,6 +4753,10 @@ function openAddMobileSectionModal() {
   document.getElementById("mobileSectionSortOrderInput").value = (liveMobileSections.length + 1).toString();
   document.getElementById("mobileSectionIsActiveInput").checked = true;
   document.getElementById("mobileSectionModalTitle").textContent = "Buat Seksi Promo Mobile Baru";
+
+  selectedMobileSectionProducts = [];
+  toggleMobileSectionProductMode("custom");
+  renderSelectedMobileProductsList();
   updateMobileSectionLivePreview();
 
   const modal = document.getElementById("mobileSectionModal");
@@ -4682,6 +4782,36 @@ function openEditMobileSectionModal(id) {
   document.getElementById("mobileSectionSortOrderInput").value = (section.sort_order || 1).toString();
   document.getElementById("mobileSectionIsActiveInput").checked = !!section.is_active;
   document.getElementById("mobileSectionModalTitle").textContent = "Edit Seksi Promo Mobile";
+
+  // Muat produk yang sudah dipilih sebelumnya
+  selectedMobileSectionProducts = [];
+  let foundIds = [];
+  if (Array.isArray(section.product_ids) && section.product_ids.length > 0) {
+    foundIds = section.product_ids.map(String);
+  } else if (typeof section.product_ids === "string") {
+    try {
+      const parsed = JSON.parse(section.product_ids);
+      if (Array.isArray(parsed)) foundIds = parsed.map(String);
+    } catch (_) {}
+  }
+
+  if (foundIds.length === 0 && section.category_filter && String(section.category_filter).startsWith("custom:")) {
+    foundIds = String(section.category_filter)
+      .replace("custom:", "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  if (foundIds.length > 0) {
+    const prodMap = new Map((liveSupabaseProducts || []).map(p => [String(p.id), p]));
+    selectedMobileSectionProducts = foundIds.map(fid => prodMap.get(fid)).filter(Boolean);
+    toggleMobileSectionProductMode("custom");
+  } else {
+    toggleMobileSectionProductMode("category");
+  }
+
+  renderSelectedMobileProductsList();
   updateMobileSectionLivePreview();
 
   const modal = document.getElementById("mobileSectionModal");
@@ -4794,7 +4924,6 @@ async function handleSaveMobileSection(event) {
   const icon = document.getElementById("mobileSectionIconInput")?.value.trim() || "🔥";
   const iconBg = document.getElementById("mobileSectionIconBgInput")?.value.trim() || "#0077D6";
   const rawPoster = document.getElementById("mobileSectionPosterUrlInput")?.value.trim();
-  const categoryFilter = document.getElementById("mobileSectionCategoryFilterInput")?.value || "sembako";
   const sortOrder = parseInt(document.getElementById("mobileSectionSortOrderInput")?.value) || 1;
   const isActive = document.getElementById("mobileSectionIsActiveInput")?.checked ?? true;
 
@@ -4802,6 +4931,23 @@ async function handleSaveMobileSection(event) {
     showAdminToast("Judul seksi dan foto poster card wajib diisi!", "warning");
     if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
     return;
+  }
+
+  const isCustomMode = document.getElementById("mobileProductModeCustom")?.checked;
+  let finalCategoryFilter = "sembako";
+  let productIdsToSave = [];
+
+  if (isCustomMode) {
+    if (!selectedMobileSectionProducts || selectedMobileSectionProducts.length === 0) {
+      showAdminToast("Mohon pilih minimal 1 produk untuk seksi promo HP ini!", "warning");
+      if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+      return;
+    }
+    productIdsToSave = selectedMobileSectionProducts.map(p => String(p.id));
+    finalCategoryFilter = "custom:" + productIdsToSave.join(",");
+  } else {
+    finalCategoryFilter = document.getElementById("mobileSectionCategoryFilterInput")?.value || "sembako";
+    productIdsToSave = [];
   }
 
   const formattedPoster = formatGoogleDriveImageUrl(rawPoster);
@@ -4813,7 +4959,8 @@ async function handleSaveMobileSection(event) {
     icon,
     icon_bg: iconBg,
     poster_image: formattedPoster,
-    category_filter: categoryFilter,
+    category_filter: finalCategoryFilter,
+    product_ids: productIdsToSave,
     sort_order: sortOrder,
     is_active: isActive
   };
@@ -4824,10 +4971,22 @@ async function handleSaveMobileSection(event) {
 
     let resError = null;
     if (id) {
-      const { error } = await supabaseClient.from("mobile_promotional_sections").update(payload).eq("id", id);
+      let { error } = await supabaseClient.from("mobile_promotional_sections").update(payload).eq("id", id);
+      // Fallback jika kolom product_ids belum ada di skema DB remote
+      if (error && String(error.message).includes("product_ids")) {
+        delete payload.product_ids;
+        const retry = await supabaseClient.from("mobile_promotional_sections").update(payload).eq("id", id);
+        error = retry.error;
+      }
       resError = error;
     } else {
-      const { error } = await supabaseClient.from("mobile_promotional_sections").insert([payload]);
+      let { error } = await supabaseClient.from("mobile_promotional_sections").insert([payload]);
+      // Fallback jika kolom product_ids belum ada di skema DB remote
+      if (error && String(error.message).includes("product_ids")) {
+        delete payload.product_ids;
+        const retry = await supabaseClient.from("mobile_promotional_sections").insert([payload]);
+        error = retry.error;
+      }
       resError = error;
     }
 
