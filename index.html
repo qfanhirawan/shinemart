@@ -187,7 +187,26 @@
       <div class="relative w-full flex-1">
         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
         <input type="text" id="searchInput" placeholder="Cari beras, minyak goreng, frozen food, susu, sabun, snack..."
-          class="w-full pl-11 pr-4 py-3 bg-slate-100 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl text-sm md:text-base font-medium outline-none border border-transparent focus:border-[#38b6ff] transition-all">
+          class="w-full pl-11 pr-4 py-3 bg-slate-100 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl text-sm md:text-base font-medium outline-none border border-transparent focus:border-[#38b6ff] transition-all"
+          autocomplete="off">
+
+        <!-- 5 Search Suggestions Dropdown (Web) -->
+        <div id="searchSuggestionsDropdown"
+          class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-bold">
+            <span class="flex items-center gap-1.5 text-slate-700">
+              <i class="fas fa-sparkles text-[#ff66c4]"></i>
+              <span>Saran Produk Pilihan (Maks. 5)</span>
+            </span>
+            <span id="searchSuggestionsCount" class="text-[11px] text-slate-400 font-medium">5 produk</span>
+          </div>
+          <div id="searchSuggestionsList" class="divide-y divide-slate-100 max-h-96 overflow-y-auto"></div>
+          <div id="searchSuggestionsFooter" onclick="handleSelectAllSearchResults()"
+            class="p-2.5 bg-slate-50 hover:bg-sky-50 border-t border-slate-100 text-center transition cursor-pointer text-xs font-bold text-[#0077d6] flex items-center justify-center gap-1.5">
+            <i class="fas fa-search text-[11px]"></i>
+            <span id="searchSuggestionsFooterText">Lihat semua hasil di katalog</span>
+          </div>
+        </div>
       </div>
 
       <!-- Quick Badges -->
