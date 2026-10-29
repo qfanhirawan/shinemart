@@ -1040,6 +1040,125 @@ function updateCategoryCounts() {
   });
 }
 
+// ==============================================================================
+// 5 SARAN PENCARIAN PRODUK OTOMATIS (AUTOCOMPLETE SUGGESTIONS WEB)
+// ==============================================================================
+function updateWebSearchSuggestions(rawQuery) {
+  const dropdown = document.getElementById("searchSuggestionsDropdown");
+  const list = document.getElementById("searchSuggestionsList");
+  const count = document.getElementById("searchSuggestionsCount");
+  const footer = document.getElementById("searchSuggestionsFooter");
+  const footerText = document.getElementById("searchSuggestionsFooterText");
+  if (!dropdown || !list) return;
+
+  const q = (rawQuery || "").trim().toLowerCase();
+  if (q.length === 0) {
+    dropdown.classList.add("hidden");
+    return;
+  }
+
+  // Filter produk yang namanya mengandung kata kunci atau kategorinya cocok
+  const matches = (productsList || []).filter((p) => {
+    const name = (p.name || "").toLowerCase();
+    const cat = (p.category || "").toLowerCase();
+    return name.includes(q) || cat.includes(q);
+  });
+
+  const top5 = matches.slice(0, 5);
+
+  if (top5.length === 0) {
+    list.innerHTML = `
+      <div class="p-4 text-center text-xs text-slate-400">
+        <i class="fas fa-search-minus mr-1.5 text-slate-300 text-sm"></i>
+        Tidak ada saran produk untuk "<strong class="text-slate-600">${q.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong>"
+      </div>
+    `;
+    if (count) count.textContent = "0 produk";
+    if (footer) footer.classList.add("hidden");
+    dropdown.classList.remove("hidden");
+    return;
+  }
+
+  if (count) count.textContent = `${matches.length > 5 ? '5 dari ' + matches.length : matches.length} produk`;
+  if (footer) footer.classList.remove("hidden");
+  if (footerText) footerText.textContent = `Lihat semua ${matches.length} hasil untuk "${q}"`;
+
+  list.innerHTML = top5.map((product) => {
+    const effectivePrice = product.promoDetails && product.promoDetails.hasPromo
+      ? product.promoDetails.finalPrice
+      : product.price;
+    const formattedPrice = formatRupiah(effectivePrice);
+    const imageSrc = formatGoogleDriveImageUrl(product.imageUrl || product.image);
+    const hasPromo = product.promoDetails && product.promoDetails.hasPromo;
+
+    // Highlight teks pencarian
+    const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escapedQuery})`, "gi");
+    const highlightedName = (product.name || "").replace(
+      regex,
+      '<span class="text-[#0077d6] font-black underline decoration-sky-300">$1</span>'
+    );
+
+    return `
+      <div class="suggestion-item p-3 hover:bg-sky-50/70 transition flex items-center justify-between gap-3 cursor-pointer group"
+           onclick="selectWebSearchSuggestion('${product.id}')">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200/80 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+            <img src="${imageSrc}" alt="${product.name}" class="w-full h-full object-contain"
+                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=100';">
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="text-[10px] font-bold text-[#0077d6] bg-[#e8f7ff] px-1.5 py-0.2 rounded">${product.category}</span>
+              ${hasPromo ? `<span class="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded-full">PROMO</span>` : ""}
+            </div>
+            <h4 class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#0077d6] transition-colors truncate">
+              ${highlightedName}
+            </h4>
+            <p class="text-xs font-black text-[#0077d6] mt-0.5">${formattedPrice}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" onclick="event.stopPropagation(); addToCart('${product.id}', 1); showToast('Produk ditambahkan ke keranjang!', 'success');"
+            class="px-2.5 py-1.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] text-white rounded-lg text-xs font-extrabold shadow-xs hover:opacity-90 transition flex items-center gap-1">
+            <i class="fas fa-cart-plus text-[10px]"></i>
+            <span class="hidden sm:inline">+ Beli</span>
+          </button>
+          <i class="fas fa-chevron-right text-slate-300 group-hover:text-[#0077d6] text-xs transition"></i>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  dropdown.classList.remove("hidden");
+}
+
+function selectWebSearchSuggestion(productId) {
+  const dropdown = document.getElementById("searchSuggestionsDropdown");
+  const searchInput = document.getElementById("searchInput");
+  if (dropdown) dropdown.classList.add("hidden");
+
+  const product = (productsList || []).find((p) => String(p.id) === String(productId));
+  if (product && searchInput) {
+    searchInput.value = product.name;
+    searchQuery = product.name.toLowerCase().trim();
+  }
+  openProductPreview(productId);
+}
+
+function handleSelectAllSearchResults() {
+  const dropdown = document.getElementById("searchSuggestionsDropdown");
+  const searchInput = document.getElementById("searchInput");
+  if (dropdown) dropdown.classList.add("hidden");
+  if (searchInput) {
+    searchQuery = searchInput.value.toLowerCase().trim();
+    searchInput.blur();
+  }
+  currentPage = 1;
+  renderProducts();
+  scrollToCatalogSection();
+}
+
 function setupEventListeners() {
   const searchInput = document.getElementById("searchInput");
   let searchScrollTimeout = null;
@@ -1049,6 +1168,9 @@ function setupEventListeners() {
       searchQuery = e.target.value.toLowerCase().trim();
       currentPage = 1;
       renderProducts();
+
+      // Perbarui 5 saran pencarian produk instan
+      updateWebSearchSuggestions(e.target.value);
 
       // Saat melakukan pencarian produk, langsung slide halus ke bagian katalog
       if (searchQuery.length > 0) {
@@ -1065,14 +1187,35 @@ function setupEventListeners() {
       }
     });
 
+    searchInput.addEventListener("focus", (e) => {
+      if (e.target.value.trim().length > 0) {
+        updateWebSearchSuggestions(e.target.value);
+      }
+    });
+
     // Menangani tombol Enter: langsung slide seketika ke katalog dan sembunyikan keyboard di mobile
     searchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
+        const dropdown = document.getElementById("searchSuggestionsDropdown");
+        if (dropdown) dropdown.classList.add("hidden");
         clearTimeout(searchScrollTimeout);
         scrollToCatalogSection();
         if (searchQuery.length > 0) {
           searchInput.blur();
+        }
+      } else if (e.key === "Escape") {
+        const dropdown = document.getElementById("searchSuggestionsDropdown");
+        if (dropdown) dropdown.classList.add("hidden");
+      }
+    });
+
+    // Tutup dropdown saran saat klik di luar kotak pencarian
+    document.addEventListener("click", (e) => {
+      const dropdown = document.getElementById("searchSuggestionsDropdown");
+      if (dropdown && !dropdown.classList.contains("hidden")) {
+        if (!dropdown.contains(e.target) && e.target !== searchInput) {
+          dropdown.classList.add("hidden");
         }
       }
     });
