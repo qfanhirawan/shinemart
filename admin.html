@@ -1036,7 +1036,41 @@
 
       </div>
 
-      <!-- Pengelolaan Promosi Khusus Mobile App -->
+      <!-- ================= KELOLA CABANG TOKO & MULTI-HUB PENGIRIMAN SHINEMART ================= -->
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-warehouse"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base md:text-lg font-extrabold text-slate-900">Kelola Cabang Toko & Multi-Hub Pengiriman</h2>
+                <span id="adminBranchesCountBadge" class="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-full">0 Cabang</span>
+              </div>
+              <p class="text-xs text-slate-400">Tambah dan kelola cabang toko Shinemart. Aplikasi mobile akan otomatis mendeteksi lokasi pelanggan dan mengarahkan pesanan ke cabang terdekat.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="loadAdminStoreBranches()"
+              class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs transition" title="Refresh Data Cabang">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+            <button type="button" onclick="openBranchModal()"
+              class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition">
+              <i class="fas fa-plus"></i>
+              <span>Tambah Cabang Baru</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid Kartu Cabang Toko -->
+        <div id="adminBranchesListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="col-span-full py-8 text-center text-slate-400 text-xs">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Memuat daftar cabang Shinemart...
+          </div>
+        </div>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Card Kelola Banner Mobile -->
         <div class="bg-gradient-to-r from-pink-50 to-rose-50 p-6 rounded-3xl border border-pink-200 flex flex-col justify-between gap-4">
@@ -1605,6 +1639,11 @@
           <i class="fas fa-store text-amber-500"></i>
           <span>4. mobile_settings.sql</span>
         </button>
+        <button id="sqlTabBtnBranches" type="button" onclick="switchSqlScriptTab('branches')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+          <i class="fas fa-network-wired text-indigo-500"></i>
+          <span>5. store_branches.sql</span>
+        </button>
       </div>
 
       <div class="p-5 flex-1 overflow-y-auto space-y-3 text-xs">
@@ -2147,7 +2186,144 @@
     </div>
   </div>
 
-  <!-- ================= MODAL DETAIL PESANAN & CHECKLIST PICKING ================= -->
+  <!-- ================= MODAL TAMBAH & EDIT CABANG TOKO ================= -->
+  <div id="branchModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+      <!-- Header Modal -->
+      <div class="p-4 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white text-sm">
+            <i class="fas fa-store-alt"></i>
+          </div>
+          <div>
+            <h3 id="branchModalTitle" class="font-extrabold text-sm md:text-base leading-none">Tambah Cabang Toko Baru</h3>
+            <span class="text-[11px] text-sky-200">Atur alamat cabang, koordinat GPS, radius, dan tarif ongkir kilat</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeBranchModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <form id="branchForm" onsubmit="handleSaveBranchModal(event)" class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="branchFormId">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Kode Hub (Unik) <span class="text-rose-500">*</span></label>
+            <input type="text" id="branchFormCode" required placeholder="HUB-PURI"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 uppercase outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block font-bold text-slate-700 mb-1">Nama Cabang / Hub Toko <span class="text-rose-500">*</span></label>
+            <input type="text" id="branchFormName" required placeholder="Shinemart Hub 2 (Puri Kembangan)"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+        </div>
+
+        <!-- Pencarian Alamat Peta (OpenStreetMap) -->
+        <div class="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-200/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fas fa-map-marked-alt text-[#0077d6]"></i>
+              <span>Cari Titik Alamat di Peta</span>
+            </label>
+            <button type="button" onclick="detectBranchModalGps()"
+              class="px-2.5 py-1 bg-white hover:bg-sky-100 text-[#0077d6] font-bold rounded-lg border border-sky-200 shadow-xs transition flex items-center gap-1">
+              <i class="fas fa-crosshairs"></i> Gunakan GPS Saya
+            </button>
+          </div>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="branchFormSearchInput" placeholder="Ketik nama jalan atau daerah cabang (contoh: Jl. Puri Indah Blok A)..."
+                class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 text-xs outline-none focus:border-[#38b6ff] transition">
+            </div>
+            <button type="button" onclick="searchBranchModalLocation()"
+              class="px-3.5 py-1.5 bg-[#0077d6] hover:bg-[#38b6ff] text-white font-bold rounded-xl transition shrink-0">
+              Cari
+            </button>
+          </div>
+          <div id="branchFormSearchResults" class="hidden bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-36 overflow-y-auto"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Alamat Lengkap Fisik Cabang <span class="text-rose-500">*</span></label>
+          <textarea id="branchFormAddress" rows="2" required placeholder="Jl. Puri Indah Raya Blok U1, Kembangan Selatan, Kembangan, Jakarta Barat"
+            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-[#38b6ff] transition"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Latitude Titik 0 KM <span class="text-rose-500">*</span></label>
+            <input type="number" id="branchFormLat" step="any" required placeholder="-6.1878"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Longitude Titik 0 KM <span class="text-rose-500">*</span></label>
+            <input type="number" id="branchFormLng" step="any" required placeholder="106.7345"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Radius Maks (KM)</label>
+            <input type="number" id="branchFormMaxDist" step="0.5" value="10"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ongkir Dasar (Rp)</label>
+            <input type="number" id="branchFormBaseFee" step="500" value="10000"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tarif / KM (Rp)</label>
+            <input type="number" id="branchFormFeePerKm" step="500" value="2500"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Min. Free Ongkir (Rp)</label>
+            <input type="number" id="branchFormMinSpend" step="5000" value="30000"
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#38b6ff] transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nomor WhatsApp CS Cabang / Kurir</label>
+          <div class="relative">
+            <i class="fab fa-whatsapp absolute left-3.5 top-1/2 -translate-y-1/2 text-[#25D366] text-sm"></i>
+            <input type="text" id="branchFormWhatsapp" value="6287782603733" placeholder="6287782603733"
+              class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-[#25D366] transition">
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
+            <input type="checkbox" id="branchFormIsActive" checked class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500">
+            <span>Status Cabang BUKA (Menerima Order)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
+            <input type="checkbox" id="branchFormIsMain" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+            <span>Jadikan Hub Utama (Pusat)</span>
+          </label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeBranchModal()"
+            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+            Batal
+          </button>
+          <button type="submit" id="saveBranchSubmitBtn"
+            class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-700 text-white font-extrabold rounded-xl flex items-center gap-1.5 shadow-sm transition">
+            <i class="fas fa-save"></i>
+            <span>Simpan Cabang</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
   <div id="orderDetailModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
     <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
       
