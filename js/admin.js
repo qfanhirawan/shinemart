@@ -2200,6 +2200,37 @@ BEGIN
   END IF;
 END $$;`;
 
+const SQL_STORE_BRANCHES_SCRIPT = `-- ==============================================================================
+-- MIGRASI MULTI-CABANG SHINEMART: TABEL store_branches & AUTO-ROUTING HUB
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.store_branches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    branch_code VARCHAR(30) UNIQUE NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    address TEXT NOT NULL,
+    latitude NUMERIC(10, 6) NOT NULL,
+    longitude NUMERIC(10, 6) NOT NULL,
+    max_delivery_distance_km NUMERIC(5, 2) DEFAULT 10.0,
+    base_delivery_fee NUMERIC(12, 2) DEFAULT 10000,
+    delivery_fee_per_km NUMERIC(12, 2) DEFAULT 2500,
+    free_delivery_min_spend NUMERIC(12, 2) DEFAULT 30000,
+    store_whatsapp VARCHAR(50) DEFAULT '6287782603733',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    is_main_branch BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.store_branches ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can read active branches" ON public.store_branches;
+CREATE POLICY "Public can read active branches" ON public.store_branches FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin can manage branches" ON public.store_branches;
+CREATE POLICY "Admin can manage branches" ON public.store_branches FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES public.store_branches(id) ON DELETE SET NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS branch_name VARCHAR(150);`;
+
 let currentActiveSqlScript = SQL_MOBILE_PROMOS_SCRIPT;
 
 function switchSqlScriptTab(tabName) {
@@ -2207,6 +2238,7 @@ function switchSqlScriptTab(tabName) {
   const btnBanners = document.getElementById("sqlTabBtnBanners");
   const btnSections = document.getElementById("sqlTabBtnSections");
   const btnSettings = document.getElementById("sqlTabBtnSettings");
+  const btnBranches = document.getElementById("sqlTabBtnBranches");
   const codeEl = document.getElementById("sqlScriptContent");
   const descEl = document.getElementById("sqlScriptDescription");
   const tipEl = document.getElementById("sqlScriptTipText");
@@ -2218,6 +2250,7 @@ function switchSqlScriptTab(tabName) {
   if (btnBanners) btnBanners.className = inactiveClass;
   if (btnSections) btnSections.className = inactiveClass;
   if (btnSettings) btnSettings.className = inactiveClass;
+  if (btnBranches) btnBranches.className = inactiveClass;
 
   if (tabName === "banners") {
     if (btnBanners) btnBanners.className = activeClass;
@@ -2234,6 +2267,11 @@ function switchSqlScriptTab(tabName) {
     currentActiveSqlScript = typeof SQL_STORE_SETTINGS_SCRIPT !== "undefined" ? SQL_STORE_SETTINGS_SCRIPT : SQL_MOBILE_PROMOS_SCRIPT;
     if (descEl) descEl.textContent = "Script tabel store_settings untuk konfigurasi buka/tutup toko dan tarif ongkir kilat:";
     if (tipEl) tipEl.textContent = "Menyimpan status toko buka/tutup, radius maksimal, tarif per km, dan gratis ongkir.";
+  } else if (tabName === "branches") {
+    if (btnBranches) btnBranches.className = activeClass;
+    currentActiveSqlScript = SQL_STORE_BRANCHES_SCRIPT;
+    if (descEl) descEl.textContent = "Script tabel store_branches untuk multi-cabang dan auto-routing pengiriman:";
+    if (tipEl) tipEl.textContent = "Membuat tabel store_branches lengkap dengan kolom relasi branch_id pada tabel orders.";
   } else {
     if (btnMobile) btnMobile.className = activeClass;
     currentActiveSqlScript = SQL_MOBILE_PROMOS_SCRIPT;
@@ -4060,6 +4098,8 @@ async function loadStoreOperationalSettings() {
     }
   } catch (err) {
     console.warn("Gagal memuat store_settings:", err);
+  } finally {
+    loadAdminStoreBranches();
   }
 }
 
@@ -4240,6 +4280,695 @@ async function saveStoreOperationalSettings() {
   } catch (err) {
     console.error("Gagal menyimpan store_settings:", err);
     showAdminToast(`Gagal menyimpan: ${err.message}`, "error");
+  }
+}
+
+/* ==============================================================================
+ * MODUL PENGELOLAAN CABANG TOKO & MULTI-HUB SHINEMART (MOBILE APP & ADMIN)
+ * ============================================================================== */
+
+let adminStoreBranchesList = [];
+
+/**
+ * Muat Seluruh Cabang Toko dari Supabase
+ */
+async function loadAdminStoreBranches() {
+  const container = document.getElementById("adminBranchesListContainer");
+  const countBadge = document.getElementById("adminBranchesCountBadge");
+  const client = getAdminSupabaseClient();
+  if (!client) return;
+
+  if (container) {
+    container.innerHTML = `
+      <div class="col-span-full py-8 text-center text-slate-400 text-xs">
+        <i class="fas fa-spinner fa-spin mr-2"></i> Memuat daftar cabang Shinemart...
+      </div>
+    `;
+  }
+
+  try {
+    // 1. Coba baca dari tabel store_branches
+    const { data, error } = await client
+      .from("store_branches")
+      .select("*")
+      .order("is_main_branch", { ascending: false })
+      .order("created_at", { ascending: true });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      adminStoreBranchesList = data;
+    } else {
+      // 2. Fallback baca dari store_settings id: store_branches_list
+      const { data: fallbackData } = await client
+        .from("store_settings")
+        .select("*")
+        .eq("id", "store_branches_list")
+        .maybeSingle();
+
+      if (fallbackData && fallbackData.auto_close_notes) {
+        try {
+          const parsed = JSON.parse(fallbackData.auto_close_notes);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            adminStoreBranchesList = parsed;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (!adminStoreBranchesList || adminStoreBranchesList.length === 0) {
+      // Seed default cabang
+      adminStoreBranchesList = [
+        {
+          id: "hub-kalideres-1",
+          branch_code: "HUB-KALIDERES",
+          name: "Shinemart Hub 1 (Utanjati Kalideres)",
+          address: "Jl. Utanjati Rt.003/011, no.32a, Kalideres, Jakarta Barat",
+          latitude: -6.1432,
+          longitude: 106.7025,
+          max_delivery_distance_km: 10,
+          base_delivery_fee: 10000,
+          delivery_fee_per_km: 2500,
+          free_delivery_min_spend: 30000,
+          store_whatsapp: "6287782603733",
+          is_active: true,
+          is_main_branch: true
+        },
+        {
+          id: "hub-puri-2",
+          branch_code: "HUB-PURI",
+          name: "Shinemart Hub 2 (Puri Kembangan)",
+          address: "Jl. Puri Indah Raya Blok U1, Kembangan Selatan, Jakarta Barat",
+          latitude: -6.1878,
+          longitude: 106.7345,
+          max_delivery_distance_km: 10,
+          base_delivery_fee: 10000,
+          delivery_fee_per_km: 2500,
+          free_delivery_min_spend: 30000,
+          store_whatsapp: "6287782603733",
+          is_active: true,
+          is_main_branch: false
+        },
+        {
+          id: "hub-kebonjeruk-3",
+          branch_code: "HUB-KEBONJERUK",
+          name: "Shinemart Hub 3 (Kebon Jeruk)",
+          address: "Jl. Panjang No. 18, Kedoya Selatan, Kebon Jeruk, Jakarta Barat",
+          latitude: -6.185,
+          longitude: 106.768,
+          max_delivery_distance_km: 10,
+          base_delivery_fee: 10000,
+          delivery_fee_per_km: 2500,
+          free_delivery_min_spend: 30000,
+          store_whatsapp: "6287782603733",
+          is_active: true,
+          is_main_branch: false
+        }
+      ];
+    }
+
+    if (countBadge) {
+      countBadge.textContent = `${adminStoreBranchesList.length} Cabang`;
+    }
+
+    renderAdminStoreBranchesList();
+
+  } catch (err) {
+    console.error("Gagal loadAdminStoreBranches:", err);
+    if (container) {
+      container.innerHTML = `
+        <div class="col-span-full py-6 text-center text-rose-500 text-xs">
+          Gagal memuat cabang: ${err.message}
+        </div>
+      `;
+    }
+  }
+}
+
+/**
+ * Render Kartu-Kartu Cabang Toko di Web Admin
+ */
+function renderAdminStoreBranchesList() {
+  const container = document.getElementById("adminBranchesListContainer");
+  const countBadge = document.getElementById("adminBranchesCountBadge");
+  if (!container) return;
+
+  if (countBadge) {
+    countBadge.textContent = `${adminStoreBranchesList.length} Cabang`;
+  }
+
+  if (adminStoreBranchesList.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full py-12 text-center text-slate-400 space-y-3">
+        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 text-xl">
+          <i class="fas fa-store-slash"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-600">Belum ada cabang toko yang terdaftar.</p>
+        <button type="button" onclick="openBranchModal()" class="px-4 py-2 bg-[#0077d6] text-white font-extrabold rounded-xl text-xs">
+          + Tambah Cabang Pertama
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = adminStoreBranchesList.map(b => {
+    const isMain = !!b.is_main_branch;
+    const isActive = !!b.is_active;
+    const baseFeeFmt = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(b.base_delivery_fee || 10000);
+    const perKmFmt = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(b.delivery_fee_per_km || 2500);
+    const minSpendFmt = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(b.free_delivery_min_spend || 30000);
+
+    return `
+      <div class="bg-white rounded-2xl border ${isMain ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'} p-4 shadow-xs flex flex-col justify-between gap-3 transition hover:shadow-md">
+        <div>
+          <!-- Header Card Cabang -->
+          <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-2 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
+                ${b.branch_code || 'HUB'}
+              </span>
+              ${isMain ? `
+                <span class="px-2 py-0.5 rounded-md font-extrabold text-[10px] bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                  <i class="fas fa-star text-amber-500"></i> Hub Utama
+                </span>
+              ` : ''}
+              <span class="px-2 py-0.5 rounded-md font-bold text-[10px] ${isActive ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}">
+                ${isActive ? 'BUKA' : 'TUTUP'}
+              </span>
+            </div>
+
+            <!-- Tombol Aksi Cepat Edit & Hapus -->
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" onclick="openBranchModal('${b.id}')"
+                class="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0077d6] flex items-center justify-center text-xs transition" title="Edit Detail Cabang">
+                <i class="fas fa-pencil-alt"></i>
+              </button>
+              <button type="button" onclick="deleteBranch('${b.id}')"
+                class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition" title="Hapus Cabang">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Nama & Alamat Cabang -->
+          <div class="mt-2.5">
+            <h3 class="font-extrabold text-slate-800 text-sm leading-snug">${b.name}</h3>
+            <p class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed flex items-start gap-1.5">
+              <i class="fas fa-map-marker-alt text-rose-500 mt-0.5 shrink-0"></i>
+              <span>${b.address}</span>
+            </p>
+          </div>
+
+          <!-- Koordinat & Jarak Radius -->
+          <div class="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+            <div class="p-2 bg-slate-50 rounded-xl border border-slate-100">
+              <span class="text-slate-400 block text-[10px]">Titik GPS (Lat, Lng):</span>
+              <a href="https://www.google.com/maps?q=${b.latitude},${b.longitude}" target="_blank"
+                class="font-mono font-bold text-[#0077d6] hover:underline truncate block" title="Buka di Google Maps">
+                ${Number(b.latitude).toFixed(4)}, ${Number(b.longitude).toFixed(4)} <i class="fas fa-external-link-alt text-[9px]"></i>
+              </a>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl border border-slate-100">
+              <span class="text-slate-400 block text-[10px]">Radius Maksimal:</span>
+              <span class="font-extrabold text-slate-700">${b.max_delivery_distance_km || 10} KM</span>
+            </div>
+          </div>
+
+          <!-- Spesifikasi Tarif Pengiriman -->
+          <div class="mt-2 p-2 bg-sky-50/60 rounded-xl border border-sky-100 text-[11px] space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Tarif Ongkir Kilat:</span>
+              <span class="font-bold text-slate-800">${baseFeeFmt} + (${perKmFmt}/KM)</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Gratis Ongkir Min.:</span>
+              <span class="font-extrabold text-emerald-600">${minSpendFmt}</span>
+            </div>
+            ${b.store_whatsapp ? `
+              <div class="flex items-center justify-between pt-1 border-t border-sky-200/50">
+                <span class="text-slate-500">WA Cabang:</span>
+                <a href="https://wa.me/${b.store_whatsapp}" target="_blank" class="font-bold text-[#25D366] hover:underline flex items-center gap-1">
+                  <i class="fab fa-whatsapp"></i> ${b.store_whatsapp}
+                </a>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Tombol Aksi Bawah: Toggle Buka/Tutup & Jadikan Hub Utama -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button type="button" onclick="toggleBranchStatus('${b.id}')"
+            class="px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition ${isActive ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'}">
+            <i class="fas ${isActive ? 'fa-door-closed' : 'fa-door-open'}"></i>
+            <span>${isActive ? 'Set Tutup' : 'Set Buka'}</span>
+          </button>
+
+          ${!isMain ? `
+            <button type="button" onclick="setMainBranch('${b.id}')"
+              class="px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-600 border border-slate-200 flex items-center gap-1 transition" title="Jadikan cabang ini sebagai Hub Utama">
+              <i class="far fa-star"></i>
+              <span>Hub Utama</span>
+            </button>
+          ` : `
+            <span class="text-[11px] font-extrabold text-amber-600 flex items-center gap-1">
+              <i class="fas fa-check-circle"></i> Default Pusat
+            </span>
+          `}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/**
+ * Buka Modal Tambah atau Edit Cabang
+ */
+function openBranchModal(branchId = null) {
+  const modal = document.getElementById("branchModal");
+  const title = document.getElementById("branchModalTitle");
+  const form = document.getElementById("branchForm");
+  const resultsBox = document.getElementById("branchFormSearchResults");
+  if (!modal || !form) return;
+
+  if (resultsBox) resultsBox.classList.add("hidden");
+
+  if (branchId) {
+    const branch = adminStoreBranchesList.find(b => String(b.id) === String(branchId));
+    if (branch) {
+      if (title) title.textContent = "Edit Cabang Toko";
+      document.getElementById("branchFormId").value = branch.id;
+      document.getElementById("branchFormCode").value = branch.branch_code || "";
+      document.getElementById("branchFormName").value = branch.name || "";
+      document.getElementById("branchFormAddress").value = branch.address || "";
+      document.getElementById("branchFormLat").value = branch.latitude ?? -6.1432;
+      document.getElementById("branchFormLng").value = branch.longitude ?? 106.7025;
+      document.getElementById("branchFormMaxDist").value = branch.max_delivery_distance_km ?? 10;
+      document.getElementById("branchFormBaseFee").value = branch.base_delivery_fee ?? 10000;
+      document.getElementById("branchFormFeePerKm").value = branch.delivery_fee_per_km ?? 2500;
+      document.getElementById("branchFormMinSpend").value = branch.free_delivery_min_spend ?? 30000;
+      document.getElementById("branchFormWhatsapp").value = branch.store_whatsapp || "6287782603733";
+      document.getElementById("branchFormIsActive").checked = !!branch.is_active;
+      document.getElementById("branchFormIsMain").checked = !!branch.is_main_branch;
+    }
+  } else {
+    if (title) title.textContent = "Tambah Cabang Toko Baru";
+    form.reset();
+    document.getElementById("branchFormId").value = "";
+    document.getElementById("branchFormCode").value = `HUB-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    document.getElementById("branchFormMaxDist").value = "10";
+    document.getElementById("branchFormBaseFee").value = "10000";
+    document.getElementById("branchFormFeePerKm").value = "2500";
+    document.getElementById("branchFormMinSpend").value = "30000";
+    document.getElementById("branchFormWhatsapp").value = "6287782603733";
+    document.getElementById("branchFormIsActive").checked = true;
+    document.getElementById("branchFormIsMain").checked = adminStoreBranchesList.length === 0;
+  }
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeBranchModal() {
+  const modal = document.getElementById("branchModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+/**
+ * Cari Alamat Cabang di Peta OpenStreetMap (Modal)
+ */
+async function searchBranchModalLocation() {
+  const input = document.getElementById("branchFormSearchInput");
+  const resultsBox = document.getElementById("branchFormSearchResults");
+  if (!input || !resultsBox) return;
+
+  const q = input.value.trim();
+  if (!q) {
+    showAdminToast("Masukkan nama jalan atau daerah cabang yang dicari.", "info");
+    return;
+  }
+
+  // Cek apakah koordinat langsung
+  const coordMatch = q.match(/(-?\d{1,2}\.\d{3,10})\s*,\s*(-?\d{1,3}\.\d{3,10})/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    document.getElementById("branchFormLat").value = lat;
+    document.getElementById("branchFormLng").value = lng;
+    resultsBox.classList.add("hidden");
+    showAdminToast(`Koordinat (${lat}, ${lng}) diterapkan!`, "success");
+    return;
+  }
+
+  resultsBox.classList.remove("hidden");
+  resultsBox.innerHTML = `<div class="p-2.5 text-slate-400 text-xs"><i class="fas fa-spinner fa-spin mr-1"></i> Mencari alamat...</div>`;
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=5`);
+    const list = await res.json();
+    if (!Array.isArray(list) || list.length === 0) {
+      resultsBox.innerHTML = `<div class="p-2.5 text-rose-500 text-xs">Alamat tidak ditemukan. Coba kata kunci yang lebih umum.</div>`;
+      return;
+    }
+
+    resultsBox.innerHTML = list.map(item => {
+      const safeName = String(item.display_name || "").replace(/'/g, "\\'");
+      return `
+        <div onclick="applyBranchModalSearchResult(${parseFloat(item.lat)}, ${parseFloat(item.lon)}, '${safeName}')"
+          class="p-2 hover:bg-sky-50 cursor-pointer transition flex items-center justify-between gap-2">
+          <div class="truncate">
+            <div class="font-bold text-slate-800 text-xs truncate">${item.display_name}</div>
+            <div class="text-[10px] text-slate-400 font-mono">Lat: ${item.lat}, Lng: ${item.lon}</div>
+          </div>
+          <span class="px-2 py-0.5 bg-sky-100 text-[#0077d6] font-bold rounded text-[10px] shrink-0">Pilih</span>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    resultsBox.innerHTML = `<div class="p-2.5 text-rose-500 text-xs">Gagal mencari alamat: ${err.message}</div>`;
+  }
+}
+
+function applyBranchModalSearchResult(lat, lng, displayName) {
+  const latEl = document.getElementById("branchFormLat");
+  const lngEl = document.getElementById("branchFormLng");
+  const addrEl = document.getElementById("branchFormAddress");
+  const resultsBox = document.getElementById("branchFormSearchResults");
+
+  if (latEl) latEl.value = Number(lat).toFixed(6);
+  if (lngEl) lngEl.value = Number(lng).toFixed(6);
+  if (addrEl && displayName) addrEl.value = displayName;
+  if (resultsBox) resultsBox.classList.add("hidden");
+
+  showAdminToast("Titik koordinat & alamat cabang berhasil dipilih!", "success");
+}
+
+function detectBranchModalGps() {
+  if (!navigator.geolocation) {
+    showAdminToast("Browser Anda tidak mendukung Geolocation GPS.", "error");
+    return;
+  }
+  showAdminToast("Mendeteksi titik GPS saat ini...", "info");
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const latEl = document.getElementById("branchFormLat");
+      const lngEl = document.getElementById("branchFormLng");
+      const addrEl = document.getElementById("branchFormAddress");
+
+      if (latEl) latEl.value = lat;
+      if (lngEl) lngEl.value = lng;
+
+      try {
+        const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const revData = await rev.json();
+        if (revData && revData.display_name && addrEl) {
+          addrEl.value = revData.display_name;
+        }
+      } catch (_) {}
+
+      showAdminToast(`Titik GPS (${lat}, ${lng}) berhasil diterapkan!`, "success");
+    },
+    (err) => {
+      showAdminToast(`Gagal mendeteksi GPS: ${err.message}`, "error");
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+/**
+ * Simpan Data Cabang dari Modal ke Supabase
+ */
+async function handleSaveBranchModal(event) {
+  event.preventDefault();
+  const client = getAdminSupabaseClient();
+  if (!client) {
+    showAdminToast("Koneksi database Supabase tidak tersedia!", "error");
+    return;
+  }
+
+  const idVal = document.getElementById("branchFormId")?.value.trim();
+  const codeVal = document.getElementById("branchFormCode")?.value.trim().toUpperCase();
+  const nameVal = document.getElementById("branchFormName")?.value.trim();
+  const addrVal = document.getElementById("branchFormAddress")?.value.trim();
+  const latVal = parseFloat(document.getElementById("branchFormLat")?.value);
+  const lngVal = parseFloat(document.getElementById("branchFormLng")?.value);
+  const maxDistVal = parseFloat(document.getElementById("branchFormMaxDist")?.value) || 10;
+  const baseFeeVal = parseFloat(document.getElementById("branchFormBaseFee")?.value) || 10000;
+  const feePerKmVal = parseFloat(document.getElementById("branchFormFeePerKm")?.value) || 2500;
+  const minSpendVal = parseFloat(document.getElementById("branchFormMinSpend")?.value) || 30000;
+  const waVal = document.getElementById("branchFormWhatsapp")?.value.trim() || "6287782603733";
+  const isActiveVal = document.getElementById("branchFormIsActive")?.checked ?? true;
+  const isMainVal = document.getElementById("branchFormIsMain")?.checked ?? false;
+
+  if (!codeVal || !nameVal || !addrVal || isNaN(latVal) || isNaN(lngVal)) {
+    showAdminToast("Harap isi Kode Cabang, Nama, Alamat, dan Titik Koordinat Lat/Lng dengan benar!", "error");
+    return;
+  }
+
+  const btn = document.getElementById("saveBranchSubmitBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...`;
+  }
+
+  const branchPayload = {
+    branch_code: codeVal,
+    name: nameVal,
+    address: addrVal,
+    latitude: latVal,
+    longitude: lngVal,
+    max_delivery_distance_km: maxDistVal,
+    base_delivery_fee: baseFeeVal,
+    delivery_fee_per_km: feePerKmVal,
+    free_delivery_min_spend: minSpendVal,
+    store_whatsapp: waVal,
+    is_active: isActiveVal,
+    is_main_branch: isMainVal,
+    updated_at: new Date().toISOString()
+  };
+
+  if (idVal) {
+    branchPayload.id = idVal;
+  }
+
+  try {
+    // 1. Jika dijadikan Hub Utama, set is_main_branch = false untuk cabang lainnya
+    if (isMainVal) {
+      try {
+        await client
+          .from("store_branches")
+          .update({ is_main_branch: false })
+          .neq("branch_code", codeVal);
+      } catch (_) {}
+
+      adminStoreBranchesList.forEach(b => {
+        if (b.branch_code !== codeVal) b.is_main_branch = false;
+      });
+    }
+
+    // 2. Simpan ke tabel store_branches
+    let saveError = null;
+    try {
+      const { data, error } = await client
+        .from("store_branches")
+        .upsert(branchPayload, { onConflict: "branch_code" })
+        .select()
+        .single();
+
+      if (error) saveError = error;
+      else if (data) {
+        branchPayload.id = data.id;
+      }
+    } catch (err) {
+      saveError = err;
+    }
+
+    // 3. Update list lokal
+    const existingIdx = adminStoreBranchesList.findIndex(b =>
+      (idVal && b.id === idVal) || b.branch_code === codeVal
+    );
+
+    if (existingIdx >= 0) {
+      adminStoreBranchesList[existingIdx] = {
+        ...adminStoreBranchesList[existingIdx],
+        ...branchPayload
+      };
+    } else {
+      if (!branchPayload.id) {
+        branchPayload.id = `branch-${Date.now()}`;
+      }
+      adminStoreBranchesList.push(branchPayload);
+    }
+
+    // 4. Sinkronisasi fail-safe ke store_settings id: store_branches_list
+    try {
+      await client
+        .from("store_settings")
+        .upsert({
+          id: "store_branches_list",
+          is_store_open: true,
+          auto_close_notes: JSON.stringify(adminStoreBranchesList),
+          updated_at: new Date().toISOString()
+        }, { onConflict: "id" });
+    } catch (_) {}
+
+    // 5. Jika ini adalah Hub Utama, perbarui juga settingStore di web admin
+    if (isMainVal) {
+      const nameInput = document.getElementById("settingStoreName");
+      const addrInput = document.getElementById("settingStoreAddress");
+      const latInput = document.getElementById("settingStoreLat");
+      const lngInput = document.getElementById("settingStoreLng");
+      if (nameInput) nameInput.value = nameVal;
+      if (addrInput) addrInput.value = addrVal;
+      if (latInput) latInput.value = latVal;
+      if (lngInput) lngInput.value = lngVal;
+    }
+
+    closeBranchModal();
+    renderAdminStoreBranchesList();
+    showAdminToast(`Cabang "${nameVal}" berhasil disimpan ke Supabase!`, "success");
+
+  } catch (err) {
+    console.error("Gagal menyimpan cabang:", err);
+    showAdminToast(`Gagal menyimpan cabang: ${err.message}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-save mr-1"></i> Simpan Cabang`;
+    }
+  }
+}
+
+/**
+ * Toggle Status Buka / Tutup Cabang
+ */
+async function toggleBranchStatus(branchId) {
+  const branch = adminStoreBranchesList.find(b => String(b.id) === String(branchId));
+  if (!branch) return;
+
+  const newStatus = !branch.is_active;
+  branch.is_active = newStatus;
+  renderAdminStoreBranchesList();
+
+  const client = getAdminSupabaseClient();
+  if (!client) return;
+
+  try {
+    // 1. Update tabel store_branches
+    try {
+      await client
+        .from("store_branches")
+        .update({ is_active: newStatus, updated_at: new Date().toISOString() })
+        .eq("id", branch.id);
+    } catch (_) {}
+
+    // 2. Update store_settings store_branches_list
+    await client
+      .from("store_settings")
+      .upsert({
+        id: "store_branches_list",
+        is_store_open: true,
+        auto_close_notes: JSON.stringify(adminStoreBranchesList),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+
+    showAdminToast(`Status ${branch.name} diubah menjadi: ${newStatus ? 'BUKA' : 'TUTUP'}`, "info");
+  } catch (err) {
+    console.error("Gagal toggle cabang:", err);
+  }
+}
+
+/**
+ * Jadikan Cabang Sebagai Hub Utama
+ */
+async function setMainBranch(branchId) {
+  const branch = adminStoreBranchesList.find(b => String(b.id) === String(branchId));
+  if (!branch) return;
+
+  adminStoreBranchesList.forEach(b => {
+    b.is_main_branch = (String(b.id) === String(branchId));
+  });
+  renderAdminStoreBranchesList();
+
+  const client = getAdminSupabaseClient();
+  if (!client) return;
+
+  try {
+    // 1. Update di store_branches
+    try {
+      await client.from("store_branches").update({ is_main_branch: false }).neq("id", branch.id);
+      await client.from("store_branches").update({ is_main_branch: true }).eq("id", branch.id);
+    } catch (_) {}
+
+    // 2. Update store_settings
+    await client
+      .from("store_settings")
+      .upsert({
+        id: "store_branches_list",
+        is_store_open: true,
+        auto_close_notes: JSON.stringify(adminStoreBranchesList),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+
+    // 3. Update field Hub Utama di Web Admin form
+    const nameInput = document.getElementById("settingStoreName");
+    const addrInput = document.getElementById("settingStoreAddress");
+    const latInput = document.getElementById("settingStoreLat");
+    const lngInput = document.getElementById("settingStoreLng");
+    if (nameInput) nameInput.value = branch.name;
+    if (addrInput) addrInput.value = branch.address;
+    if (latInput) latInput.value = branch.latitude;
+    if (lngInput) lngInput.value = branch.longitude;
+
+    showAdminToast(`"${branch.name}" sekarang dijadikan Hub Utama Shinemart!`, "success");
+  } catch (err) {
+    console.error("Gagal setMainBranch:", err);
+  }
+}
+
+/**
+ * Hapus Cabang Toko
+ */
+async function deleteBranch(branchId) {
+  const branch = adminStoreBranchesList.find(b => String(b.id) === String(branchId));
+  if (!branch) return;
+
+  if (branch.is_main_branch) {
+    showAdminToast("Cabang Hub Utama tidak dapat dihapus. Tentukan Hub Utama lain terlebih dahulu!", "warning");
+    return;
+  }
+
+  if (!confirm(`Apakah Anda yakin ingin menghapus cabang "${branch.name}" (${branch.branch_code})?`)) {
+    return;
+  }
+
+  adminStoreBranchesList = adminStoreBranchesList.filter(b => String(b.id) !== String(branchId));
+  renderAdminStoreBranchesList();
+
+  const client = getAdminSupabaseClient();
+  if (!client) return;
+
+  try {
+    try {
+      await client.from("store_branches").delete().eq("id", branch.id);
+    } catch (_) {}
+
+    await client
+      .from("store_settings")
+      .upsert({
+        id: "store_branches_list",
+        is_store_open: true,
+        auto_close_notes: JSON.stringify(adminStoreBranchesList),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+
+    showAdminToast(`Cabang "${branch.name}" berhasil dihapus dari database!`, "success");
+  } catch (err) {
+    console.error("Gagal menghapus cabang:", err);
+    showAdminToast(`Gagal menghapus: ${err.message}`, "error");
   }
 }
 
