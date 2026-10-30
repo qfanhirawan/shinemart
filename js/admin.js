@@ -54,6 +54,7 @@ function formatGoogleDriveImageUrl(url) {
 
 let parsedExcelProducts = [];
 let liveSupabaseProducts = [];
+let selectedProductEditFile = null;
 
 let adminSupabaseInstance = null;
 
@@ -1038,6 +1039,13 @@ function openEditProductModal(productId) {
     return;
   }
 
+  // Reset file upload
+  selectedProductEditFile = null;
+  const fileInput = document.getElementById("editProductImageFile");
+  if (fileInput) fileInput.value = "";
+  const fileLabel = document.getElementById("editProductImageFileLabel");
+  if (fileLabel) fileLabel.textContent = "Pilih & Upload File Foto ke Supabase Storage";
+
   const idInput = document.getElementById("editProductId");
   const nameInput = document.getElementById("editProductName");
   const catInput = document.getElementById("editProductCategory");
@@ -1095,11 +1103,59 @@ function openEditProductModal(productId) {
  * Tutup modal edit produk
  */
 function closeEditProductModal() {
+  selectedProductEditFile = null;
   const modal = document.getElementById("editProductModal");
   if (modal) {
     modal.classList.add("hidden");
     modal.classList.remove("flex");
   }
+}
+
+/**
+ * Handler saat file foto produk dipilih untuk upload ke Supabase Storage
+ */
+function handleProductImageFileSelected(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran gambar melebihi batas 5 MB. Silakan pilih foto dengan ukuran lebih kecil.");
+      input.value = "";
+      return;
+    }
+    selectedProductEditFile = file;
+    const label = document.getElementById("editProductImageFileLabel");
+    if (label) {
+      label.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+    }
+
+    // Pratinjau lokal langsung seketika
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imgPreview = document.getElementById("editImagePreview");
+      const btnExternal = document.getElementById("btnOpenEditImageExternal");
+      if (imgPreview && e.target && e.target.result) {
+        imgPreview.src = e.target.result;
+      }
+      if (btnExternal && e.target && e.target.result) {
+        btnExternal.href = e.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+/**
+ * Handler saat user mengetik / paste URL gambar secara manual
+ */
+function handleProductImageUrlInput(url) {
+  selectedProductEditFile = null;
+  const fileInput = document.getElementById("editProductImageFile");
+  if (fileInput) fileInput.value = "";
+  const label = document.getElementById("editProductImageFileLabel");
+  if (label) {
+    label.textContent = "Pilih & Upload File Foto ke Supabase Storage";
+  }
+  updateEditImagePreview(url);
 }
 
 /**
@@ -1187,13 +1243,52 @@ async function handleSaveEditedProduct(event) {
   }
 
   try {
+    let finalImageUrl = imageUrl;
+
+    // 1. Jika ada file lokal yang dipilih, upload langsung ke Supabase Storage (bucket 'products')
+    if (selectedProductEditFile) {
+      if (btnSave) {
+        btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Mengupload Gambar ke Storage...`;
+      }
+      const fileExt = selectedProductEditFile.name.split('.').pop() || 'jpg';
+      const cleanFileName = `prod_${id}_${Date.now()}.${fileExt}`;
+
+      const { data: uploadData, error: uploadErr } = await supabaseClient.storage
+        .from("products")
+        .upload(cleanFileName, selectedProductEditFile, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: selectedProductEditFile.type || "image/jpeg"
+        });
+
+      if (uploadErr) {
+        console.error("Gagal upload gambar produk ke Supabase Storage:", uploadErr);
+        throw new Error(`Upload gambar gagal: ${uploadErr.message}. Pastikan bucket 'products' Supabase Storage siap.`);
+      }
+
+      const { data: publicUrlData } = supabaseClient.storage
+        .from("products")
+        .getPublicUrl(cleanFileName);
+
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error("Gagal mendapatkan Public URL gambar dari Supabase Storage.");
+      }
+
+      finalImageUrl = publicUrlData.publicUrl;
+    }
+
+    if (btnSave) {
+      btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan Database...`;
+    }
+
     const updatedPayload = {
       name: name,
       category: category,
       price: price,
       unit: unit,
       stock: finalStock,
-      image_url: imageUrl
+      image_url: finalImageUrl,
+      is_active: true // Aktifkan kembali produk jika sebelumnya disembunyikan
     };
 
     const { data, error } = await supabaseClient
@@ -1222,7 +1317,7 @@ async function handleSaveEditedProduct(event) {
           localData[lIdx] = {
             ...localData[lIdx],
             ...updatedPayload,
-            imageUrl: imageUrl
+            imageUrl: finalImageUrl
           };
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
         }
@@ -1231,6 +1326,7 @@ async function handleSaveEditedProduct(event) {
       }
     }
 
+    selectedProductEditFile = null;
     const promoLabel = promoType !== "none" ? " dan status promo diaktifkan" : "";
     showAdminToast(`Produk "${name}" berhasil diperbarui${promoLabel}!`, "success");
     closeEditProductModal();
