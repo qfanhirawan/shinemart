@@ -51,6 +51,7 @@
 
   <!-- Custom Styles System -->
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/flyer-print.css?v=1.3">
 </head>
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-[#38b6ff] selection:text-white">
@@ -141,61 +142,119 @@
   </section>
 
   <!-- ================= MAIN ADMIN CONTENT (HIDDEN UNTIL LOGIN) ================= -->
-  <main id="adminMainContent" class="hidden py-8 px-4 max-w-7xl mx-auto space-y-6">
+  <main id="adminMainContent" class="hidden py-6 px-3 sm:px-6 max-w-[1460px] mx-auto">
+    <div class="flex flex-col lg:flex-row gap-5 items-start">
 
-    <!-- ================= ADMIN NAVIGATION TABS ================= -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 sm:p-4 rounded-3xl border border-slate-200/90 shadow-sm">
-      <div class="flex items-center gap-1.5 sm:gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 w-full sm:w-auto overflow-x-auto scrollbar-none">
-        <button id="tabBtnOrders" onclick="switchAdminTab('orders')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative whitespace-nowrap shrink-0">
-          <i class="fas fa-bell text-[#ff66c4] animate-pulse"></i>
-          <span>Live Orders</span>
-          <span id="adminOrdersLiveBadge" class="bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-0.5">0</span>
-        </button>
-        <button id="tabBtnProducts" onclick="switchAdminTab('products')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
-          <i class="fas fa-box"></i>
-          <span>Kelola Produk</span>
-        </button>
-        <button id="tabBtnBanners" onclick="switchAdminTab('banners')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
-          <i class="fas fa-images text-[#ff66c4]"></i>
-          <span>Banner Hero</span>
-          <span id="adminBannerCountBadge" class="bg-pink-100 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
-        </button>
-        <button id="tabBtnSections" onclick="switchAdminTab('sections')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
-          <i class="fas fa-sliders-h text-[#38b6ff]"></i>
-          <span>Seksi Promo Shinemart</span>
-          <span id="adminSectionCountBadge" class="bg-sky-100 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full ml-1">0</span>
-        </button>
-        <button id="tabBtnAppSettings" onclick="switchAdminTab('appSettings')"
-          class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0">
-          <i class="fas fa-mobile-alt text-emerald-600"></i>
-          <span>Pengaturan App Mobile</span>
-        </button>
+    <!-- ================= COLLAPSIBLE LEFT SIDEBAR NAVIGATION ================= -->
+    <aside id="adminSidebar" class="sm-admin-sidebar bg-white rounded-3xl border border-slate-200/90 shadow-sm p-2.5 lg:sticky lg:top-24 z-20">
+      <!-- Sidebar Header & Collapse Toggle -->
+      <div class="sidebar-header-row flex items-center justify-between px-2 py-1.5 mb-2 border-b border-slate-100">
+        <span class="sidebar-header-title text-[10px] font-black uppercase tracking-wider text-slate-400">Menu Admin</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="toggleMobileAdminMenu()" class="lg:hidden px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold flex items-center gap-1.5">
+            <i class="fas fa-bars"></i>
+            <span>Menu</span>
+          </button>
+          <button type="button" id="btnToggleAdminSidebar" onclick="toggleAdminSidebar()"
+            title="Sembunyikan / Perbesar Menu"
+            class="hidden lg:inline-flex w-8 h-8 rounded-xl bg-slate-100 hover:bg-sky-50 text-slate-600 hover:text-[#0077d6] items-center justify-center transition">
+            <i class="fas fa-chevron-left sidebar-toggle-icon text-xs transition-transform duration-200"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Quick Action Buttons on Top Bar -->
-      <div class="flex items-center gap-2 justify-end">
-        <button onclick="openSqlGuideModal()"
-          class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-200"
-          title="Petunjuk Setup Supabase">
-          <i class="fas fa-database text-[#38b6ff]"></i>
-          <span class="hidden md:inline">Setup Supabase</span>
+      <!-- Nav Menu Items -->
+      <nav id="adminSidebarNav" class="hidden lg:flex flex-col gap-1">
+        <button id="tabBtnOrders" onclick="switchAdminTab('orders')" title="Live Orders"
+          class="sidebar-nav-btn is-active">
+          <span class="sidebar-icon-box text-[#ff66c4]">
+            <i class="fas fa-bell"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Live Orders</span>
+          <span id="adminOrdersLiveBadge" class="sidebar-badge bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
         </button>
-        <button id="btnTopAddBanner" onclick="openAddBannerModal()"
-          class="hidden px-4 py-2.5 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-          <i class="fas fa-plus"></i>
-          <span>Tambah Banner Baru</span>
+
+        <button id="tabBtnProducts" onclick="switchAdminTab('products')" title="Kelola Produk"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-[#0077d6]">
+            <i class="fas fa-box"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Kelola Produk</span>
         </button>
-        <button id="btnTopAddSection" onclick="openAddSectionModal()"
-          class="hidden px-4 py-2.5 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-          <i class="fas fa-plus"></i>
-          <span>Tambah Seksi Promo</span>
+
+        <button id="tabBtnBanners" onclick="switchAdminTab('banners')" title="Banner Hero"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-[#ff66c4]">
+            <i class="fas fa-images"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Banner Hero</span>
+          <span id="adminBannerCountBadge" class="sidebar-badge bg-pink-100 text-[#ff66c4] text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
         </button>
+
+        <button id="tabBtnSections" onclick="switchAdminTab('sections')" title="Seksi Promo Shinemart"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-[#38b6ff]">
+            <i class="fas fa-sliders-h"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Seksi Promo Shinemart</span>
+          <span id="adminSectionCountBadge" class="sidebar-badge bg-sky-100 text-[#0077d6] text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
+        </button>
+
+        <button id="tabBtnAppSettings" onclick="switchAdminTab('appSettings')" title="Pengaturan App Mobile"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-emerald-600">
+            <i class="fas fa-mobile-alt"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Pengaturan App Mobile</span>
+        </button>
+
+        <button id="tabBtnFlyer" onclick="switchAdminTab('flyer')" title="Cetak Flyer A4"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-[#ff66c4]">
+            <i class="fas fa-print"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Cetak Flyer A4</span>
+        </button>
+
+        <div class="my-1.5 border-t border-slate-100"></div>
+
+        <button type="button" onclick="openSqlGuideModal()" title="Setup Supabase"
+          class="sidebar-nav-btn">
+          <span class="sidebar-icon-box text-[#38b6ff]">
+            <i class="fas fa-database"></i>
+          </span>
+          <span class="sidebar-label flex-1 truncate">Setup Supabase</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- ================= RIGHT WORKSPACE COLUMN ================= -->
+    <div id="adminWorkspaceColumn" class="flex-1 min-w-0 w-full space-y-5">
+
+      <!-- Contextual Top Bar for Active Section -->
+      <div id="adminWorkspaceTopBar" class="bg-white px-4 py-3 rounded-2xl border border-slate-200/90 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span id="adminActivePageIcon" class="w-8 h-8 rounded-xl bg-sky-50 text-[#0077d6] flex items-center justify-center text-sm">
+            <i class="fas fa-bell text-[#ff66c4]"></i>
+          </span>
+          <div>
+            <h1 id="adminActivePageTitle" class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">Live Orders</h1>
+            <p id="adminActivePageSubtitle" class="text-[11px] text-slate-400">Pantau &amp; proses pesanan masuk secara real-time</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnTopAddBanner" onclick="openAddBannerModal()"
+            class="hidden px-4 py-2 bg-gradient-to-r from-[#ff66c4] to-[#e043a5] hover:from-[#e043a5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+            <i class="fas fa-plus"></i>
+            <span>Tambah Banner Baru</span>
+          </button>
+          <button id="btnTopAddSection" onclick="openAddSectionModal()"
+            class="hidden px-4 py-2 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0077d6] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+            <i class="fas fa-plus"></i>
+            <span>Tambah Seksi Promo</span>
+          </button>
+        </div>
       </div>
-    </div>
 
     <!-- ================= 0. LIVE ORDERS TAB SECTION (REALTIME) ================= -->
     <div id="ordersTabSection" class="space-y-6">
@@ -1118,6 +1177,343 @@
     </div>
     <!-- END APP SETTINGS TAB SECTION -->
 
+    <!-- ================= 5. FLYER PRINT A4 TAB SECTION ================= -->
+    <div id="flyerTabSection" class="hidden space-y-5">
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+
+        <!-- Left Controls Panel -->
+        <aside class="sm-flyer-controls-panel xl:col-span-4 space-y-4">
+          <!-- Header & Print CTA -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <i class="fas fa-print text-[#ff66c4]"></i>
+                  <span>Generator Flyer Cetak A4</span>
+                </h2>
+                <p id="flyerStatusText" class="text-[11px] text-slate-500 mt-0.5">Siap memuat produk dari database...</p>
+              </div>
+            </div>
+
+            <button type="button" onclick="printFlyerA4()"
+              class="w-full py-3 bg-gradient-to-r from-[#38b6ff] to-[#0077d6] hover:from-[#0099ff] hover:to-[#005fa8] text-white font-extrabold rounded-2xl text-xs sm:text-sm shadow-md shadow-sky-400/25 transition flex items-center justify-center gap-2">
+              <i class="fas fa-file-pdf"></i>
+              <span>Cetak / Simpan PDF (Ukuran A4)</span>
+            </button>
+          </div>
+
+          <!-- Layout & Color Theme Selector -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3 text-xs">
+            <div class="font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fas fa-th text-[#ff66c4]"></i>
+              <span>1. Pilihan Layout &amp; Tema Warna</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-flyer-layout="bento_16" onclick="setFlyerLayoutMode('bento_16')"
+                class="p-2 rounded-xl border-2 border-[#0077d6] bg-sky-50 text-[#0077d6] font-extrabold text-[11px] text-left transition shadow-sm">
+                <div>Bento Retail</div>
+                <div class="text-[10px] opacity-75 font-semibold">16 Produk (Asimetris)</div>
+              </button>
+              <button type="button" data-flyer-layout="spotlight_14" onclick="setFlyerLayoutMode('spotlight_14')"
+                class="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[11px] text-left transition">
+                <div>2 Hero + Grid</div>
+                <div class="text-[10px] opacity-75 font-semibold">14 Produk (2 Besar)</div>
+              </button>
+              <button type="button" data-flyer-layout="grid_4x4" onclick="setFlyerLayoutMode('grid_4x4')"
+                class="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[11px] text-left transition">
+                <div>Katalog Rapi 4×4</div>
+                <div class="text-[10px] opacity-75 font-semibold">16 Produk (Simetris)</div>
+              </button>
+              <button type="button" data-flyer-layout="compact_4x5" onclick="setFlyerLayoutMode('compact_4x5')"
+                class="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[11px] text-left transition">
+                <div>Hemat Kertas 4×5</div>
+                <div class="text-[10px] opacity-75 font-semibold">20 Produk / Hal</div>
+              </button>
+            </div>
+            <input type="hidden" id="flyerLayoutModeSelect" value="bento_16">
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Tema Warna Kotak Harga &amp; Stiker:</label>
+              <select id="flyerColorThemeSelect" onchange="handleFlyerControlChange()"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-[#38b6ff]">
+                <option value="classic">Shinemart Classic (Biru Sky + Kuning + Pink)</option>
+                <option value="pink">Hot Pink Fresh (Pink + Kuning + Biru Sky)</option>
+                <option value="red">Retail Merah Promo (Merah + Kuning)</option>
+                <option value="emerald">Segar &amp; Hemat (Hijau Emerald + Kuning)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom A4 Background & Header Slot -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3.5 text-xs">
+            <div class="font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fas fa-image text-[#0077d6]"></i>
+              <span>2. Background A4 &amp; Header Custom</span>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <label class="flex-1 cursor-pointer px-3 py-2.5 bg-sky-50 hover:bg-sky-100 text-[#0077d6] font-extrabold rounded-xl border border-sky-200 text-center transition flex items-center justify-center gap-1.5">
+                <i class="fas fa-upload"></i>
+                <span>Upload Gambar A4</span>
+                <input type="file" id="flyerBgFileInput" accept="image/*" onchange="handleFlyerBgUpload(event)" class="hidden">
+              </label>
+              <button type="button" onclick="resetFlyerCustomBg()"
+                class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-200 transition">
+                Reset Default
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Upload gambar desain berukuran A4 (210×297 mm). Bagian atas gambar tampil otomatis sebagai header, dan sisanya menjadi latar belakang layout produk.
+            </p>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-bold text-slate-700">Tinggi Area Header</label>
+                <span id="flyerHeaderHeightLabel" class="font-black text-[#0077d6]">146px</span>
+              </div>
+              <input type="range" id="flyerHeaderHeightInput" min="60" max="260" value="146"
+                oninput="handleFlyerControlChange()" class="w-full accent-[#0077d6] cursor-pointer">
+            </div>
+
+            <div class="space-y-2 pt-1 border-t border-slate-100">
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="font-semibold text-slate-700">Tampilkan Garis Bantu Header</span>
+                <input type="checkbox" id="flyerToggleGuide" onchange="handleFlyerControlChange()" class="w-4 h-4 accent-[#0077d6]">
+              </label>
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="font-semibold text-slate-700">Hapus Caption Bawah Foto Otomatis</span>
+                <input type="checkbox" id="flyerToggleCleanPhoto" checked onchange="handleFlyerControlChange()" class="w-4 h-4 accent-[#ff66c4]">
+              </label>
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="font-semibold text-slate-700">Tampilkan Info Strip (Web / WA / Jam)</span>
+                <input type="checkbox" id="flyerToggleInfoStrip" checked onchange="handleFlyerControlChange()" class="w-4 h-4 accent-[#0077d6]">
+              </label>
+            </div>
+          </div>
+
+          <!-- Info Strip & Footer Customization -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3 text-xs">
+            <div class="font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fas fa-edit text-[#ff66c4]"></i>
+              <span>3. Teks Strip Info &amp; Footer</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Web Judul</label>
+                <input type="text" id="flyerStripWebTitle" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Web Keterangan</label>
+                <input type="text" id="flyerStripWebSub" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">WhatsApp</label>
+                <input type="text" id="flyerStripWaTitle" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">WA Keterangan</label>
+                <input type="text" id="flyerStripWaSub" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Buka</label>
+                <input type="text" id="flyerStripHourTitle" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Alamat Singkat</label>
+                <input type="text" id="flyerStripHourSub" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Teks Footer Bawah Flyer</label>
+              <input type="text" id="flyerFooterTextInput" oninput="handleFlyerControlChange()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
+            </div>
+          </div>
+
+          <!-- 16 Slot Product Selector -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3 text-xs">
+            <div class="font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fas fa-th-large text-emerald-600"></i>
+              <span id="flyerSlotCountHeading">4. Isi Produk (16 Slot Flyer)</span>
+            </div>
+
+            <button type="button" onclick="applyFlyerPreset('promo_mix')"
+              class="w-full py-2 px-3 bg-pink-50 hover:bg-pink-100 text-[#e043a5] font-extrabold rounded-xl border border-pink-200 transition flex items-center justify-center gap-1.5">
+              <i class="fas fa-fire"></i>
+              <span>Muat Otomatis Promo Aktif + Pilihan</span>
+            </button>
+
+            <div class="space-y-1.5 pt-1 border-t border-slate-100">
+              <label class="block text-[11px] font-bold text-slate-600">Atau Isi Berdasarkan Kategori:</label>
+              <div class="flex gap-1.5">
+                <select id="flyerCategoryFilterSelect" onchange="flyerCategoryPage = 0; applyFlyerPreset('category', 0)"
+                  class="flex-1 min-w-0 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-[#38b6ff]">
+                  <option value="__all__">Semua Kategori</option>
+                </select>
+                <button type="button" onclick="applyFlyerPreset('category', -1)" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold" title="16 Produk Sebelumnya">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="flyerCategoryPageBadge" class="px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-[10px] whitespace-nowrap">Hal 1 / 1</span>
+                <button type="button" onclick="applyFlyerPreset('category', 1)" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold" title="16 Produk Berikutnya">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-1 border-t border-slate-100">
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <div class="text-[11px] font-bold text-slate-500">Klik nama produk untuk edit foto di kanvas, atau ikon <i class="fas fa-pen text-[#0077d6]"></i> untuk ganti item:</div>
+                <button type="button" onclick="resetAllFlyerPhotoTransforms()" title="Reset semua ukuran & posisi foto ke 100%"
+                  class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold shrink-0 transition">
+                  Reset Semua
+                </button>
+              </div>
+              <div id="flyerSlotsQuickList" class="space-y-1 max-h-64 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Right Live A4 Preview Stage -->
+        <div class="xl:col-span-8 space-y-3">
+          <!-- Sticky Direct-Manipulation Studio Bar -->
+          <div class="sm-flyer-controls-panel sticky top-[84px] z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 shadow-md transition-all">
+            <!-- Row A: Always-available guidance OR active slot header + Zoom Preview -->
+            <div class="px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div id="flyerDefaultStageBar" class="flex items-center gap-2 text-slate-600 font-semibold min-w-0">
+                <span class="w-6 h-6 rounded-lg bg-sky-50 text-[#0077d6] flex items-center justify-center shrink-0 text-[11px]">
+                  <i class="fas fa-hand-pointer"></i>
+                </span>
+                <span class="truncate">Klik foto di kertas A4 untuk <b class="text-slate-800">geser &amp; perbesar</b> langsung • Klik 2× untuk ganti produk</span>
+              </div>
+
+              <div id="flyerInlineHeaderBar" class="hidden items-center gap-2 min-w-0 flex-1">
+                <span id="flyerInlineSlotBadge" class="px-2 py-0.5 rounded-lg bg-[#0077d6] text-white font-black text-[10px] shrink-0">#1</span>
+                <span id="flyerInlineProductName" class="font-extrabold text-slate-800 truncate text-xs">Produk</span>
+                <span class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 text-[#0077d6] text-[10px] font-bold border border-sky-100 shrink-0">
+                  Drag = Geser • Tarik Sudut = Zoom
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <div id="flyerInlineNavActions" class="hidden items-center gap-1">
+                  <button type="button" onclick="navigateSelectedFlyerSlot(-1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[11px]" title="Slot Sebelumnya">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <button type="button" onclick="navigateSelectedFlyerSlot(1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[11px]" title="Slot Berikutnya">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                  <button type="button" onclick="swapSelectedFlyerProduct()" class="px-2.5 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-[#e043a5] border border-pink-200 font-extrabold text-[11px] transition">
+                    Ganti Produk
+                  </button>
+                  <button type="button" onclick="deselectFlyerSlot()" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 text-white font-extrabold text-[11px] transition">
+                    Selesai
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
+                  <span class="font-bold text-slate-500 text-[11px] hidden sm:inline">Preview:</span>
+                  <select id="flyerZoomSelect" onchange="handleFlyerControlChange()" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-[11px]">
+                    <option value="65">65%</option>
+                    <option value="75">75%</option>
+                    <option value="85" selected>85%</option>
+                    <option value="100">100%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row B: Direct Size & Position Controls (only shown when a card is selected) -->
+            <div id="flyerInlineEditorBar" class="hidden px-3.5 py-2 bg-gradient-to-r from-sky-50/90 via-white to-pink-50/70 border-t border-sky-100 rounded-b-2xl flex-wrap items-center justify-between gap-3 text-[11px]">
+              <!-- Scale Slider + Presets -->
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-extrabold text-slate-700 flex items-center gap-1">
+                  <i class="fas fa-search-plus text-[#0077d6]"></i> Ukuran:
+                </span>
+                <div class="flex items-center gap-1 bg-white px-1.5 py-1 rounded-xl border border-slate-200 shadow-sm">
+                  <button type="button" onclick="nudgeSelectedFlyerScale(-10)" class="w-6 h-6 rounded-lg hover:bg-slate-100 font-black text-slate-700" title="Perkecil (-)">−</button>
+                  <input type="range" id="flyerInlineScaleInput" min="40" max="280" step="5" value="100" oninput="handleInlineScaleSlider()" class="w-24 sm:w-28 accent-[#0077d6] cursor-pointer">
+                  <button type="button" onclick="nudgeSelectedFlyerScale(10)" class="w-6 h-6 rounded-lg hover:bg-slate-100 font-black text-slate-700" title="Perbesar (+)">+</button>
+                  <span id="flyerInlineScaleVal" class="min-w-[40px] text-center font-black text-[#0077d6]">100%</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button type="button" data-flyer-scale-preset="80" onclick="setSelectedFlyerScale(80)" class="px-2 py-1 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 font-bold text-slate-600 transition">80%</button>
+                  <button type="button" data-flyer-scale-preset="100" onclick="setSelectedFlyerScale(100)" class="px-2 py-1 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 font-bold text-slate-600 transition">100%</button>
+                  <button type="button" data-flyer-scale-preset="135" onclick="setSelectedFlyerScale(135)" class="px-2 py-1 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 font-bold text-slate-600 transition">135%</button>
+                  <button type="button" data-flyer-scale-preset="175" onclick="setSelectedFlyerScale(175)" class="px-2 py-1 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 font-bold text-slate-600 transition">175%</button>
+                </div>
+              </div>
+
+              <!-- Fine Position Nudges + Reset -->
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-extrabold text-slate-700 flex items-center gap-1">
+                  <i class="fas fa-arrows-alt text-[#e043a5]"></i> Posisi:
+                </span>
+                <div class="inline-flex items-center gap-0.5 bg-white p-0.5 rounded-xl border border-slate-200 shadow-sm">
+                  <button type="button" onclick="nudgeSelectedFlyerPosition(-4, 0)" class="w-6 h-6 rounded-lg hover:bg-sky-50 text-slate-700 flex items-center justify-center" title="Geser Kiri"><i class="fas fa-arrow-left text-[10px]"></i></button>
+                  <button type="button" onclick="nudgeSelectedFlyerPosition(0, -4)" class="w-6 h-6 rounded-lg hover:bg-sky-50 text-slate-700 flex items-center justify-center" title="Geser Atas"><i class="fas fa-arrow-up text-[10px]"></i></button>
+                  <button type="button" onclick="centerSelectedFlyerPosition()" class="w-6 h-6 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0077d6] flex items-center justify-center" title="Pusatkan Posisi"><i class="fas fa-crosshairs text-[10px]"></i></button>
+                  <button type="button" onclick="nudgeSelectedFlyerPosition(0, 4)" class="w-6 h-6 rounded-lg hover:bg-sky-50 text-slate-700 flex items-center justify-center" title="Geser Bawah"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                  <button type="button" onclick="nudgeSelectedFlyerPosition(4, 0)" class="w-6 h-6 rounded-lg hover:bg-sky-50 text-slate-700 flex items-center justify-center" title="Geser Kanan"><i class="fas fa-arrow-right text-[10px]"></i></button>
+                </div>
+                <span id="flyerInlineCoordVal" class="px-2 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-500 text-[10px] min-w-[78px] text-center">X:0 Y:0</span>
+                <button type="button" onclick="resetSelectedFlyerTransform()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-extrabold transition">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm-flyer-preview-stage">
+            <div id="smFlyerZoomWrap" class="sm-flyer-zoom-wrap">
+              <div id="smFlyerA4" class="sm-flyer-a4">
+                <div id="smFlyerHeaderSlot" class="sm-flyer-header-slot">
+                  <span class="sm-flyer-header-guide">Area Header Custom (Tampil dari Gambar Background A4)</span>
+                </div>
+
+                <div id="smFlyerInfoStrip" class="sm-flyer-info-strip">
+                  <div class="sm-flyer-strip-item">
+                    <div class="sm-flyer-strip-badge sm-flyer-sb-sky">WEB<br>24 JAM</div>
+                    <div class="sm-flyer-strip-text">
+                      <b id="smFlyerStripWebTitleView">shinemart.id</b>
+                      <span id="smFlyerStripWebSubView">Cek harga &amp; stok terbaru</span>
+                    </div>
+                  </div>
+                  <div class="sm-flyer-strip-item">
+                    <div class="sm-flyer-strip-badge sm-flyer-sb-wa">ORDER<br>WA</div>
+                    <div class="sm-flyer-strip-text">
+                      <b id="smFlyerStripWaTitleView">0851-9896-3411</b>
+                      <span id="smFlyerStripWaSubView">Langsung terhubung kasir</span>
+                    </div>
+                  </div>
+                  <div class="sm-flyer-strip-item">
+                    <div class="sm-flyer-strip-badge sm-flyer-sb-hot">BUKA<br>TIAP HARI</div>
+                    <div class="sm-flyer-strip-text">
+                      <b id="smFlyerStripHourTitleView">07.00 - 22.00 WIB</b>
+                      <span id="smFlyerStripHourSubView">Jl. Utan Jati No.32A</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="smFlyerBoard" class="sm-flyer-board"></div>
+
+                <div id="smFlyerFooter" class="sm-flyer-footer">
+                  *Berlaku di Shinemart Utan Jati, Kalideres - Jakarta Barat &bull; Selama persediaan masih ada &bull; Belanja online di shinemart.id
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- END FLYER PRINT A4 TAB SECTION -->
+
+    </div>
+    <!-- END RIGHT WORKSPACE COLUMN -->
+
+    </div>
   </main>
   <div id="pasteModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
     <div class="modal-content bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
@@ -2461,75 +2857,186 @@
     </div>
   </div>
 
-  <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=5.0-mobile-promo-custom-picker"></script>
-  <script src="js/admin-orders.js"></script>
+  <!-- ================= MODAL PILIH PRODUK SLOT FLYER A4 ================= -->
+  <div id="flyerSlotPickerModal" class="modal-backdrop fixed inset-0 z-[70] hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[85vh]">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#38b6ff] to-[#ff66c4] text-white flex items-center justify-center text-xs">
+            <i class="fas fa-tags"></i>
+          </div>
+          <h3 id="flyerSlotPickerTitle" class="font-extrabold text-sm">Pilih Produk Slot Flyer</h3>
+        </div>
+        <button type="button" onclick="closeFlyerSlotPicker()" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
 
-  <!-- Inline Tab Switcher Fallback (Anti-Cache) -->
+      <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2">
+        <div class="relative flex-1">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text" id="flyerSlotPickerSearch" oninput="filterFlyerSlotPicker()" placeholder="Cari nama atau kategori produk..."
+            class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-[#38b6ff]">
+        </div>
+        <label class="inline-flex items-center gap-1.5 text-xs font-bold text-[#e043a5] bg-pink-50 px-3 py-2 rounded-xl border border-pink-200 cursor-pointer shrink-0">
+          <input type="checkbox" id="flyerSlotPickerPromoOnly" onchange="filterFlyerSlotPicker()" class="accent-[#ff66c4]">
+          <span>Promo Saja</span>
+        </label>
+      </div>
+
+      <div id="flyerSlotPickerList" class="p-3 flex-1 overflow-y-auto space-y-1.5 max-h-[52vh]"></div>
+
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <button type="button" onclick="clearCurrentFlyerSlot()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl text-xs border border-rose-200 transition">
+          Kosongkan Slot
+        </button>
+        <button type="button" onclick="closeFlyerSlotPicker()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Khusus Admin -->
+  <script src="js/admin.js?v=5.2-sidebar-flyer-layouts"></script>
+  <script src="js/admin-orders.js"></script>
+  <script src="js/admin-flyer.js?v=1.3"></script>
+
+  <!-- Sidebar & Tab Switcher Controller -->
   <script>
+    const ADMIN_PAGE_META = {
+      orders: {
+        title: "Live Orders",
+        sub: "Pantau & proses pesanan masuk secara real-time",
+        icon: '<i class="fas fa-bell text-[#ff66c4]"></i>',
+        activeCls: "sidebar-nav-btn is-active"
+      },
+      products: {
+        title: "Kelola Produk",
+        sub: "Upload massal Excel/CSV, edit harga, promo & foto produk",
+        icon: '<i class="fas fa-box text-[#0077d6]"></i>',
+        activeCls: "sidebar-nav-btn is-active"
+      },
+      banners: {
+        title: "Banner Hero",
+        sub: "Atur slide banner promo utama di Website & Mobile App",
+        icon: '<i class="fas fa-images text-[#ff66c4]"></i>',
+        activeCls: "sidebar-nav-btn is-active-pink"
+      },
+      sections: {
+        title: "Seksi Promo Shinemart",
+        sub: "Kelola koleksi carousel promo tematik di halaman depan",
+        icon: '<i class="fas fa-sliders-h text-[#38b6ff]"></i>',
+        activeCls: "sidebar-nav-btn is-active"
+      },
+      appSettings: {
+        title: "Pengaturan App Mobile",
+        sub: "Atur jam operasional, cabang toko & radius pengiriman",
+        icon: '<i class="fas fa-mobile-alt text-emerald-600"></i>',
+        activeCls: "sidebar-nav-btn is-active-emerald"
+      },
+      flyer: {
+        title: "Cetak Flyer A4",
+        sub: "Buat katalog brosur A4 siap cetak dengan background custom",
+        icon: '<i class="fas fa-print text-[#ff66c4]"></i>',
+        activeCls: "sidebar-nav-btn is-active-pink"
+      }
+    };
+
+    function toggleAdminSidebar() {
+      const sidebar = document.getElementById("adminSidebar");
+      if (!sidebar) return;
+      const collapsed = sidebar.classList.toggle("sidebar-collapsed");
+      try {
+        localStorage.setItem("shinemart_admin_sidebar_collapsed", collapsed ? "1" : "0");
+      } catch (e) {}
+    }
+
+    function toggleMobileAdminMenu() {
+      const nav = document.getElementById("adminSidebarNav");
+      if (!nav) return;
+      nav.classList.toggle("hidden");
+      nav.classList.toggle("flex");
+    }
+
+    (function restoreAdminSidebarState() {
+      try {
+        if (localStorage.getItem("shinemart_admin_sidebar_collapsed") === "1") {
+          const sidebar = document.getElementById("adminSidebar");
+          if (sidebar) sidebar.classList.add("sidebar-collapsed");
+        }
+      } catch (e) {}
+    })();
+
     function switchAdminTab(tabName) {
       if (typeof window.currentAdminTab !== 'undefined') window.currentAdminTab = tabName;
-      
-      const ordersTab = document.getElementById("ordersTabSection");
-      const productsTab = document.getElementById("productsTabSection");
-      const bannersTab = document.getElementById("bannersTabSection");
-      const sectionsTab = document.getElementById("sectionsTabSection");
-      const appSettingsTab = document.getElementById("appSettingsTabSection");
 
-      const tabBtnOrders = document.getElementById("tabBtnOrders");
-      const tabBtnProducts = document.getElementById("tabBtnProducts");
-      const tabBtnBanners = document.getElementById("tabBtnBanners");
-      const tabBtnSections = document.getElementById("tabBtnSections");
-      const tabBtnAppSettings = document.getElementById("tabBtnAppSettings");
+      const sections = {
+        orders: document.getElementById("ordersTabSection"),
+        products: document.getElementById("productsTabSection"),
+        banners: document.getElementById("bannersTabSection"),
+        sections: document.getElementById("sectionsTabSection"),
+        appSettings: document.getElementById("appSettingsTabSection"),
+        flyer: document.getElementById("flyerTabSection")
+      };
+
+      const buttons = {
+        orders: document.getElementById("tabBtnOrders"),
+        products: document.getElementById("tabBtnProducts"),
+        banners: document.getElementById("tabBtnBanners"),
+        sections: document.getElementById("tabBtnSections"),
+        appSettings: document.getElementById("tabBtnAppSettings"),
+        flyer: document.getElementById("tabBtnFlyer")
+      };
 
       const btnTopAddBanner = document.getElementById("btnTopAddBanner");
       const btnTopAddSection = document.getElementById("btnTopAddSection");
 
-      if (ordersTab) ordersTab.classList.add("hidden");
-      if (productsTab) productsTab.classList.add("hidden");
-      if (bannersTab) bannersTab.classList.add("hidden");
-      if (sectionsTab) sectionsTab.classList.add("hidden");
-      if (appSettingsTab) appSettingsTab.classList.add("hidden");
-
+      Object.values(sections).forEach((el) => el && el.classList.add("hidden"));
+      Object.values(buttons).forEach((btn) => { if (btn) btn.className = "sidebar-nav-btn"; });
       if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
       if (btnTopAddSection) btnTopAddSection.classList.add("hidden");
 
-      const inactiveClass = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 whitespace-nowrap shrink-0";
-      if (tabBtnOrders) tabBtnOrders.className = inactiveClass;
-      if (tabBtnProducts) tabBtnProducts.className = inactiveClass;
-      if (tabBtnBanners) tabBtnBanners.className = inactiveClass;
-      if (tabBtnSections) tabBtnSections.className = inactiveClass;
-      if (tabBtnAppSettings) tabBtnAppSettings.className = inactiveClass;
+      const key = sections[tabName] ? tabName : "products";
+      const meta = ADMIN_PAGE_META[key];
+      if (sections[key]) sections[key].classList.remove("hidden");
+      if (buttons[key]) buttons[key].className = meta.activeCls;
 
-      if (tabName === "orders") {
-        if (ordersTab) ordersTab.classList.remove("hidden");
-        if (tabBtnOrders) tabBtnOrders.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative whitespace-nowrap shrink-0";
+      const titleEl = document.getElementById("adminActivePageTitle");
+      const subEl = document.getElementById("adminActivePageSubtitle");
+      const iconEl = document.getElementById("adminActivePageIcon");
+      if (titleEl) titleEl.textContent = meta.title;
+      if (subEl) subEl.textContent = meta.sub;
+      if (iconEl) iconEl.innerHTML = meta.icon;
+
+      // Auto-tutup menu mobile setelah memilih tab
+      const nav = document.getElementById("adminSidebarNav");
+      if (nav && window.innerWidth < 1024 && !nav.classList.contains("hidden")) {
+        nav.classList.add("hidden");
+        nav.classList.remove("flex");
+      }
+
+      if (key === "orders") {
         if (typeof loadAdminOrdersList === "function") loadAdminOrdersList();
-      } else if (tabName === "banners") {
-        if (bannersTab) bannersTab.classList.remove("hidden");
+      } else if (key === "banners") {
         if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
-        if (tabBtnBanners) tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4] whitespace-nowrap shrink-0";
         if (typeof loadSupabaseBannersList === "function") loadSupabaseBannersList();
         if (typeof loadMobileBannersList === "function") loadMobileBannersList();
         if (typeof switchBannerPlatformTab === "function") {
           switchBannerPlatformTab(window.currentBannerPlatform || "web");
         }
-      } else if (tabName === "sections") {
-        if (sectionsTab) sectionsTab.classList.remove("hidden");
+      } else if (key === "sections") {
         if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
-        if (tabBtnSections) tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] whitespace-nowrap shrink-0";
         if (typeof loadSupabaseSectionsList === "function") loadSupabaseSectionsList();
         if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
         if (typeof switchSectionPlatformTab === "function") {
           switchSectionPlatformTab(window.currentSectionPlatform || "web");
         }
-      } else if (tabName === "appSettings") {
-        if (appSettingsTab) appSettingsTab.classList.remove("hidden");
-        if (tabBtnAppSettings) tabBtnAppSettings.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-emerald-600 whitespace-nowrap shrink-0";
+      } else if (key === "appSettings") {
         if (typeof loadStoreOperationalSettings === "function") loadStoreOperationalSettings();
+      } else if (key === "flyer") {
+        if (typeof initAdminFlyerTab === "function") initAdminFlyerTab();
       } else {
-        if (productsTab) productsTab.classList.remove("hidden");
-        if (tabBtnProducts) tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] whitespace-nowrap shrink-0";
         if (typeof loadSupabaseProductsList === "function") loadSupabaseProductsList();
       }
     }
