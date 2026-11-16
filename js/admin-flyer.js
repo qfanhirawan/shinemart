@@ -69,9 +69,19 @@ const FLYER_THEMES = {
   emerald: { className: "theme-emerald", star1: "#f59e0b", star2: "#d97706", stroke: "#ffffff" }
 };
 
+const FLYER_LABEL_STYLES = {
+  classic_box:   "",
+  ribbon_tag:    "label-ribbon_tag",
+  pill_burst:    "label-pill_burst",
+  ticket_notch:  "label-ticket_notch",
+  bold_banner:   "label-bold_banner",
+  clean_minimal: "label-clean_minimal"
+};
+
 const DEFAULT_FLYER_CONFIG = {
   layoutMode: "bento_16",
   colorTheme: "classic",
+  labelStyle: "classic_box",
   headerHeight: 146,
   showGuide: false,
   showInfoStrip: true,
@@ -305,6 +315,7 @@ function syncFlyerControlInputs() {
 
   setVal("flyerLayoutModeSelect", flyerConfig.layoutMode);
   setVal("flyerColorThemeSelect", flyerConfig.colorTheme);
+  setVal("flyerLabelStyleSelect", flyerConfig.labelStyle || "classic_box");
   setVal("flyerHeaderHeightInput", flyerConfig.headerHeight);
   const hhLabel = document.getElementById("flyerHeaderHeightLabel");
   if (hhLabel) hhLabel.textContent = `${flyerConfig.headerHeight}px`;
@@ -323,6 +334,28 @@ function syncFlyerControlInputs() {
   setVal("flyerFooterTextInput", flyerConfig.footerText);
 
   updateFlyerLayoutButtonsActive();
+  updateFlyerLabelButtonsActive();
+}
+
+function updateFlyerLabelButtonsActive() {
+  const activeStyle = flyerConfig.labelStyle || "classic_box";
+  document.querySelectorAll("[data-flyer-label-style]").forEach((btn) => {
+    const key = btn.getAttribute("data-flyer-label-style");
+    const active = key === activeStyle;
+    btn.className = active
+      ? "p-1.5 rounded-xl border-2 border-[#0077d6] bg-sky-50 text-[#0077d6] font-extrabold text-[10px] text-left transition flex items-center gap-2 shadow-sm"
+      : "p-1.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[10px] text-left transition flex items-center gap-2";
+  });
+}
+
+function setFlyerLabelStyle(styleKey) {
+  if (!Object.prototype.hasOwnProperty.call(FLYER_LABEL_STYLES, styleKey)) return;
+  flyerConfig.labelStyle = styleKey;
+  const select = document.getElementById("flyerLabelStyleSelect");
+  if (select) select.value = styleKey;
+  updateFlyerLabelButtonsActive();
+  saveFlyerConfigState();
+  applyFlyerVisualSettings();
 }
 
 function updateFlyerLayoutButtonsActive() {
@@ -376,6 +409,12 @@ function applyFlyerVisualSettings() {
     if (themeSpec && themeSpec.className) {
       a4El.classList.add(themeSpec.className);
     }
+
+    a4El.classList.remove("label-ribbon_tag", "label-pill_burst", "label-ticket_notch", "label-bold_banner", "label-clean_minimal");
+    const labelCls = FLYER_LABEL_STYLES[flyerConfig.labelStyle];
+    if (labelCls) {
+      a4El.classList.add(labelCls);
+    }
   }
 
   if (headerSlot) {
@@ -424,6 +463,7 @@ function handleFlyerControlChange() {
 
   flyerConfig.layoutMode = getVal("flyerLayoutModeSelect", flyerConfig.layoutMode);
   flyerConfig.colorTheme = getVal("flyerColorThemeSelect", flyerConfig.colorTheme);
+  flyerConfig.labelStyle = getVal("flyerLabelStyleSelect", flyerConfig.labelStyle || "classic_box");
   flyerConfig.headerHeight = Number(getVal("flyerHeaderHeightInput", 146)) || 146;
 
   const hhLabel = document.getElementById("flyerHeaderHeightLabel");
@@ -443,6 +483,7 @@ function handleFlyerControlChange() {
   flyerConfig.footerText = getVal("flyerFooterTextInput", DEFAULT_FLYER_CONFIG.footerText);
 
   updateFlyerLayoutButtonsActive();
+  updateFlyerLabelButtonsActive();
   saveFlyerConfigState();
   applyFlyerVisualSettings();
 
