@@ -763,6 +763,225 @@
 .sm-flyer-row-five .sm-flyer-p-dec,
 .sm-flyer-board.is-compact-5 .sm-flyer-p-dec { font-size: 11px; }
 
+/* ==========================================================================
+   5 VARIASI DESAIN LABEL HARGA RETAIL (Graphic Designer Pack)
+   ========================================================================== */
+
+/* Variasi 1: Stiker Miring Dinamis (ribbon_tag) */
+.sm-flyer-a4.label-ribbon_tag .sm-flyer-price-box {
+  border-radius: 10px 2px 10px 2px;
+  border: 2px solid #ffffff;
+  outline: 1.5px solid var(--flyer-bar-border);
+  box-shadow: 3px 3px 0 var(--flyer-bar-border);
+  transform: rotate(-1.8deg);
+  margin-right: 2px;
+  margin-bottom: 2px;
+}
+
+.sm-flyer-a4.label-ribbon_tag .sm-flyer-pb-top {
+  border-bottom: 1.5px dashed rgba(255, 255, 255, 0.8);
+  padding: 2px 8px;
+}
+
+.sm-flyer-a4.label-ribbon_tag .sm-flyer-pb-bot {
+  padding: 3px 8px 3px;
+}
+
+/* Variasi 2: Kapsul Pill Modern (pill_burst) */
+.sm-flyer-a4.label-pill_burst .sm-flyer-price-box {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+  align-items: flex-end;
+}
+
+.sm-flyer-a4.label-pill_burst .sm-flyer-pb-top {
+  border-radius: 999px;
+  padding: 1.5px 9px;
+  margin: 0 5px -6px auto;
+  position: relative;
+  z-index: 2;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.22);
+  font-size: 8.5px;
+  gap: 7px;
+}
+
+.sm-flyer-a4.label-pill_burst .sm-flyer-pb-bot {
+  border-radius: 15px;
+  padding: 7px 11px 4px;
+  border: 2px solid var(--flyer-bar-bg);
+  background: linear-gradient(180deg, #fff87a 0%, var(--flyer-price-bg) 100%);
+  box-shadow: 0 3px 7px rgba(15, 23, 42, 0.16);
+}
+
+/* Variasi 3: Kupon Tiket Sobek (ticket_notch) */
+.sm-flyer-a4.label-ticket_notch .sm-flyer-price-box {
+  position: relative;
+  border-radius: 5px;
+  border: 1.5px solid var(--flyer-bar-bg);
+  overflow: visible;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.14);
+}
+
+.sm-flyer-a4.label-ticket_notch .sm-flyer-price-box::before,
+.sm-flyer-a4.label-ticket_notch .sm-flyer-price-box::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border: 1.5px solid var(--flyer-bar-bg);
+  border-radius: 999px;
+  z-index: 3;
+}
+
+.sm-flyer-a4.label-ticket_notch .sm-flyer-price-box::before { left: -5px; }
+.sm-flyer-a4.label-ticket_notch .sm-flyer-price-box::after  { right: -5px; }
+
+.sm-flyer-a4.label-ticket_notch .sm-flyer-pb-top {
+  border-radius: 3px 3px 0 0;
+  border-bottom: 1.5px dashed rgba(255, 255, 255, 0.85);
+  padding: 2px 9px;
+}
+
+.sm-flyer-a4.label-ticket_notch .sm-flyer-pb-bot {
+  border-radius: 0 0 3px 3px;
+  padding: 3px 9px 4px;
+}
+
+.sm-flyer-a4.label-ticket_notch .sm-flyer-pb-rp {
+  background: #ffffff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 8.5px;
+  margin-top: 3px;
+}
+
+/* Variasi 4: Pita Promo Heboh (bold_banner) */
+.sm-flyer-a4.label-bold_banner .sm-flyer-price-box {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+  align-items: flex-end;
+}
+
+.sm-flyer-a4.label-bold_banner .sm-flyer-pb-top {
+  transform: skewX(-10deg);
+  border-radius: 3px;
+  padding: 2px 10px;
+  margin: 0 4px -3px auto;
+  position: relative;
+  z-index: 2;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.25);
+}
+
+.sm-flyer-a4.label-bold_banner .sm-flyer-pb-top > * {
+  transform: skewX(10deg);
+}
+
+.sm-flyer-a4.label-bold_banner .sm-flyer-pb-bot {
+  border-radius: 6px;
+  border: 2px solid #0f172a;
+  box-shadow: 0 3px 0 var(--flyer-bar-bg);
+  padding: 4px 9px 3px;
+  margin-bottom: 3px;
+}
+
+/* Variasi 5: Editorial Minimalis Bersih (clean_minimal) */
+.sm-flyer-a4.label-clean_minimal .sm-flyer-price-box {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-left: 4.5px solid var(--flyer-bar-bg);
+  border-radius: 6px;
+  padding: 3px 8px 4px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  gap: 2px;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-pb-top {
+  background: transparent;
+  padding: 0;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-pb-top > span:first-child {
+  background: #f1f5f9;
+  color: var(--flyer-bar-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 900;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-old-p {
+  color: #64748b;
+  font-size: 9.5px;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-old-p-normal {
+  color: #64748b;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-pb-bot {
+  background: transparent;
+  padding: 0;
+  gap: 4px;
+}
+
+.sm-flyer-a4.label-clean_minimal .sm-flyer-pb-val {
+  color: var(--flyer-bar-border);
+}
+
+/* Miniature Swatch Previews for Left Admin Selector */
+.sm-lbl-swatch {
+  height: 22px;
+  width: 44px;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  flex-shrink: 0;
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+}
+.sm-lbl-swatch-top {
+  background: #0077d6;
+  color: #fff;
+  height: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+  font-size: 5.5px;
+}
+.sm-lbl-swatch-bot {
+  background: #ffe600;
+  color: #0f172a;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 3px;
+  font-size: 8px;
+}
+.sm-lbl-swatch.is-classic { border-radius: 4px; overflow: hidden; border: 1px solid #005fa8; }
+.sm-lbl-swatch.is-ribbon { border-radius: 5px 1px 5px 1px; overflow: hidden; border: 1px solid #fff; outline: 1px solid #005fa8; box-shadow: 2px 2px 0 #005fa8; transform: rotate(-3deg); }
+.sm-lbl-swatch.is-pill .sm-lbl-swatch-top { border-radius: 999px; margin: 0 3px -3px auto; width: 30px; z-index: 1; border: 1px solid #fff; }
+.sm-lbl-swatch.is-pill .sm-lbl-swatch-bot { border-radius: 8px; border: 1.5px solid #0077d6; height: 14px; }
+.sm-lbl-swatch.is-ticket { border-radius: 3px; border: 1px solid #0077d6; overflow: visible; position: relative; }
+.sm-lbl-swatch.is-ticket .sm-lbl-swatch-top { border-bottom: 1px dashed #fff; }
+.sm-lbl-swatch.is-bold .sm-lbl-swatch-top { transform: skewX(-12deg); margin: 0 2px -2px auto; width: 32px; z-index: 1; border: 1px solid #fff; }
+.sm-lbl-swatch.is-bold .sm-lbl-swatch-bot { border: 1.5px solid #0f172a; border-radius: 3px; box-shadow: 0 2px 0 #0077d6; }
+.sm-lbl-swatch.is-minimal { background: #fff; border: 1px solid #cbd5e1; border-left: 3.5px solid #0077d6; border-radius: 4px; padding: 2px 3px; }
+.sm-lbl-swatch.is-minimal .sm-lbl-swatch-top { background: #f1f5f9; color: #0077d6; height: 6px; width: 20px; border-radius: 2px; }
+.sm-lbl-swatch.is-minimal .sm-lbl-swatch-bot { background: transparent; color: #005fa8; height: 11px; padding: 0; }
+
 /* Empty Slot Placeholder */
 .sm-flyer-empty-slot {
   height: 100%;
