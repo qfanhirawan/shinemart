@@ -343,18 +343,50 @@ function setupAdminListeners() {
     }, false);
   }
 
-  // Live search di daftar produk Supabase
+  // Live search di daftar produk Supabase (Nama, Kategori, Barcode)
   const searchInput = document.getElementById("adminSearchInput");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase().trim();
-      const filtered = liveSupabaseProducts.filter(p => 
+      const filtered = liveSupabaseProducts.filter(p =>
         (p.name && p.name.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q))
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.barcode && String(p.barcode).toLowerCase().includes(q))
       );
       renderSupabaseProductsTable(filtered);
     });
   }
+}
+
+function cleanBarcodeValue(rawVal) {
+  if (rawVal === null || rawVal === undefined) return "";
+  let s = String(rawVal).trim();
+  if (!s || s === "-" || s === "0") return "";
+  if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, "");
+  return s;
+}
+
+function mapExcelRowToProduct(row, idx) {
+  const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
+  const price = Number(row["Harga"] || row["Harga Jual"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
+  const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
+  const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
+  const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
+  const stock = row["Stok"] || row["stock"] || "Ready";
+  const barcode = cleanBarcodeValue(row["Barcode"] || row["barcode"] || row["EAN"] || row["ean"]);
+  const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
+  const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
+
+  return {
+    id: productId,
+    name: String(name).trim(),
+    price: price,
+    category: category,
+    imageUrl: formatGoogleDriveImageUrl(imageUrl),
+    stock: String(stock),
+    unit: unit,
+    barcode: barcode
+  };
 }
 
 function handleExcelFileSelect(event) {
@@ -387,29 +419,8 @@ function processExcelBlob(file) {
         return;
       }
 
-      // Mapping kolom fleksibel (Bahasa Indonesia atau Inggris)
-      parsedExcelProducts = rawRows.map((row, idx) => {
-        const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
-        const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
-        const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
-        const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
-        const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
-        const stock = row["Stok"] || row["stock"] || "Ready";
-
-        // Kolom id di database Supabase bertipe BIGINT (angka)
-        const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
-        const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
-
-        return {
-          id: productId,
-          name: String(name).trim(),
-          price: price,
-          category: category,
-          imageUrl: formatGoogleDriveImageUrl(imageUrl),
-          stock: String(stock),
-          unit: unit
-        };
-      }).filter(p => p.name && p.price > 0);
+      // Mapping kolom via helper terpadu
+      parsedExcelProducts = rawRows.map(mapExcelRowToProduct).filter(p => p.name && p.price > 0);
 
       renderPreviewTable(parsedExcelProducts, file.name);
     } catch (err) {
@@ -436,26 +447,7 @@ function tryFallbackTextRead(file) {
       const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
       if (rawRows && rawRows.length > 0) {
-        parsedExcelProducts = rawRows.map((row, idx) => {
-          const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
-          const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
-          const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
-          const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
-          const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
-          const stock = row["Stok"] || row["stock"] || "Ready";
-          const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
-          const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
-
-          return {
-            id: productId,
-            name: String(name).trim(),
-            price: price,
-            category: category,
-            imageUrl: formatGoogleDriveImageUrl(imageUrl),
-            stock: String(stock),
-            unit: unit
-          };
-        }).filter(p => p.name && p.price > 0);
+        parsedExcelProducts = rawRows.map(mapExcelRowToProduct).filter(p => p.name && p.price > 0);
 
         renderPreviewTable(parsedExcelProducts, file.name);
         return;
@@ -509,26 +501,7 @@ function processPastedText() {
       return;
     }
 
-    parsedExcelProducts = rawRows.map((row, idx) => {
-      const name = row["Nama Produk"] || row["nama"] || row["name"] || row["Nama"] || `Produk ${idx + 1}`;
-      const price = Number(row["Harga"] || row["Harga Promo"] || row["price"] || row["harga"] || 0);
-      const category = String(row["Kategori"] || row["category"] || "sembako").toLowerCase().trim();
-      const imageUrl = row["Gambar URL"] || row["URL Foto"] || row["imageUrl"] || row["image"] || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";
-      const unit = String(row["Satuan"] || row["unit"] || "PCS").trim();
-      const stock = row["Stok"] || row["stock"] || "Ready";
-      const rowId = Number(row["ID"] || row["id"] || row["No"] || row["no"]);
-      const productId = !isNaN(rowId) && rowId > 0 ? rowId : (Date.now() + idx + 1);
-
-      return {
-        id: productId,
-        name: String(name).trim(),
-        price: price,
-        category: category,
-        imageUrl: formatGoogleDriveImageUrl(imageUrl),
-        stock: String(stock),
-        unit: unit
-      };
-    }).filter(p => p.name && p.price > 0);
+    parsedExcelProducts = rawRows.map(mapExcelRowToProduct).filter(p => p.name && p.price > 0);
 
     closePasteModal();
     renderPreviewTable(parsedExcelProducts, "Data Tempel CSV");
@@ -571,6 +544,7 @@ function renderPreviewTable(products, fileName) {
           <span class="font-bold text-slate-800">${item.name}</span>
         </div>
       </td>
+      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600">${escapeHtml(item.barcode || "-")}</td>
       <td class="py-2.5 px-3">
         <span class="capitalize font-semibold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded text-[11px]">${item.category}</span>
       </td>
@@ -624,16 +598,23 @@ async function uploadToSupabaseDatabase() {
       if (delError) console.warn("Peringatan saat menghapus produk lama:", delError);
     }
 
-    // Format data untuk Supabase
-    const sbPayload = parsedExcelProducts.map(p => ({
-      id: p.id,
-      name: p.name,
-      price: Number(p.price) || 0,
-      category: p.category,
-      image_url: p.imageUrl,
-      stock: p.stock,
-      unit: p.unit
-    }));
+    // Format data untuk Supabase (sertakan barcode jika ada atau kolom sudah tersedia)
+    const hasBarcodeCol = liveSupabaseProducts.some(p => Object.prototype.hasOwnProperty.call(p || {}, "barcode"));
+    const sbPayload = parsedExcelProducts.map(p => {
+      const row = {
+        id: p.id,
+        name: p.name,
+        price: Number(p.price) || 0,
+        category: p.category,
+        image_url: p.imageUrl,
+        stock: p.stock,
+        unit: p.unit
+      };
+      if (p.barcode || hasBarcodeCol) {
+        row.barcode = p.barcode || "";
+      }
+      return row;
+    });
 
     const { data, error } = await supabaseClient.from("products").upsert(sbPayload);
 
@@ -977,6 +958,11 @@ function renderSupabaseProductsTable(items) {
           <div class="font-bold text-slate-800 text-xs md:text-sm">${item.name}</div>
           <span class="text-[10px] text-slate-400 font-mono">ID: ${item.id}</span>
         </td>
+        <td class="py-3 px-3 whitespace-nowrap">
+          ${item.barcode
+            ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-[11px] border border-slate-200"><i class="fas fa-barcode text-[#0077d6] text-[10px]"></i>${escapeHtml(item.barcode)}</span>`
+            : `<span class="text-[10px] text-slate-300 italic">-</span>`}
+        </td>
         <td class="py-3 px-3">
           <span class="capitalize font-semibold text-[#0077d6] bg-sky-50 px-2 py-0.5 rounded text-[11px]">${item.category || 'sembako'}</span>
         </td>
@@ -1154,6 +1140,8 @@ function openEditProductModal(productId) {
 
   if (priceInput) priceInput.value = product.price || 0;
   if (unitInput) unitInput.value = product.unit || "";
+  const barcodeInput = document.getElementById("editProductBarcode");
+  if (barcodeInput) barcodeInput.value = cleanBarcodeValue(product.barcode);
   
   // Parse info promo (termasuk jadwal aktif/terjadwal) yang tersimpan di field stock
   const promoMeta = parsePromoMeta(product.stock);
@@ -1382,6 +1370,9 @@ async function handleSaveEditedProduct(event) {
       btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-1.5"></i> Menyimpan Database...`;
     }
 
+    const existingProd = liveSupabaseProducts.find(p => String(p.id) === String(id));
+    const barcodeVal = cleanBarcodeValue(document.getElementById("editProductBarcode")?.value);
+
     const updatedPayload = {
       name: name,
       category: category,
@@ -1391,6 +1382,9 @@ async function handleSaveEditedProduct(event) {
       image_url: finalImageUrl,
       is_active: true // Aktifkan kembali produk jika sebelumnya disembunyikan
     };
+    if (barcodeVal || Object.prototype.hasOwnProperty.call(existingProd || {}, "barcode")) {
+      updatedPayload.barcode = barcodeVal;
+    }
 
     const { data, error } = await supabaseClient
       .from("products")
@@ -1483,6 +1477,7 @@ function downloadTemplateExcel() {
       "Nama Produk": "Beras Pandan Wangi 5kg",
       "Harga": 78500,
       "Kategori": "sembako",
+      "Barcode": "8991234567890",
       "Gambar URL": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500",
       "Satuan": "5 kg / Sak",
       "Stok": "Ready 50 sak"
@@ -1491,6 +1486,7 @@ function downloadTemplateExcel() {
       "Nama Produk": "Minyak Goreng Bimoli 2L",
       "Harga": 34500,
       "Kategori": "sembako",
+      "Barcode": "8992345678901",
       "Gambar URL": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500",
       "Satuan": "Pouch 2 Liter",
       "Stok": "Ready Stock"
@@ -1499,6 +1495,7 @@ function downloadTemplateExcel() {
       "Nama Produk": "Fiesta Nugget Crispy 500g",
       "Harga": 48500,
       "Kategori": "frozen",
+      "Barcode": "8993456789012",
       "Gambar URL": "https://images.unsplash.com/photo-1562967914-608f82629710?w=500",
       "Satuan": "Pack 500g",
       "Stok": "Ready di Freezer"
@@ -2427,6 +2424,17 @@ CREATE POLICY "Admin can manage branches" ON public.store_branches FOR ALL USING
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES public.store_branches(id) ON DELETE SET NULL;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS branch_name VARCHAR(150);`;
 
+const SQL_PRODUCTS_BARCODE_SCRIPT = `-- ==============================================================================
+-- SHINEMART SUPABASE - PENAMBAHAN KOLOM BARCODE PADA TABEL PRODUCTS
+-- Jalankan script ini di SQL Editor Supabase agar kolom barcode tersedia.
+-- ==============================================================================
+
+ALTER TABLE public.products
+ADD COLUMN IF NOT EXISTS barcode TEXT DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_products_barcode
+ON public.products (barcode);`;
+
 let currentActiveSqlScript = SQL_MOBILE_PROMOS_SCRIPT;
 
 function switchSqlScriptTab(tabName) {
@@ -2435,6 +2443,7 @@ function switchSqlScriptTab(tabName) {
   const btnSections = document.getElementById("sqlTabBtnSections");
   const btnSettings = document.getElementById("sqlTabBtnSettings");
   const btnBranches = document.getElementById("sqlTabBtnBranches");
+  const btnBarcode = document.getElementById("sqlTabBtnBarcode");
   const codeEl = document.getElementById("sqlScriptContent");
   const descEl = document.getElementById("sqlScriptDescription");
   const tipEl = document.getElementById("sqlScriptTipText");
@@ -2447,8 +2456,14 @@ function switchSqlScriptTab(tabName) {
   if (btnSections) btnSections.className = inactiveClass;
   if (btnSettings) btnSettings.className = inactiveClass;
   if (btnBranches) btnBranches.className = inactiveClass;
+  if (btnBarcode) btnBarcode.className = inactiveClass;
 
-  if (tabName === "banners") {
+  if (tabName === "barcode") {
+    if (btnBarcode) btnBarcode.className = activeClass;
+    currentActiveSqlScript = SQL_PRODUCTS_BARCODE_SCRIPT;
+    if (descEl) descEl.textContent = "Script 1 langkah untuk menambahkan kolom barcode ke tabel products di Supabase:";
+    if (tipEl) tipEl.textContent = "Aman dijalankan berkali-kali (IF NOT EXISTS). Setelah dijalankan, Anda bisa langsung Import Barcode (Excel) di Kelola Produk!";
+  } else if (tabName === "banners") {
     if (btnBanners) btnBanners.className = activeClass;
     currentActiveSqlScript = SQL_BANNERS_SCRIPT;
     if (descEl) descEl.textContent = "Script tabel banners untuk slider promosi di halaman utama Website (Desktop/Katalog Online):";
@@ -6844,6 +6859,210 @@ async function applyBulkPromoToSelected() {
   } catch (err) {
     console.error("Gagal menerapkan promo massal:", err);
     showAdminToast(`Gagal menerapkan promo: ${err.message}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+}
+
+/* ==============================================================================
+   IMPORT & UPDATE KOLOM BARCODE MASSAL DARI EXCEL
+   ============================================================================== */
+let pendingBulkBarcodeUpdates = [];
+
+function openBulkBarcodeModal() {
+  pendingBulkBarcodeUpdates = [];
+  const input = document.getElementById("bulkBarcodeFileInput");
+  const previewBox = document.getElementById("bulkBarcodePreviewBox");
+  const tbody = document.getElementById("bulkBarcodePreviewBody");
+  const btn = document.getElementById("btnApplyBulkBarcode");
+  if (input) input.value = "";
+  if (previewBox) previewBox.classList.add("hidden");
+  if (tbody) tbody.innerHTML = "";
+  if (btn) btn.disabled = true;
+
+  const modal = document.getElementById("bulkBarcodeModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeBulkBarcodeModal() {
+  const modal = document.getElementById("bulkBarcodeModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function normalizeBarcodeMatchKey(str) {
+  return String(str || "")
+    .toLowerCase()
+    .replace(/\(\*\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function handleBulkBarcodeFileSelect(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  if (typeof XLSX === "undefined") {
+    alert("Library SheetJS belum siap. Silakan muat ulang halaman.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+
+      const byId = new Map();
+      const byExactName = new Map();
+      (liveSupabaseProducts || []).forEach((p) => {
+        byId.set(String(p.id), p);
+        byExactName.set(normalizeBarcodeMatchKey(p.name), p);
+      });
+
+      const updates = [];
+      const seenProductIds = new Set();
+      let skippedCount = 0;
+
+      rows.forEach((r) => {
+        const rawBc = r["Barcode"] ?? r["barcode"] ?? r["EAN"] ?? r["ean"] ?? "";
+        const bc = cleanBarcodeValue(rawBc);
+        if (!bc) {
+          skippedCount++;
+          return;
+        }
+
+        const rawId = r["ID"] ?? r["id"] ?? "";
+        const rawName = r["Nama Produk"] ?? r["nama"] ?? r["name"] ?? r["Nama"] ?? "";
+        const rawSource = r["Sumber & Status"] ?? r["Sumber"] ?? "File Excel";
+
+        let matchedProd = rawId ? byId.get(String(rawId).trim()) : null;
+        if (!matchedProd && rawName) {
+          matchedProd = byExactName.get(normalizeBarcodeMatchKey(rawName));
+        }
+
+        if (!matchedProd || seenProductIds.has(String(matchedProd.id))) {
+          skippedCount++;
+          return;
+        }
+
+        seenProductIds.add(String(matchedProd.id));
+        updates.push({
+          id: matchedProd.id,
+          name: matchedProd.name,
+          barcode: bc,
+          source: String(rawSource || "Excel")
+        });
+      });
+
+      pendingBulkBarcodeUpdates = updates;
+
+      const previewBox = document.getElementById("bulkBarcodePreviewBox");
+      const summaryBadge = document.getElementById("bulkBarcodeSummaryBadge");
+      const unmatchedBadge = document.getElementById("bulkBarcodeUnmatchedBadge");
+      const tbody = document.getElementById("bulkBarcodePreviewBody");
+      const btn = document.getElementById("btnApplyBulkBarcode");
+
+      if (previewBox) previewBox.classList.remove("hidden");
+      if (summaryBadge) summaryBadge.textContent = `${updates.length} produk siap diisi barcode`;
+      if (unmatchedBadge) unmatchedBadge.textContent = `${skippedCount} baris tanpa barcode / tidak cocok`;
+      if (btn) btn.disabled = updates.length === 0;
+
+      if (tbody) {
+        if (updates.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400">Tidak ada baris produk+barcode yang cocok dengan daftar Supabase saat ini.</td></tr>`;
+        } else {
+          const sample = updates.slice(0, 120);
+          tbody.innerHTML = sample.map((u) => `
+            <tr class="border-b border-slate-100 text-[11px]">
+              <td class="py-2 px-3 font-bold text-slate-800">${escapeHtml(u.name)}</td>
+              <td class="py-2 px-3 font-mono font-bold text-[#0077d6]">${escapeHtml(u.barcode)}</td>
+              <td class="py-2 px-3 text-slate-500">${escapeHtml(u.source)}</td>
+            </tr>
+          `).join("") + (updates.length > 120 ? `<tr><td colspan="3" class="py-2 px-3 text-center text-[10px] font-bold text-slate-400">...dan ${updates.length - 120} produk lainnya akan ikut disimpan.</td></tr>` : "");
+        }
+      }
+    } catch (err) {
+      console.error("Gagal membaca Excel barcode:", err);
+      showAdminToast("Gagal membaca file Excel barcode.", "error");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function applyBulkBarcodeImport() {
+  if (!Array.isArray(pendingBulkBarcodeUpdates) || pendingBulkBarcodeUpdates.length === 0) return;
+
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) {
+    showAdminToast("Client Supabase tidak tersedia.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btnApplyBulkBarcode");
+  const origHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Menyimpan ${pendingBulkBarcodeUpdates.length} barcode...</span>`;
+  }
+
+  let savedCount = 0;
+  let schemaMissing = false;
+
+  try {
+    const chunkSize = 15;
+    for (let i = 0; i < pendingBulkBarcodeUpdates.length; i += chunkSize) {
+      const chunk = pendingBulkBarcodeUpdates.slice(i, i + chunkSize);
+      const results = await Promise.all(
+        chunk.map(async (u) => {
+          const { error } = await supabaseClient
+            .from("products")
+            .update({ barcode: u.barcode })
+            .eq("id", u.id);
+          return { u, error };
+        })
+      );
+
+      for (const r of results) {
+        if (r.error) {
+          const msg = String(r.error.message || "").toLowerCase();
+          if (msg.includes("barcode") && (msg.includes("column") || msg.includes("schema"))) {
+            schemaMissing = true;
+            break;
+          }
+        } else {
+          savedCount++;
+          const idx = liveSupabaseProducts.findIndex((p) => String(p.id) === String(r.u.id));
+          if (idx !== -1) {
+            liveSupabaseProducts[idx] = { ...liveSupabaseProducts[idx], barcode: r.u.barcode };
+          }
+        }
+      }
+      if (schemaMissing) break;
+    }
+
+    if (schemaMissing) {
+      showAdminToast("Kolom 'barcode' belum dibuat di tabel products Supabase! Jalankan SQL '6. tambah_barcode.sql' dulu.", "error");
+      closeBulkBarcodeModal();
+      openSqlGuideModal("barcode");
+      return;
+    }
+
+    renderSupabaseProductsTable(liveSupabaseProducts);
+    closeBulkBarcodeModal();
+    showAdminToast(`Berhasil menyimpan ${savedCount} barcode ke database Supabase!`, "success");
+  } catch (err) {
+    console.error("Gagal simpan barcode massal:", err);
+    showAdminToast(`Gagal menyimpan barcode: ${err.message}`, "error");
   } finally {
     if (btn) {
       btn.disabled = false;

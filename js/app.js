@@ -328,6 +328,7 @@ function mapProductWithPromo(p) {
     imageUrl: formatGoogleDriveImageUrl(p.image_url || p.imageUrl || p.image),
     stock: promoInfo.cleanStock || "Ready",
     unit: p.unit || "1 Pcs",
+    barcode: String(p.barcode || "").trim(),
     rawStock: p.stock,
     promo: promoInfo.promo,
     promoDetails: promoDetails
@@ -847,7 +848,8 @@ function renderProducts() {
     // Katalog reguler hanya menampilkan produk non-promo agar terpisah jelas dari carousel promo di atas
     const isRegularItem = !(item.promoDetails && item.promoDetails.hasPromo);
     const matchesSearch = item.name.toLowerCase().includes(searchQuery) ||
-      item.category.toLowerCase().includes(searchQuery);
+      item.category.toLowerCase().includes(searchQuery) ||
+      (item.barcode && item.barcode.toLowerCase().includes(searchQuery));
 
     return matchesCategory && matchesSearch && isRegularItem;
   });
