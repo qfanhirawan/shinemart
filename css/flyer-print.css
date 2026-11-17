@@ -293,6 +293,7 @@
 .sm-flyer-row-bento-1 { grid-template-columns: 2fr 1fr 1fr; flex: 1.05; }
 .sm-flyer-row-bento-2 { grid-template-columns: 1fr 1fr 2fr; flex: 1.05; }
 .sm-flyer-row-hero-2  { grid-template-columns: repeat(2, 1fr); flex: 1.22; }
+.sm-flyer-row-hero-3  { grid-template-columns: repeat(3, 1fr); flex: 1.18; }
 .sm-flyer-row-four    { grid-template-columns: repeat(4, 1fr); flex: 1; }
 .sm-flyer-row-five    { grid-template-columns: repeat(5, 1fr); flex: 1; }
 
@@ -574,8 +575,28 @@
   max-height: 132px;
 }
 
+.sm-flyer-board.is-spacious-3 .sm-flyer-cell-media img {
+  max-height: 146px;
+}
+
+.sm-flyer-board.is-spacious-3 .sm-flyer-card-wide .sm-flyer-cell-media img {
+  max-height: 168px;
+}
+
+.sm-flyer-board.is-spacious-3 .sm-flyer-cell-title {
+  font-size: 12px;
+}
+
+.sm-flyer-board.is-spacious-3 .sm-flyer-p-main {
+  font-size: 23px;
+}
+
 .sm-flyer-row-five .sm-flyer-cell-media img {
   max-height: 98px;
+}
+
+.sm-flyer-board.is-spacious-3 .sm-flyer-row-five .sm-flyer-cell-media img {
+  max-height: 130px;
 }
 
 .sm-flyer-board.is-compact-5 .sm-flyer-cell-media img {
