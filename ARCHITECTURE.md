@@ -56,8 +56,12 @@ CREATE TABLE IF NOT EXISTS public.products (
   image_url TEXT,
   stock TEXT DEFAULT 'Ready',
   unit TEXT DEFAULT '1 Pcs',
+  barcode TEXT DEFAULT '',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+-- Migrasi penambahan kolom barcode untuk tabel yang sudah ada:
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS barcode TEXT DEFAULT '';
 
 -- Aktifkan Row Level Security (RLS)
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;

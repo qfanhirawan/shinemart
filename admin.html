@@ -484,6 +484,7 @@
             <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase font-extrabold sticky top-0 z-10">
               <th class="py-3 px-3">No</th>
               <th class="py-3 px-3">Nama Produk</th>
+              <th class="py-3 px-3">Barcode</th>
               <th class="py-3 px-3">Kategori</th>
               <th class="py-3 px-3">Harga</th>
               <th class="py-3 px-3">Satuan</th>
@@ -645,13 +646,20 @@
           <p class="text-xs text-slate-400 mt-0.5">Kelola atau hapus produk yang tersimpan di database</p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- Live Search Admin -->
           <div class="relative">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="adminSearchInput" placeholder="Cari produk..."
+            <input type="text" id="adminSearchInput" placeholder="Cari nama, kategori, atau barcode..."
               class="pl-8 pr-3 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 outline-none focus:border-[#38b6ff] transition">
           </div>
+          <!-- Import Barcode Button -->
+          <button type="button" onclick="openBulkBarcodeModal()"
+            class="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077d6] font-extrabold rounded-xl text-xs border border-sky-200 transition flex items-center gap-1.5"
+            title="Import & Update Kolom Barcode Massal dari File Excel">
+            <i class="fas fa-barcode text-xs"></i>
+            <span>Import Barcode (Excel)</span>
+          </button>
           <!-- Refresh Button -->
           <button onclick="loadSupabaseProductsList()"
             class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5"
@@ -670,6 +678,7 @@
               <th class="py-3 px-3">No</th>
               <th class="py-3 px-3">Foto</th>
               <th class="py-3 px-3">Nama Produk</th>
+              <th class="py-3 px-3">Barcode</th>
               <th class="py-3 px-3">Kategori</th>
               <th class="py-3 px-3">Harga</th>
               <th class="py-3 px-3">Satuan</th>
@@ -680,7 +689,7 @@
           </thead>
           <tbody id="supabaseProductsTableBody">
             <tr>
-              <td colspan="9" class="text-center py-8 text-xs text-slate-400">
+              <td colspan="10" class="text-center py-8 text-xs text-slate-400">
                 <i class="fas fa-spinner fa-spin mr-1.5"></i> Memuat daftar produk dari database...
               </td>
             </tr>
@@ -1882,7 +1891,13 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Barcode (EAN / UPC)</label>
+            <input type="text" id="editProductBarcode" placeholder="Contoh: 8991002105423"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 outline-none focus:border-[#38b6ff] focus:bg-white transition">
+          </div>
+
           <div>
             <label class="block font-bold text-slate-700 mb-1">Satuan</label>
             <input type="text" id="editProductUnit" placeholder="Contoh: 1 Pcs, 500g, Botol"
@@ -2279,6 +2294,11 @@
           class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
           <i class="fas fa-network-wired text-indigo-500"></i>
           <span>5. store_branches.sql</span>
+        </button>
+        <button id="sqlTabBtnBarcode" type="button" onclick="switchSqlScriptTab('barcode')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+          <i class="fas fa-barcode text-[#0077d6]"></i>
+          <span>6. tambah_barcode.sql</span>
         </button>
       </div>
 
@@ -3279,8 +3299,77 @@
     </div>
   </div>
 
+  <!-- ================= MODAL IMPORT BARCODE MASSAL DARI EXCEL ================= -->
+  <div id="bulkBarcodeModal" class="modal-backdrop fixed inset-0 z-[74] hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      <div class="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-[#0077d6] text-white flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center text-base shrink-0">
+            <i class="fas fa-barcode"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="font-extrabold text-sm sm:text-base leading-tight truncate">Import &amp; Update Kolom Barcode Massal</h3>
+            <p class="text-[11px] text-sky-100 truncate">Unggah file Hasil Cocokan Barcode atau Excel kasir untuk mengisi kolom barcode di Supabase otomatis</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeBulkBarcodeModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xs transition shrink-0">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
+        <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="text-amber-900 text-[11px] leading-relaxed">
+            <strong>Pastikan kolom <code class="bg-white px-1 py-0.5 rounded border border-amber-200">barcode</code> sudah dibuat di Supabase:</strong> Jika belum pernah ditambahkan, jalankan dulu 1 baris SQL di menu Setup Supabase.
+          </div>
+          <button type="button" onclick="closeBulkBarcodeModal(); openSqlGuideModal('barcode');"
+            class="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-800 font-extrabold rounded-xl border border-amber-300 text-[11px] shrink-0 transition">
+            Lihat SQL Barcode
+          </button>
+        </div>
+
+        <label class="block border-2 border-dashed border-sky-300 hover:border-[#0077d6] rounded-2xl p-6 text-center bg-sky-50/40 cursor-pointer transition">
+          <i class="fas fa-file-excel text-3xl text-emerald-600 mb-2 block"></i>
+          <div class="font-extrabold text-slate-800 text-sm">Pilih File Excel Barcode (.xlsx / .csv)</div>
+          <div class="text-[11px] text-slate-500 mt-1">Mendukung file <code>Hasil_Cocokan_Barcode_Shinemart.xlsx</code> maupun file Excel dengan kolom Nama Produk + Barcode</div>
+          <input type="file" id="bulkBarcodeFileInput" accept=".xlsx,.xls,.csv" onchange="handleBulkBarcodeFileSelect(event)" class="hidden">
+        </label>
+
+        <div id="bulkBarcodePreviewBox" class="hidden space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="bulkBarcodeSummaryBadge" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px]">0 produk cocok</span>
+            <span id="bulkBarcodeUnmatchedBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-bold text-[11px]">0 dilewati</span>
+          </div>
+          <div class="overflow-x-auto rounded-2xl border border-slate-200 max-h-64 overflow-y-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 text-[10px] uppercase font-extrabold sticky top-0">
+                  <th class="py-2 px-3">Produk di Supabase</th>
+                  <th class="py-2 px-3">Barcode Baru</th>
+                  <th class="py-2 px-3">Sumber / Cocokan</th>
+                </tr>
+              </thead>
+              <tbody id="bulkBarcodePreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+        <button type="button" onclick="closeBulkBarcodeModal()" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          Tutup
+        </button>
+        <button type="button" id="btnApplyBulkBarcode" onclick="applyBulkBarcodeImport()" disabled
+          class="px-5 py-2.5 bg-gradient-to-r from-[#0077d6] to-[#38b6ff] hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center gap-2">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <span>Simpan Semua Barcode ke Supabase</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Script Khusus Admin -->
-  <script src="js/admin.js?v=5.3-promo-monitor-bulk"></script>
+  <script src="js/admin.js?v=5.4-barcode-support"></script>
   <script src="js/admin-orders.js"></script>
   <script src="js/admin-flyer.js?v=1.5"></script>
 
