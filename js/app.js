@@ -62,22 +62,56 @@ function formatGoogleDriveImageUrl(url) {
 }
 
 /**
- * Ekstraksi info promo dari string stok (misal: "Ready [PROMO:percent:20]")
+ * Parse tanggal/jam lokal promo (format: YYYY-MM-DD atau YYYY-MM-DDTHH:MM)
+ */
+function parsePromoDateBoundary(rawStr, isEnd) {
+  if (!rawStr || typeof rawStr !== "string") return null;
+  const trimmed = rawStr.trim();
+  if (!trimmed) return null;
+
+  const m = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const hasTime = m[4] !== undefined;
+  const hour = hasTime ? Number(m[4]) : (isEnd ? 23 : 0);
+  const minute = hasTime ? Number(m[5]) : (isEnd ? 59 : 0);
+  const second = isEnd ? 59 : 0;
+  const ms = isEnd ? 999 : 0;
+
+  const dt = new Date(year, month, day, hour, minute, second, ms);
+  return Number.isNaN(dt.getTime()) ? null : dt.getTime();
+}
+
+/**
+ * Ekstraksi info promo dari string stok (misal: "Ready [PROMO:percent:20]" atau "[PROMO:percent:20|2026-11-17T08:00~2026-11-24T23:59]")
+ * Otomatis mengembalikan harga normal (promo: null) jika periode belum mulai atau sudah berakhir.
  */
 function parsePromo(stockStr) {
   if (!stockStr || typeof stockStr !== "string") {
     return { cleanStock: stockStr || "Ready", promo: null };
   }
-  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)\]/i);
+  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)(?:\|([^~\]]*)~([^\]]*))?\]/i);
   if (match) {
     const type = match[1].toLowerCase();
     const value = Number(match[2]) || 0;
     const cleanStock = stockStr.replace(match[0], "").trim() || "Ready";
+    const startMs = parsePromoDateBoundary(match[3] || "", false);
+    const endMs = parsePromoDateBoundary(match[4] || "", true);
+    const now = Date.now();
+
+    if ((startMs !== null && now < startMs) || (endMs !== null && now > endMs)) {
+      return { cleanStock: cleanStock, promo: null };
+    }
+
     return {
       cleanStock: cleanStock,
       promo: {
         type: type, // 'percent', 'b1g1', 'nominal'
-        value: value
+        value: value,
+        startAt: match[3] || "",
+        endAt: match[4] || ""
       }
     };
   }

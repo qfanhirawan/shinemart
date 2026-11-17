@@ -739,7 +739,10 @@ async function loadSupabaseProductsList() {
     }
 
     liveSupabaseProducts = allData || [];
+    await autoRevertExpiredPromosInSupabase();
     renderSupabaseProductsTable(liveSupabaseProducts);
+    renderPromoMonitoringSection();
+    startPromoExpirationWatcher();
 
     if (countBadge) {
       countBadge.textContent = `${liveSupabaseProducts.length} produk`;
@@ -758,26 +761,96 @@ async function loadSupabaseProductsList() {
 }
 
 /**
- * Ekstraksi info promo dari string stok (misal: "Ready [PROMO:percent:20]")
+ * Parse tanggal/jam lokal promo (format YYYY-MM-DD atau YYYY-MM-DDTHH:MM)
+ */
+function parsePromoDateBoundary(rawStr, isEnd) {
+  if (!rawStr || typeof rawStr !== "string") return null;
+  const trimmed = rawStr.trim();
+  if (!trimmed) return null;
+
+  const m = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const hasTime = m[4] !== undefined;
+  const hour = hasTime ? Number(m[4]) : (isEnd ? 23 : 0);
+  const minute = hasTime ? Number(m[5]) : (isEnd ? 59 : 0);
+  const dt = new Date(year, month, day, hour, minute, isEnd ? 59 : 0, isEnd ? 999 : 0);
+  return Number.isNaN(dt.getTime()) ? null : dt.getTime();
+}
+
+/**
+ * Ekstraksi metadata lengkap promo (aktif / terjadwal / kadaluarsa) untuk monitoring admin
+ */
+function parsePromoMeta(stockStr) {
+  if (!stockStr || typeof stockStr !== "string") {
+    return { cleanStock: stockStr || "Ready", promo: null, status: "none", startAt: "", endAt: "", startMs: null, endMs: null };
+  }
+  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)(?:\|([^~\]]*)~([^\]]*))?\]/i);
+  if (!match) {
+    return { cleanStock: stockStr.trim() || "Ready", promo: null, status: "none", startAt: "", endAt: "", startMs: null, endMs: null };
+  }
+
+  const type = match[1].toLowerCase();
+  const value = Number(match[2]) || 0;
+  const startAt = (match[3] || "").trim();
+  const endAt = (match[4] || "").trim();
+  const startMs = parsePromoDateBoundary(startAt, false);
+  const endMs = parsePromoDateBoundary(endAt, true);
+  const cleanStock = stockStr.replace(match[0], "").trim() || "Ready";
+  const now = Date.now();
+
+  let status = "active";
+  if (endMs !== null && now > endMs) {
+    status = "expired";
+  } else if (startMs !== null && now < startMs) {
+    status = "scheduled";
+  }
+
+  return {
+    cleanStock,
+    status,
+    startAt,
+    endAt,
+    startMs,
+    endMs,
+    promo: { type, value, startAt, endAt }
+  };
+}
+
+/**
+ * Ekstraksi promo yang sedang AKTIF saat ini (otomatis null jika belum mulai atau sudah berakhir)
  */
 function parsePromo(stockStr) {
-  if (!stockStr || typeof stockStr !== "string") {
-    return { cleanStock: stockStr || "Ready", promo: null };
+  const meta = parsePromoMeta(stockStr);
+  return {
+    cleanStock: meta.cleanStock,
+    promo: meta.status === "active" ? meta.promo : null
+  };
+}
+
+/**
+ * Bangun string stock + tag [PROMO:...] secara seragam
+ */
+function buildPromoStockString(cleanStock, promoType, promoValue, startAtStr = "", endAtStr = "") {
+  const base = String(cleanStock || "Ready").trim() || "Ready";
+  const s = String(startAtStr || "").trim();
+  const e = String(endAtStr || "").trim();
+  const periodSuffix = (s || e) ? `|${s}~${e}` : "";
+
+  if (promoType === "percent" && Number(promoValue) > 0) {
+    const pct = Math.min(Math.max(Math.round(Number(promoValue)), 1), 99);
+    return `${base} [PROMO:percent:${pct}${periodSuffix}]`;
   }
-  const match = stockStr.match(/\[PROMO:([a-z0-9_]+):?([0-9.]*)\]/i);
-  if (match) {
-    const type = match[1].toLowerCase();
-    const value = Number(match[2]) || 0;
-    const cleanStock = stockStr.replace(match[0], "").trim() || "Ready";
-    return {
-      cleanStock: cleanStock,
-      promo: {
-        type: type, // 'percent', 'b1g1', 'nominal'
-        value: value
-      }
-    };
+  if (promoType === "nominal" && Number(promoValue) > 0) {
+    const nom = Math.max(0, Math.round(Number(promoValue)));
+    return `${base} [PROMO:nominal:${nom}${periodSuffix}]`;
   }
-  return { cleanStock: stockStr.trim() || "Ready", promo: null };
+  if (promoType === "b1g1") {
+    return `${base} [PROMO:b1g1:1${periodSuffix}]`;
+  }
+  return base;
 }
 
 /**
@@ -845,18 +918,23 @@ function renderSupabaseProductsTable(items) {
 
   tbody.innerHTML = items.map((item, idx) => {
     const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
-    const promoInfo = parsePromo(item.stock);
-    const promoDetails = getPromoDetails(item.price, promoInfo.promo);
+    const promoMeta = parsePromoMeta(item.stock);
+    const promoInfo = { cleanStock: promoMeta.cleanStock, promo: promoMeta.status === "active" ? promoMeta.promo : null };
+    const showScheduledTag = promoMeta.status === "scheduled" && promoMeta.promo;
+    const promoDetails = getPromoDetails(item.price, showScheduledTag ? promoMeta.promo : promoInfo.promo);
 
     let priceHtml = `<div class="font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</div>`;
     if (promoDetails.hasPromo) {
+      const schedBadge = showScheduledTag
+        ? `<span class="inline-flex items-center gap-1 bg-sky-100 text-[#0077d6] font-extrabold text-[9px] px-1.5 py-0.5 rounded ml-1">TERJADWAL</span>`
+        : "";
       if (promoDetails.promoType === "b1g1") {
         priceHtml = `
           <div>
             <div class="font-extrabold text-[#0077d6]">${formatRupiah(item.price)}</div>
             <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 font-extrabold text-[9px] px-1.5 py-0.5 rounded mt-0.5">
               <i class="fas fa-gift text-amber-600"></i> BUY 1 GET 1
-            </span>
+            </span>${schedBadge}
           </div>
         `;
       } else if (promoDetails.promoType === "percent") {
@@ -866,7 +944,7 @@ function renderSupabaseProductsTable(items) {
             <div class="font-extrabold text-pink-600">${formatRupiah(promoDetails.finalPrice)}</div>
             <span class="inline-flex items-center gap-1 bg-pink-100 text-[#ff66c4] font-black text-[9px] px-1.5 py-0.5 rounded mt-0.5">
               <i class="fas fa-fire"></i> DISKON ${promoDetails.promoValue}%
-            </span>
+            </span>${schedBadge}
           </div>
         `;
       } else if (promoDetails.promoType === "nominal") {
@@ -876,7 +954,7 @@ function renderSupabaseProductsTable(items) {
             <div class="font-extrabold text-emerald-600">${formatRupiah(promoDetails.finalPrice)}</div>
             <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 font-black text-[9px] px-1.5 py-0.5 rounded mt-0.5">
               <i class="fas fa-tags"></i> -${formatRupiah(promoDetails.discountAmount)}
-            </span>
+            </span>${schedBadge}
           </div>
         `;
       }
@@ -943,11 +1021,13 @@ function handlePromoTypeChange() {
   const valInput = document.getElementById("editProductPromoValue");
   const summaryBox = document.getElementById("promoSummaryBox");
   const b1g1Notice = document.getElementById("promoB1G1Notice");
+  const periodWrapper = document.getElementById("editPromoPeriodWrapper");
 
   if (type === "none") {
     if (valWrapper) valWrapper.classList.add("hidden");
     if (summaryBox) summaryBox.classList.add("hidden");
     if (b1g1Notice) b1g1Notice.classList.add("hidden");
+    if (periodWrapper) periodWrapper.classList.add("hidden");
     if (valInput) {
       valInput.min = "0";
       valInput.step = "any";
@@ -957,6 +1037,7 @@ function handlePromoTypeChange() {
   }
 
   if (summaryBox) summaryBox.classList.remove("hidden");
+  if (periodWrapper) periodWrapper.classList.remove("hidden");
 
   if (type === "percent") {
     if (valWrapper) valWrapper.classList.remove("hidden");
@@ -1074,16 +1155,31 @@ function openEditProductModal(productId) {
   if (priceInput) priceInput.value = product.price || 0;
   if (unitInput) unitInput.value = product.unit || "";
   
-  // Parse info promo yang tersimpan di field stock
-  const promoInfo = parsePromo(product.stock);
-  if (stockInput) stockInput.value = promoInfo.cleanStock || "Ready";
+  // Parse info promo (termasuk jadwal aktif/terjadwal) yang tersimpan di field stock
+  const promoMeta = parsePromoMeta(product.stock);
+  const activeOrSched = promoMeta.status !== "expired" && promoMeta.promo ? promoMeta.promo : null;
+  if (stockInput) stockInput.value = promoMeta.cleanStock || "Ready";
 
   if (promoTypeSelect) {
-    promoTypeSelect.value = promoInfo.promo ? promoInfo.promo.type : "none";
+    promoTypeSelect.value = activeOrSched ? activeOrSched.type : "none";
   }
   if (promoValueInput) {
-    promoValueInput.value = promoInfo.promo && promoInfo.promo.value ? promoInfo.promo.value : "";
+    promoValueInput.value = activeOrSched && activeOrSched.value ? activeOrSched.value : "";
   }
+
+  const hasPeriodEl = document.getElementById("editPromoHasPeriod");
+  const startEl = document.getElementById("editProductPromoStart");
+  const endEl = document.getElementById("editProductPromoEnd");
+  const hasSavedPeriod = Boolean(activeOrSched && (activeOrSched.startAt || activeOrSched.endAt));
+  if (hasPeriodEl) hasPeriodEl.checked = hasSavedPeriod;
+  if (startEl) startEl.value = activeOrSched?.startAt || formatDateTimeLocalValue(new Date());
+  if (endEl) {
+    const plus7 = new Date();
+    plus7.setDate(plus7.getDate() + 7);
+    plus7.setHours(23, 59, 0, 0);
+    endEl.value = activeOrSched?.endAt || formatDateTimeLocalValue(plus7);
+  }
+  handleEditPromoPeriodToggle();
   
   const currentImg = product.image_url || product.imageUrl || "";
   if (imgInput) imgInput.value = currentImg;
@@ -1206,24 +1302,29 @@ async function handleSaveEditedProduct(event) {
   const cleanStock = document.getElementById("editProductStock")?.value?.trim() || "Ready";
   const imageUrl = document.getElementById("editProductImageUrl")?.value?.trim() || "";
 
-  // Ambil data promo
+  // Ambil data promo + periode opsional
   const promoType = document.getElementById("editProductPromoType")?.value || "none";
   const promoValue = Number(document.getElementById("editProductPromoValue")?.value) || 0;
+  const usePeriod = !!document.getElementById("editPromoHasPeriod")?.checked;
+  const promoStartAt = usePeriod ? (document.getElementById("editProductPromoStart")?.value || "") : "";
+  const promoEndAt = usePeriod ? (document.getElementById("editProductPromoEnd")?.value || "") : "";
 
   if (!id || !name) {
     showAdminToast("Nama produk tidak boleh kosong!", "error");
     return;
   }
 
-  // Bentuk format stock dengan tag promo
-  let finalStock = cleanStock;
-  if (promoType === "percent" && promoValue > 0) {
-    finalStock = `${cleanStock} [PROMO:percent:${promoValue}]`;
-  } else if (promoType === "nominal" && promoValue > 0) {
-    finalStock = `${cleanStock} [PROMO:nominal:${promoValue}]`;
-  } else if (promoType === "b1g1") {
-    finalStock = `${cleanStock} [PROMO:b1g1:1]`;
+  if (promoType !== "none" && usePeriod && promoStartAt && promoEndAt) {
+    const sMs = parsePromoDateBoundary(promoStartAt, false);
+    const eMs = parsePromoDateBoundary(promoEndAt, true);
+    if (sMs !== null && eMs !== null && eMs < sMs) {
+      showAdminToast("Tanggal selesai promo tidak boleh lebih awal dari tanggal mulai!", "error");
+      return;
+    }
   }
+
+  // Bentuk format stock dengan tag promo melalui helper terpadu
+  const finalStock = buildPromoStockString(cleanStock, promoType, promoValue, promoStartAt, promoEndAt);
 
   const btnSave = document.getElementById("btnSaveEditProduct");
   const originalBtnHtml = btnSave ? btnSave.innerHTML : "";
@@ -1331,6 +1432,7 @@ async function handleSaveEditedProduct(event) {
     showAdminToast(`Produk "${name}" berhasil diperbarui${promoLabel}!`, "success");
     closeEditProductModal();
     renderSupabaseProductsTable(liveSupabaseProducts);
+    renderPromoMonitoringSection();
 
   } catch (err) {
     console.error("Gagal update produk:", err);
@@ -1454,12 +1556,14 @@ function switchAdminTab(tabName) {
   const bannersTab = document.getElementById("bannersTabSection");
   const sectionsTab = document.getElementById("sectionsTabSection");
   const appSettingsTab = document.getElementById("appSettingsTabSection");
+  const flyerTab = document.getElementById("flyerTabSection");
 
   const tabBtnOrders = document.getElementById("tabBtnOrders");
   const tabBtnProducts = document.getElementById("tabBtnProducts");
   const tabBtnBanners = document.getElementById("tabBtnBanners");
   const tabBtnSections = document.getElementById("tabBtnSections");
   const tabBtnAppSettings = document.getElementById("tabBtnAppSettings");
+  const tabBtnFlyer = document.getElementById("tabBtnFlyer");
 
   const btnTopAddBanner = document.getElementById("btnTopAddBanner");
   const btnTopAddSection = document.getElementById("btnTopAddSection");
@@ -1470,31 +1574,29 @@ function switchAdminTab(tabName) {
   if (bannersTab) bannersTab.classList.add("hidden");
   if (sectionsTab) sectionsTab.classList.add("hidden");
   if (appSettingsTab) appSettingsTab.classList.add("hidden");
+  if (flyerTab) flyerTab.classList.add("hidden");
 
   // Reset tombol top bar
   if (btnTopAddBanner) btnTopAddBanner.classList.add("hidden");
   if (btnTopAddSection) btnTopAddSection.classList.add("hidden");
 
-  // Reset styling tab buttons
-  const inactiveClass = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900";
+  // Reset styling tab buttons (sidebar mode)
+  const inactiveClass = "sidebar-nav-btn";
   if (tabBtnOrders) tabBtnOrders.className = inactiveClass;
   if (tabBtnProducts) tabBtnProducts.className = inactiveClass;
   if (tabBtnBanners) tabBtnBanners.className = inactiveClass;
   if (tabBtnSections) tabBtnSections.className = inactiveClass;
   if (tabBtnAppSettings) tabBtnAppSettings.className = inactiveClass;
+  if (tabBtnFlyer) tabBtnFlyer.className = inactiveClass;
 
   if (tabName === "orders") {
     if (ordersTab) ordersTab.classList.remove("hidden");
-    if (tabBtnOrders) {
-      tabBtnOrders.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6] relative";
-    }
+    if (tabBtnOrders) tabBtnOrders.className = "sidebar-nav-btn is-active";
     loadAdminOrdersList();
   } else if (tabName === "banners") {
     if (bannersTab) bannersTab.classList.remove("hidden");
     if (btnTopAddBanner) btnTopAddBanner.classList.remove("hidden");
-    if (tabBtnBanners) {
-      tabBtnBanners.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#ff66c4]";
-    }
+    if (tabBtnBanners) tabBtnBanners.className = "sidebar-nav-btn is-active-pink";
     loadSupabaseBannersList();
     if (typeof loadMobileBannersList === "function") loadMobileBannersList();
     if (typeof switchBannerPlatformTab === "function") {
@@ -1503,9 +1605,7 @@ function switchAdminTab(tabName) {
   } else if (tabName === "sections") {
     if (sectionsTab) sectionsTab.classList.remove("hidden");
     if (btnTopAddSection) btnTopAddSection.classList.remove("hidden");
-    if (tabBtnSections) {
-      tabBtnSections.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
-    }
+    if (tabBtnSections) tabBtnSections.className = "sidebar-nav-btn is-active";
     loadSupabaseSectionsList();
     if (typeof loadMobileSectionsList === "function") loadMobileSectionsList();
     if (typeof switchSectionPlatformTab === "function") {
@@ -1513,16 +1613,16 @@ function switchAdminTab(tabName) {
     }
   } else if (tabName === "appSettings") {
     if (appSettingsTab) appSettingsTab.classList.remove("hidden");
-    if (tabBtnAppSettings) {
-      tabBtnAppSettings.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-emerald-600";
-    }
+    if (tabBtnAppSettings) tabBtnAppSettings.className = "sidebar-nav-btn is-active-emerald";
     loadStoreOperationalSettings();
+  } else if (tabName === "flyer") {
+    if (flyerTab) flyerTab.classList.remove("hidden");
+    if (tabBtnFlyer) tabBtnFlyer.className = "sidebar-nav-btn is-active-pink";
+    if (typeof initAdminFlyerTab === "function") initAdminFlyerTab();
   } else {
     // Default: products
     if (productsTab) productsTab.classList.remove("hidden");
-    if (tabBtnProducts) {
-      tabBtnProducts.className = "flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-sm bg-white text-[#0077d6]";
-    }
+    if (tabBtnProducts) tabBtnProducts.className = "sidebar-nav-btn is-active";
     loadSupabaseProductsList();
   }
 }
@@ -6029,6 +6129,727 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => setTimeout(initAllPromoBadges, 600));
 } else {
   setTimeout(initAllPromoBadges, 600);
+}
+
+/* ==============================================================================
+   MONITORING PROMOSI & PEMBUAT PROMO MASSAL (MULTI-PRODUK + PERIODE OTOMATIS)
+   ============================================================================== */
+
+let promoMonitorTypeFilter = "all";
+let selectedMonitorPromoIds = new Set();
+let selectedBulkPromoIds = new Set();
+let promoWatcherIntervalId = null;
+
+function escapeAdminHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatDateTimeLocalValue(dateObj) {
+  const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatHumanPromoDateTime(rawStr) {
+  const ms = parsePromoDateBoundary(rawStr, false);
+  if (ms === null) return "";
+  const d = new Date(ms);
+  return d.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatPromoPeriodSummary(meta) {
+  if (!meta || !meta.promo) return "-";
+  if (!meta.startAt && !meta.endAt) {
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
+      <i class="fas fa-infinity text-[9px]"></i> Aktif Selamanya
+    </span>`;
+  }
+
+  const now = Date.now();
+  const startTxt = meta.startAt ? formatHumanPromoDateTime(meta.startAt) : "Sekarang";
+  const endTxt = meta.endAt ? formatHumanPromoDateTime(meta.endAt) : "Tanpa Batas";
+
+  let statusPill = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-extrabold text-[9px]">AKTIF</span>`;
+  if (meta.status === "scheduled" && meta.startMs) {
+    statusPill = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-[#0077d6] font-extrabold text-[9px]">TERJADWAL</span>`;
+  } else if (meta.endMs) {
+    const diffHours = Math.max(0, Math.round((meta.endMs - now) / 3600000));
+    if (diffHours <= 24) {
+      statusPill = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 font-extrabold text-[9px]">Sisa ${Math.max(1, diffHours)} jam</span>`;
+    } else {
+      const diffDays = Math.ceil((meta.endMs - now) / 86400000);
+      statusPill = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-extrabold text-[9px]">Sisa ${diffDays} hari</span>`;
+    }
+  }
+
+  return `
+    <div class="space-y-1">
+      <div>${statusPill}</div>
+      <div class="text-[10px] text-slate-500 font-semibold leading-tight">
+        ${escapeAdminHtml(startTxt)} &ndash; ${escapeAdminHtml(endTxt)}
+      </div>
+    </div>
+  `;
+}
+
+function handleEditPromoPeriodToggle() {
+  const hasPeriod = !!document.getElementById("editPromoHasPeriod")?.checked;
+  const inputsWrap = document.getElementById("editPromoPeriodInputs");
+  if (!inputsWrap) return;
+  inputsWrap.classList.toggle("hidden", !hasPeriod);
+}
+
+/**
+ * Helper terpusat untuk update kolom stock produk ke Supabase & sinkronisasi cache lokal
+ */
+async function updateProductsStockBatch(updates) {
+  if (!Array.isArray(updates) || updates.length === 0) return 0;
+  const supabaseClient = getAdminSupabaseClient();
+  if (!supabaseClient) return 0;
+
+  const chunkSize = 10;
+  let successCount = 0;
+
+  for (let i = 0; i < updates.length; i += chunkSize) {
+    const chunk = updates.slice(i, i + chunkSize);
+    const results = await Promise.all(
+      chunk.map(async (u) => {
+        const { error } = await supabaseClient
+          .from("products")
+          .update({ stock: u.stock })
+          .eq("id", u.id);
+        return { id: u.id, stock: u.stock, error };
+      })
+    );
+
+    results.forEach((r) => {
+      if (!r.error) {
+        successCount++;
+        const idx = liveSupabaseProducts.findIndex((p) => String(p.id) === String(r.id));
+        if (idx !== -1) {
+          liveSupabaseProducts[idx] = { ...liveSupabaseProducts[idx], stock: r.stock };
+        }
+      }
+    });
+  }
+
+  // Sinkronkan juga cache offline jika ada
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      const localData = JSON.parse(stored);
+      if (Array.isArray(localData)) {
+        const map = new Map(updates.map((u) => [String(u.id), u.stock]));
+        let changed = false;
+        localData.forEach((p, idx) => {
+          const nextStock = map.get(String(p.id));
+          if (nextStock !== undefined) {
+            localData[idx].stock = nextStock;
+            changed = true;
+          }
+        });
+        if (changed) localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
+      }
+    }
+  } catch (e) {
+    console.warn("Gagal sinkronisasi cache promo:", e);
+  }
+
+  return successCount;
+}
+
+/**
+ * Otomatis mengembalikan produk yang masa promonya sudah habis ke harga normal di Supabase
+ */
+async function autoRevertExpiredPromosInSupabase() {
+  if (!Array.isArray(liveSupabaseProducts) || liveSupabaseProducts.length === 0) return 0;
+
+  const expiredUpdates = [];
+  liveSupabaseProducts.forEach((p) => {
+    const meta = parsePromoMeta(p.stock);
+    if (meta.status === "expired") {
+      expiredUpdates.push({ id: p.id, stock: meta.cleanStock || "Ready", name: p.name });
+    }
+  });
+
+  if (expiredUpdates.length === 0) return 0;
+
+  const reverted = await updateProductsStockBatch(expiredUpdates);
+  if (reverted > 0) {
+    const infoEl = document.getElementById("promoAutoRevertInfo");
+    if (infoEl) {
+      infoEl.textContent = `${reverted} promo yang telah berakhir otomatis dikembalikan ke harga normal.`;
+    }
+    showAdminToast(`${reverted} promo telah berakhir & otomatis kembali ke harga normal.`, "success");
+  }
+  return reverted;
+}
+
+function startPromoExpirationWatcher() {
+  if (promoWatcherIntervalId) return;
+  promoWatcherIntervalId = setInterval(async () => {
+    if (!Array.isArray(liveSupabaseProducts) || liveSupabaseProducts.length === 0) return;
+    const reverted = await autoRevertExpiredPromosInSupabase();
+    if (reverted > 0) {
+      renderSupabaseProductsTable(liveSupabaseProducts);
+      renderPromoMonitoringSection();
+    }
+  }, 60000);
+}
+
+function setPromoMonitorTypeFilter(type) {
+  promoMonitorTypeFilter = type || "all";
+  const styles = {
+    all:     "border-2 border-[#0077d6] bg-sky-50/80 shadow-sm",
+    percent: "border-2 border-[#ff66c4] bg-pink-50/80 shadow-sm",
+    b1g1:    "border-2 border-amber-500 bg-amber-50/80 shadow-sm",
+    nominal: "border-2 border-emerald-500 bg-emerald-50/80 shadow-sm"
+  };
+
+  ["all", "percent", "b1g1", "nominal"].forEach((key) => {
+    const el = document.getElementById(`promoFilterCard_${key}`);
+    if (!el) return;
+    const isActive = key === promoMonitorTypeFilter;
+    el.className = `p-3.5 rounded-2xl text-left transition ${isActive ? styles[key] : "border border-slate-200 bg-white hover:border-slate-300"}`;
+  });
+
+  renderPromoMonitoringSection();
+}
+
+function renderPromoMonitoringSection() {
+  const tbody = document.getElementById("promoMonitoringTableBody");
+  if (!tbody) return;
+
+  const allItems = Array.isArray(liveSupabaseProducts) ? liveSupabaseProducts : [];
+  const promoEntries = [];
+  const counts = { all: 0, percent: 0, b1g1: 0, nominal: 0 };
+
+  allItems.forEach((item) => {
+    const meta = parsePromoMeta(item.stock);
+    if (!meta.promo || (meta.status !== "active" && meta.status !== "scheduled")) return;
+    const type = meta.promo.type;
+    if (counts[type] !== undefined) {
+      counts[type]++;
+      counts.all++;
+    }
+    promoEntries.push({ item, meta });
+  });
+
+  const setCount = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(val);
+  };
+  setCount("promoStatAll", counts.all);
+  setCount("promoStatPercent", counts.percent);
+  setCount("promoStatB1G1", counts.b1g1);
+  setCount("promoStatNominal", counts.nominal);
+
+  const totalBadge = document.getElementById("promoMonitoringTotalBadge");
+  if (totalBadge) totalBadge.textContent = `${counts.all} promo`;
+
+  const searchQ = (document.getElementById("promoMonitorSearchInput")?.value || "").trim().toLowerCase();
+  const statusFilter = document.getElementById("promoMonitorStatusFilter")?.value || "all";
+
+  const filtered = promoEntries.filter(({ item, meta }) => {
+    if (promoMonitorTypeFilter !== "all" && meta.promo.type !== promoMonitorTypeFilter) return false;
+    if (statusFilter !== "all" && meta.status !== statusFilter) return false;
+    if (searchQ) {
+      const hay = `${item.name || ""} ${item.category || ""}`.toLowerCase();
+      if (!hay.includes(searchQ)) return false;
+    }
+    return true;
+  });
+
+  // Bersihkan ID tercentang yang tidak lagi berada di promoEntries
+  const validIds = new Set(promoEntries.map((e) => String(e.item.id)));
+  Array.from(selectedMonitorPromoIds).forEach((id) => {
+    if (!validIds.has(id)) selectedMonitorPromoIds.delete(id);
+  });
+  updateBulkEndMonitorButton();
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-8 text-xs text-slate-400">
+          ${counts.all === 0
+            ? 'Belum ada produk yang sedang promo. Klik <b>"Buat Promo Massal (Multi-Produk)"</b> untuk memulai.'
+            : "Tidak ada produk promo yang sesuai filter pencarian ini."}
+        </td>
+      </tr>
+    `;
+    const masterCb = document.getElementById("promoMonitorSelectAll");
+    if (masterCb) masterCb.checked = false;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(({ item, meta }) => {
+    const idStr = String(item.id);
+    const checked = selectedMonitorPromoIds.has(idStr) ? "checked" : "";
+    const imgUrl = formatGoogleDriveImageUrl(item.image_url || item.imageUrl);
+    const details = getPromoDetails(item.price, meta.promo);
+
+    let typeBadge = "";
+    let priceCompare = "";
+    if (details.promoType === "percent") {
+      typeBadge = `<span class="inline-flex items-center gap-1 bg-pink-100 text-[#e043a5] font-black text-[10px] px-2 py-0.5 rounded-full"><i class="fas fa-percentage"></i> Diskon ${details.promoValue}%</span>`;
+      priceCompare = `<span class="text-[10px] text-slate-400 line-through">${formatRupiah(item.price)}</span> <i class="fas fa-arrow-right text-[9px] text-slate-400 mx-1"></i> <b class="text-pink-600">${formatRupiah(details.finalPrice)}</b>`;
+    } else if (details.promoType === "b1g1") {
+      typeBadge = `<span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 font-black text-[10px] px-2 py-0.5 rounded-full"><i class="fas fa-gift"></i> Buy 1 Get 1</span>`;
+      priceCompare = `<b class="text-[#0077d6]">${formatRupiah(item.price)}</b> <span class="text-[10px] text-amber-700 font-bold">(+1 Gratis)</span>`;
+    } else {
+      typeBadge = `<span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 font-black text-[10px] px-2 py-0.5 rounded-full"><i class="fas fa-tags"></i> -${formatRupiah(details.discountAmount)}</span>`;
+      priceCompare = `<span class="text-[10px] text-slate-400 line-through">${formatRupiah(item.price)}</span> <i class="fas fa-arrow-right text-[9px] text-slate-400 mx-1"></i> <b class="text-emerald-600">${formatRupiah(details.finalPrice)}</b>`;
+    }
+
+    return `
+      <tr class="hover:bg-pink-50/30 border-b border-slate-100 transition text-xs">
+        <td class="py-2.5 px-3 text-center">
+          <input type="checkbox" ${checked} onchange="toggleSingleMonitorPromoCheckbox('${escapeAdminHtml(idStr)}', this.checked)"
+            class="accent-[#ff66c4] cursor-pointer">
+        </td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-2.5 min-w-[180px]">
+            <img src="${escapeAdminHtml(imgUrl)}" alt="" class="w-10 h-10 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shrink-0">
+            <div class="min-w-0">
+              <div class="font-bold text-slate-800 truncate max-w-[230px]">${escapeAdminHtml(item.name)}</div>
+              <div class="text-[10px] text-slate-400 capitalize">${escapeAdminHtml(item.category || "-")}</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-2.5 px-3 whitespace-nowrap">${typeBadge}</td>
+        <td class="py-2.5 px-3 whitespace-nowrap">${priceCompare}</td>
+        <td class="py-2.5 px-3">${formatPromoPeriodSummary(meta)}</td>
+        <td class="py-2.5 px-3 text-center whitespace-nowrap">
+          <div class="inline-flex items-center gap-1">
+            <button type="button" onclick="openEditProductModal('${escapeAdminHtml(idStr)}')"
+              class="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-[#38b6ff] text-[#0077d6] hover:text-white font-bold text-[11px] transition"
+              title="Ubah promo atau periode">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" onclick="endSingleProductPromo('${escapeAdminHtml(idStr)}')"
+              class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white font-bold text-[11px] transition"
+              title="Akhiri promo sekarang & kembalikan harga normal">
+              <i class="fas fa-stop mr-1"></i>Akhiri
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  const masterCb = document.getElementById("promoMonitorSelectAll");
+  if (masterCb) {
+    masterCb.checked = filtered.length > 0 && filtered.every(({ item }) => selectedMonitorPromoIds.has(String(item.id)));
+  }
+}
+
+function updateBulkEndMonitorButton() {
+  const btn = document.getElementById("btnBulkEndMonitorPromos");
+  const label = document.getElementById("btnBulkEndMonitorLabel");
+  if (!btn) return;
+  if (selectedMonitorPromoIds.size > 0) {
+    btn.classList.remove("hidden");
+    btn.classList.add("inline-flex");
+    if (label) label.textContent = `Akhiri ${selectedMonitorPromoIds.size} Promo`;
+  } else {
+    btn.classList.add("hidden");
+    btn.classList.remove("inline-flex");
+  }
+}
+
+function toggleSingleMonitorPromoCheckbox(idStr, checked) {
+  if (checked) selectedMonitorPromoIds.add(String(idStr));
+  else selectedMonitorPromoIds.delete(String(idStr));
+  updateBulkEndMonitorButton();
+}
+
+function toggleSelectAllMonitorPromos(checked) {
+  const searchQ = (document.getElementById("promoMonitorSearchInput")?.value || "").trim().toLowerCase();
+  const statusFilter = document.getElementById("promoMonitorStatusFilter")?.value || "all";
+  (liveSupabaseProducts || []).forEach((item) => {
+    const meta = parsePromoMeta(item.stock);
+    if (!meta.promo || (meta.status !== "active" && meta.status !== "scheduled")) return;
+    if (promoMonitorTypeFilter !== "all" && meta.promo.type !== promoMonitorTypeFilter) return;
+    if (statusFilter !== "all" && meta.status !== statusFilter) return;
+    if (searchQ && !`${item.name || ""} ${item.category || ""}`.toLowerCase().includes(searchQ)) return;
+    if (checked) selectedMonitorPromoIds.add(String(item.id));
+    else selectedMonitorPromoIds.delete(String(item.id));
+  });
+  renderPromoMonitoringSection();
+}
+
+async function revertProductIdsToNormal(ids) {
+  const updates = [];
+  ids.forEach((id) => {
+    const prod = liveSupabaseProducts.find((p) => String(p.id) === String(id));
+    if (!prod) return;
+    const meta = parsePromoMeta(prod.stock);
+    updates.push({ id: prod.id, stock: meta.cleanStock || "Ready" });
+  });
+  if (updates.length === 0) return 0;
+
+  const done = await updateProductsStockBatch(updates);
+  renderSupabaseProductsTable(liveSupabaseProducts);
+  renderPromoMonitoringSection();
+  return done;
+}
+
+async function endSingleProductPromo(productId) {
+  const prod = liveSupabaseProducts.find((p) => String(p.id) === String(productId));
+  if (!prod) return;
+  if (!confirm(`Akhiri promo "${prod.name}" dan kembalikan ke harga normal?`)) return;
+
+  const done = await revertProductIdsToNormal([productId]);
+  selectedMonitorPromoIds.delete(String(productId));
+  updateBulkEndMonitorButton();
+  if (done > 0) {
+    showAdminToast(`Promo "${prod.name}" diakhiri. Harga kembali normal.`, "success");
+  }
+}
+
+async function bulkEndSelectedMonitorPromos() {
+  const ids = Array.from(selectedMonitorPromoIds);
+  if (ids.length === 0) return;
+  if (!confirm(`Akhiri ${ids.length} promo terpilih dan kembalikan ke harga normal?`)) return;
+
+  const done = await revertProductIdsToNormal(ids);
+  selectedMonitorPromoIds.clear();
+  updateBulkEndMonitorButton();
+  showAdminToast(`${done} promo berhasil diakhiri dan kembali ke harga normal.`, "success");
+}
+
+/* ---------- MODAL BUAT PROMO MASSAL (MULTI-PRODUK + PERIODE) ---------- */
+function openBulkPromoModal() {
+  selectedBulkPromoIds.clear();
+
+  // Isi opsi kategori dari liveSupabaseProducts
+  const catSelect = document.getElementById("bulkPromoCategoryFilter");
+  if (catSelect) {
+    const catMap = new Map();
+    (liveSupabaseProducts || []).forEach((p) => {
+      const raw = String(p.category || "Lainnya").trim();
+      const key = raw.toLowerCase();
+      if (!catMap.has(key)) catMap.set(key, raw);
+    });
+    const sortedCats = Array.from(catMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+    catSelect.innerHTML = `<option value="__all__">Semua Kategori</option>` +
+      sortedCats.map(([k, lbl]) => `<option value="${escapeAdminHtml(k)}">${escapeAdminHtml(lbl)}</option>`).join("");
+  }
+
+  const searchEl = document.getElementById("bulkPromoProductSearch");
+  const existingEl = document.getElementById("bulkPromoExistingFilter");
+  const noExpiryCb = document.getElementById("bulkPromoNoExpiryCheckbox");
+  if (searchEl) searchEl.value = "";
+  if (existingEl) existingEl.value = "all";
+  if (noExpiryCb) noExpiryCb.checked = false;
+
+  toggleBulkPromoPeriodMode();
+  setBulkPromoDurationDays(7);
+  setBulkPromoType("percent");
+
+  const modal = document.getElementById("bulkPromoModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeBulkPromoModal() {
+  const modal = document.getElementById("bulkPromoModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+function setBulkPromoType(type) {
+  const hiddenType = document.getElementById("bulkPromoTypeInput");
+  if (hiddenType) hiddenType.value = type;
+
+  document.querySelectorAll("[data-bulk-promo-type]").forEach((btn) => {
+    const t = btn.getAttribute("data-bulk-promo-type");
+    const active = t === type;
+    btn.className = active
+      ? "p-2 rounded-xl border-2 border-[#e043a5] bg-pink-50 text-[#b82b82] font-extrabold text-[11px] text-center transition shadow-sm"
+      : "p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[11px] text-center transition";
+  });
+
+  const valGroup = document.getElementById("bulkPromoValueGroup");
+  const valLabel = document.getElementById("bulkPromoValueLabel");
+  const valInput = document.getElementById("bulkPromoValueInput");
+  const valUnit = document.getElementById("bulkPromoValueUnit");
+  const presetsWrap = document.getElementById("bulkPromoQuickPresets");
+  const b1g1Info = document.getElementById("bulkPromoB1G1Info");
+
+  if (type === "b1g1") {
+    if (valGroup) valGroup.classList.add("hidden");
+    if (b1g1Info) b1g1Info.classList.remove("hidden");
+  } else if (type === "nominal") {
+    if (valGroup) valGroup.classList.remove("hidden");
+    if (b1g1Info) b1g1Info.classList.add("hidden");
+    if (valLabel) valLabel.textContent = "Nominal Potongan (Rp)";
+    if (valUnit) valUnit.textContent = "Rp";
+    if (valInput) {
+      valInput.min = "100";
+      valInput.removeAttribute("max");
+      valInput.step = "500";
+      if (!valInput.value || Number(valInput.value) < 100) valInput.value = "2000";
+    }
+    if (presetsWrap) {
+      presetsWrap.innerHTML = [1000, 2000, 3000, 5000, 10000].map((v) =>
+        `<button type="button" onclick="setBulkPromoQuickPreset(${v})" class="px-2 py-1 bg-white hover:bg-pink-50 border border-slate-200 rounded-lg font-bold text-[10px] text-slate-700">-Rp ${v.toLocaleString("id-ID")}</button>`
+      ).join("");
+    }
+  } else {
+    if (valGroup) valGroup.classList.remove("hidden");
+    if (b1g1Info) b1g1Info.classList.add("hidden");
+    if (valLabel) valLabel.textContent = "Besar Diskon (%)";
+    if (valUnit) valUnit.textContent = "%";
+    if (valInput) {
+      valInput.min = "1";
+      valInput.max = "99";
+      valInput.step = "1";
+      if (!valInput.value || Number(valInput.value) > 99) valInput.value = "15";
+    }
+    if (presetsWrap) {
+      presetsWrap.innerHTML = [5, 10, 15, 20, 25, 30, 50].map((v) =>
+        `<button type="button" onclick="setBulkPromoQuickPreset(${v})" class="px-2.5 py-1 bg-white hover:bg-pink-50 border border-slate-200 rounded-lg font-bold text-[10px] text-slate-700">${v}%</button>`
+      ).join("");
+    }
+  }
+
+  renderBulkPromoProductChecklist();
+}
+
+function setBulkPromoQuickPreset(val) {
+  const valInput = document.getElementById("bulkPromoValueInput");
+  if (valInput) valInput.value = String(val);
+  renderBulkPromoProductChecklist();
+}
+
+function toggleBulkPromoPeriodMode() {
+  const noExpiry = !!document.getElementById("bulkPromoNoExpiryCheckbox")?.checked;
+  const fields = document.getElementById("bulkPromoPeriodFields");
+  if (fields) fields.classList.toggle("hidden", noExpiry);
+}
+
+function setBulkPromoDurationDays(days) {
+  const now = new Date();
+  const startInput = document.getElementById("bulkPromoStartInput");
+  const endInput = document.getElementById("bulkPromoEndInput");
+  const noExpiryCb = document.getElementById("bulkPromoNoExpiryCheckbox");
+  if (noExpiryCb && noExpiryCb.checked) {
+    noExpiryCb.checked = false;
+    toggleBulkPromoPeriodMode();
+  }
+  if (startInput && !startInput.value) {
+    startInput.value = formatDateTimeLocalValue(now);
+  }
+  const end = new Date(now);
+  if (days > 1) {
+    end.setDate(end.getDate() + (days - 1));
+  }
+  end.setHours(23, 59, 0, 0);
+  if (endInput) endInput.value = formatDateTimeLocalValue(end);
+}
+
+function setBulkPromoDurationEndOfMonth() {
+  const now = new Date();
+  const startInput = document.getElementById("bulkPromoStartInput");
+  const endInput = document.getElementById("bulkPromoEndInput");
+  const noExpiryCb = document.getElementById("bulkPromoNoExpiryCheckbox");
+  if (noExpiryCb && noExpiryCb.checked) {
+    noExpiryCb.checked = false;
+    toggleBulkPromoPeriodMode();
+  }
+  if (startInput && !startInput.value) {
+    startInput.value = formatDateTimeLocalValue(now);
+  }
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 0, 0);
+  if (endInput) endInput.value = formatDateTimeLocalValue(end);
+}
+
+function getFilteredBulkPromoProducts() {
+  const q = (document.getElementById("bulkPromoProductSearch")?.value || "").trim().toLowerCase();
+  const cat = document.getElementById("bulkPromoCategoryFilter")?.value || "__all__";
+  const existing = document.getElementById("bulkPromoExistingFilter")?.value || "all";
+
+  return (liveSupabaseProducts || []).filter((p) => {
+    if (cat !== "__all__" && String(p.category || "Lainnya").trim().toLowerCase() !== cat) return false;
+    const meta = parsePromoMeta(p.stock);
+    const hasActiveOrSched = Boolean(meta.promo && (meta.status === "active" || meta.status === "scheduled"));
+    if (existing === "no_promo" && hasActiveOrSched) return false;
+    if (existing === "has_promo" && !hasActiveOrSched) return false;
+    if (q && !`${p.name || ""} ${p.category || ""}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function updateBulkPromoSelectionCounters() {
+  const count = selectedBulkPromoIds.size;
+  const badge = document.getElementById("bulkPromoSelectedCountBadge");
+  const footerSummary = document.getElementById("bulkPromoFooterSummary");
+  const btnApply = document.getElementById("btnApplyBulkPromo");
+
+  if (badge) badge.textContent = `${count} produk dipilih`;
+  if (footerSummary) {
+    footerSummary.textContent = count > 0
+      ? `Siap menerapkan promo ke ${count} produk terpilih secara bersamaan.`
+      : "Pilih minimal 1 produk untuk menerapkan promo.";
+  }
+  if (btnApply) btnApply.disabled = count === 0;
+}
+
+function renderBulkPromoProductChecklist() {
+  const listEl = document.getElementById("bulkPromoProductList");
+  const infoEl = document.getElementById("bulkPromoVisibleInfo");
+  if (!listEl) return;
+
+  const filtered = getFilteredBulkPromoProducts();
+  if (infoEl) infoEl.textContent = `Menampilkan ${Math.min(filtered.length, 150)} dari ${filtered.length} produk`;
+
+  const promoType = document.getElementById("bulkPromoTypeInput")?.value || "percent";
+  const promoVal = Number(document.getElementById("bulkPromoValueInput")?.value) || 0;
+  const shown = filtered.slice(0, 150);
+
+  if (shown.length === 0) {
+    listEl.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">Tidak ada produk yang cocok dengan filter.</div>`;
+    updateBulkPromoSelectionCounters();
+    return;
+  }
+
+  listEl.innerHTML = shown.map((p) => {
+    const idStr = String(p.id);
+    const isChecked = selectedBulkPromoIds.has(idStr);
+    const imgUrl = formatGoogleDriveImageUrl(p.image_url || p.imageUrl);
+    const sim = getPromoDetails(p.price, { type: promoType, value: promoVal });
+    const simText = promoType === "b1g1"
+      ? `${formatRupiah(p.price)} + 1 Gratis`
+      : `${formatRupiah(sim.finalPrice)}`;
+
+    const curMeta = parsePromoMeta(p.stock);
+    const existingBadge = (curMeta.promo && curMeta.status !== "expired")
+      ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[9px] shrink-0">Sudah Promo</span>`
+      : "";
+
+    return `
+      <label class="p-2 rounded-xl border cursor-pointer transition flex items-center gap-2.5 ${isChecked ? 'border-[#0077d6] bg-sky-50/70' : 'border-slate-200 bg-white hover:border-[#38b6ff]'}">
+        <input type="checkbox" ${isChecked ? "checked" : ""} onchange="toggleBulkPromoProductSelection('${escapeAdminHtml(idStr)}', this.checked)"
+          class="w-4 h-4 accent-[#0077d6] shrink-0">
+        <img src="${escapeAdminHtml(imgUrl)}" alt="" class="w-9 h-9 rounded-lg object-contain bg-white border border-slate-100 shrink-0">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-slate-800 text-xs truncate">${escapeAdminHtml(p.name)}</span>
+            ${existingBadge}
+          </div>
+          <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+            <span class="capitalize">${escapeAdminHtml(p.category || "-")}</span>
+            <span>Normal: ${formatRupiah(p.price)}</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[9px] text-slate-400 font-bold">Setelah Promo</div>
+          <div class="font-black text-[#e043a5] text-xs">${simText}</div>
+        </div>
+      </label>
+    `;
+  }).join("");
+
+  updateBulkPromoSelectionCounters();
+}
+
+function toggleBulkPromoProductSelection(idStr, checked) {
+  if (checked) selectedBulkPromoIds.add(String(idStr));
+  else selectedBulkPromoIds.delete(String(idStr));
+  updateBulkPromoSelectionCounters();
+}
+
+function selectAllVisibleBulkPromoProducts(selectAll) {
+  if (!selectAll) {
+    selectedBulkPromoIds.clear();
+  } else {
+    getFilteredBulkPromoProducts().forEach((p) => selectedBulkPromoIds.add(String(p.id)));
+  }
+  renderBulkPromoProductChecklist();
+}
+
+async function applyBulkPromoToSelected() {
+  const ids = Array.from(selectedBulkPromoIds);
+  if (ids.length === 0) {
+    showAdminToast("Pilih minimal 1 produk!", "error");
+    return;
+  }
+
+  const promoType = document.getElementById("bulkPromoTypeInput")?.value || "percent";
+  const promoValue = Number(document.getElementById("bulkPromoValueInput")?.value) || 0;
+  const noExpiry = !!document.getElementById("bulkPromoNoExpiryCheckbox")?.checked;
+  const startAt = noExpiry ? "" : (document.getElementById("bulkPromoStartInput")?.value || "").trim();
+  const endAt = noExpiry ? "" : (document.getElementById("bulkPromoEndInput")?.value || "").trim();
+
+  if (promoType === "percent" && (promoValue < 1 || promoValue > 99)) {
+    showAdminToast("Diskon persen harus antara 1% hingga 99%!", "error");
+    return;
+  }
+  if (promoType === "nominal" && promoValue <= 0) {
+    showAdminToast("Nominal potongan harus lebih dari Rp 0!", "error");
+    return;
+  }
+  if (!noExpiry) {
+    if (!startAt && !endAt) {
+      showAdminToast("Isi tanggal mulai/selesai atau centang Aktif Selamanya!", "error");
+      return;
+    }
+    const sMs = parsePromoDateBoundary(startAt, false);
+    const eMs = parsePromoDateBoundary(endAt, true);
+    if (sMs !== null && eMs !== null && eMs <= sMs) {
+      showAdminToast("Waktu selesai promo harus lebih lambat dari waktu mulai!", "error");
+      return;
+    }
+  }
+
+  const btn = document.getElementById("btnApplyBulkPromo");
+  const origHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Menyimpan ${ids.length} produk...</span>`;
+  }
+
+  try {
+    const updates = ids.map((id) => {
+      const prod = liveSupabaseProducts.find((p) => String(p.id) === String(id));
+      const meta = parsePromoMeta(prod ? prod.stock : "Ready");
+      return {
+        id: prod ? prod.id : id,
+        stock: buildPromoStockString(meta.cleanStock, promoType, promoValue, startAt, endAt)
+      };
+    });
+
+    const updatedCount = await updateProductsStockBatch(updates);
+    renderSupabaseProductsTable(liveSupabaseProducts);
+    renderPromoMonitoringSection();
+    closeBulkPromoModal();
+    showAdminToast(`Berhasil menerapkan promo ke ${updatedCount} produk!`, "success");
+  } catch (err) {
+    console.error("Gagal menerapkan promo massal:", err);
+    showAdminToast(`Gagal menerapkan promo: ${err.message}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
 }
 
 

@@ -499,11 +499,15 @@ function updateFlyerLayoutButtonsActive() {
   });
 }
 
+function isProductActivePromoForFlyer(p) {
+  return typeof parsePromo === "function" ? !!parsePromo(p.stock).promo : String(p.stock || "").includes("[PROMO:");
+}
+
 function fillMissingFlyerSlots(needed) {
   if (Array.isArray(liveSupabaseProducts) && liveSupabaseProducts.length > 0) {
     const usedIds = new Set(flyerSlots.filter(Boolean).map((p) => String(p.id)));
-    const promos = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && String(p.stock || "").includes("[PROMO:"));
-    const others = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && !String(p.stock || "").includes("[PROMO:"));
+    const promos = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && isProductActivePromoForFlyer(p));
+    const others = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && !isProductActivePromoForFlyer(p));
     const extras = [...promos, ...others];
     let extraIdx = 0;
     for (let i = 0; i < needed; i++) {
@@ -717,8 +721,8 @@ function applyFlyerPreset(mode, pageDelta = 0, preserveTransforms = false) {
 
   if (mode === "promo_mix") {
     flyerCategoryPage = 0;
-    const promos = liveSupabaseProducts.filter((p) => String(p.stock || "").includes("[PROMO:"));
-    const nonPromos = liveSupabaseProducts.filter((p) => !String(p.stock || "").includes("[PROMO:"));
+    const promos = liveSupabaseProducts.filter((p) => isProductActivePromoForFlyer(p));
+    const nonPromos = liveSupabaseProducts.filter((p) => !isProductActivePromoForFlyer(p));
     const sortedNonPromos = [...nonPromos].sort((a, b) => {
       const aSupa = String(a.image_url || "").includes("supabase.co") ? 0 : 1;
       const bSupa = String(b.image_url || "").includes("supabase.co") ? 0 : 1;
@@ -1166,7 +1170,7 @@ function filterFlyerSlotPicker() {
 
   let filtered = Array.isArray(liveSupabaseProducts) ? liveSupabaseProducts : [];
   if (promoOnly) {
-    filtered = filtered.filter((p) => String(p.stock || "").includes("[PROMO:"));
+    filtered = filtered.filter((p) => isProductActivePromoForFlyer(p));
   }
   if (q) {
     filtered = filtered.filter((p) =>
