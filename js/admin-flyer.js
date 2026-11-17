@@ -13,9 +13,11 @@ const FLYER_STORAGE_TRANSFORMS_KEY = "shinemart_flyer_photo_transforms_v1";
 const FLYER_LAYOUTS = {
   bento_16: {
     label: "Bento Paling Murah (16 Produk)",
+    formula: "Bento 2 Hero + 5 + 5",
     slotCount: 16,
     wideSlots: new Set([0, 5]),
     isCompact5: false,
+    isSpacious3: false,
     rows: [
       { cls: "sm-flyer-row sm-flyer-row-bento-1", slots: [0, 1, 2] },
       { cls: "sm-flyer-row sm-flyer-row-bento-2", slots: [3, 4, 5] },
@@ -25,9 +27,11 @@ const FLYER_LAYOUTS = {
   },
   spotlight_14: {
     label: "2 Hero Atas + Grid 4×3 (14 Produk)",
+    formula: "2 Hero + Grid 4 × 3 Baris",
     slotCount: 14,
     wideSlots: new Set([0, 1]),
     isCompact5: false,
+    isSpacious3: false,
     rows: [
       { cls: "sm-flyer-row sm-flyer-row-hero-2", slots: [0, 1] },
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [2, 3, 4, 5] },
@@ -37,9 +41,11 @@ const FLYER_LAYOUTS = {
   },
   grid_4x4: {
     label: "Katalog Rapi 4×4 (16 Produk)",
+    formula: "Grid Simetris 4 × 4 Baris",
     slotCount: 16,
     wideSlots: new Set(),
     isCompact5: false,
+    isSpacious3: false,
     rows: [
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [0, 1, 2, 3] },
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [4, 5, 6, 7] },
@@ -49,9 +55,11 @@ const FLYER_LAYOUTS = {
   },
   compact_4x5: {
     label: "Hemat Kertas 4×5 (20 Produk)",
+    formula: "Hemat Kertas 4 × 5 Baris",
     slotCount: 20,
     wideSlots: new Set(),
     isCompact5: true,
+    isSpacious3: false,
     rows: [
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [0, 1, 2, 3] },
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [4, 5, 6, 7] },
@@ -60,6 +68,96 @@ const FLYER_LAYOUTS = {
       { cls: "sm-flyer-row sm-flyer-row-four", slots: [16, 17, 18, 19] }
     ]
   }
+};
+
+const SMART_FLYER_BLUEPRINTS = {
+  10: {
+    formula: "2 Hero Besar + 4 + 4 (3 Baris)",
+    wideSlots: [0, 1],
+    isSpacious3: true,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-hero-2", slots: [0, 1] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [2, 3, 4, 5] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [6, 7, 8, 9] }
+    ]
+  },
+  11: {
+    formula: "Bento 1 Hero + 2 + 4 + 4 (3 Baris)",
+    wideSlots: [0],
+    isSpacious3: true,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-bento-1", slots: [0, 1, 2] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [3, 4, 5, 6] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [7, 8, 9, 10] }
+    ]
+  },
+  12: {
+    formula: "Grid Simetris 4 × 3 Baris",
+    wideSlots: [],
+    isSpacious3: true,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [0, 1, 2, 3] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [4, 5, 6, 7] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [8, 9, 10, 11] }
+    ]
+  },
+  13: {
+    formula: "3 Hero Atas + 5 + 5 (3 Baris)",
+    wideSlots: [0, 1, 2],
+    isSpacious3: true,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-hero-3", slots: [0, 1, 2] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [3, 4, 5, 6, 7] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [8, 9, 10, 11, 12] }
+    ]
+  },
+  14: FLYER_LAYOUTS.spotlight_14,
+  15: {
+    formula: "3 Hero Atas + Grid 4 × 3 Baris",
+    wideSlots: [0, 1, 2],
+    isSpacious3: false,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-hero-3", slots: [0, 1, 2] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [3, 4, 5, 6] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [7, 8, 9, 10] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [11, 12, 13, 14] }
+    ]
+  },
+  16: FLYER_LAYOUTS.bento_16,
+  17: {
+    formula: "Bento 1 Hero + 4 + 5 + 5",
+    wideSlots: [0],
+    isSpacious3: false,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-bento-1", slots: [0, 1, 2] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [3, 4, 5, 6] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [7, 8, 9, 10, 11] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [12, 13, 14, 15, 16] }
+    ]
+  },
+  18: {
+    formula: "Grid 4 + 4 + 5 + 5 (4 Baris)",
+    wideSlots: [],
+    isSpacious3: false,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [0, 1, 2, 3] },
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [4, 5, 6, 7] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [8, 9, 10, 11, 12] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [13, 14, 15, 16, 17] }
+    ]
+  },
+  19: {
+    formula: "Grid 4 + 5 + 5 + 5 (4 Baris)",
+    wideSlots: [],
+    isSpacious3: false,
+    rows: [
+      { cls: "sm-flyer-row sm-flyer-row-four", slots: [0, 1, 2, 3] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [4, 5, 6, 7, 8] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [9, 10, 11, 12, 13] },
+      { cls: "sm-flyer-row sm-flyer-row-five", slots: [14, 15, 16, 17, 18] }
+    ]
+  },
+  20: FLYER_LAYOUTS.compact_4x5
 };
 
 const FLYER_THEMES = {
@@ -121,7 +219,21 @@ const FLYER_STARBURST_POINTS = (() => {
 })();
 
 function getActiveLayoutSpec() {
-  return FLYER_LAYOUTS[flyerConfig.layoutMode] || FLYER_LAYOUTS.bento_16;
+  const mode = String(flyerConfig.layoutMode || "bento_16");
+  if (mode.startsWith("smart_")) {
+    const count = Math.min(20, Math.max(10, parseInt(mode.replace("smart_", ""), 10) || 16));
+    const bp = SMART_FLYER_BLUEPRINTS[count] || SMART_FLYER_BLUEPRINTS[16];
+    return {
+      label: `Smart Layout (${count} Produk)`,
+      formula: bp.formula,
+      slotCount: count,
+      wideSlots: bp.wideSlots instanceof Set ? bp.wideSlots : new Set(bp.wideSlots || []),
+      isCompact5: !!bp.isCompact5,
+      isSpacious3: !!bp.isSpacious3,
+      rows: bp.rows
+    };
+  }
+  return FLYER_LAYOUTS[mode] || FLYER_LAYOUTS.bento_16;
 }
 
 function getDefaultFlyerBackgroundDataUrl() {
@@ -359,27 +471,40 @@ function setFlyerLabelStyle(styleKey) {
 }
 
 function updateFlyerLayoutButtonsActive() {
+  const activeMode = String(flyerConfig.layoutMode || "bento_16");
+  const spec = getActiveLayoutSpec();
+
   document.querySelectorAll("[data-flyer-layout]").forEach((btn) => {
     const mode = btn.getAttribute("data-flyer-layout");
-    const active = mode === flyerConfig.layoutMode;
+    const active = mode === activeMode;
     btn.className = active
       ? "p-2 rounded-xl border-2 border-[#0077d6] bg-sky-50 text-[#0077d6] font-extrabold text-[11px] text-left transition shadow-sm"
       : "p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-slate-600 font-bold text-[11px] text-left transition";
   });
+
+  const badge = document.getElementById("flyerSmartSlotCountBadge");
+  const range = document.getElementById("flyerSmartSlotRange");
+  const formulaEl = document.getElementById("flyerSmartLayoutFormula");
+  if (badge) badge.textContent = `${spec.slotCount} Slot`;
+  if (range) range.value = String(spec.slotCount);
+  if (formulaEl) formulaEl.textContent = `Komposisi: ${spec.formula || spec.label}`;
+
+  document.querySelectorAll("[data-flyer-smart-slot]").forEach((btn) => {
+    const n = Number(btn.getAttribute("data-flyer-smart-slot"));
+    const isActive = n === spec.slotCount && (activeMode.startsWith("smart_") || activeMode === "bento_16" || activeMode === "spotlight_14" || activeMode === "grid_4x4" || activeMode === "compact_4x5");
+    const spanCls = n === 20 ? "col-span-2 " : "";
+    btn.className = isActive
+      ? `${spanCls}py-1 rounded-lg border-2 border-[#0077d6] bg-[#0077d6] text-white text-[10px] font-black transition shadow-sm`
+      : `${spanCls}py-1 rounded-lg border border-slate-200 bg-white hover:border-[#38b6ff] text-[10px] font-bold text-slate-600 transition`;
+  });
 }
 
-function setFlyerLayoutMode(mode) {
-  if (!FLYER_LAYOUTS[mode]) return;
-  flyerConfig.layoutMode = mode;
-  const select = document.getElementById("flyerLayoutModeSelect");
-  if (select) select.value = mode;
-  updateFlyerLayoutButtonsActive();
-
-  // Jika pindah ke layout 20 slot dan slot 16-19 masih kosong, isi otomatis dari produk yang belum terpakai
-  const needed = FLYER_LAYOUTS[mode].slotCount;
+function fillMissingFlyerSlots(needed) {
   if (Array.isArray(liveSupabaseProducts) && liveSupabaseProducts.length > 0) {
     const usedIds = new Set(flyerSlots.filter(Boolean).map((p) => String(p.id)));
-    const extras = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)));
+    const promos = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && String(p.stock || "").includes("[PROMO:"));
+    const others = liveSupabaseProducts.filter((p) => !usedIds.has(String(p.id)) && !String(p.stock || "").includes("[PROMO:"));
+    const extras = [...promos, ...others];
     let extraIdx = 0;
     for (let i = 0; i < needed; i++) {
       if (!flyerSlots[i] && extraIdx < extras.length) {
@@ -387,9 +512,36 @@ function setFlyerLayoutMode(mode) {
       }
     }
   }
+}
 
+function applyFlyerLayoutChange(mode) {
+  flyerConfig.layoutMode = mode;
+  const select = document.getElementById("flyerLayoutModeSelect");
+  if (select) select.value = mode;
+  updateFlyerLayoutButtonsActive();
+
+  const spec = getActiveLayoutSpec();
+  if (flyerSelectedSlotIndex !== null && flyerSelectedSlotIndex >= spec.slotCount) {
+    deselectFlyerSlot();
+  }
+  fillMissingFlyerSlots(spec.slotCount);
   saveFlyerConfigState();
   renderFlyerBoard();
+}
+
+function setFlyerLayoutMode(mode) {
+  if (!FLYER_LAYOUTS[mode]) return;
+  applyFlyerLayoutChange(mode);
+}
+
+function setSmartFlyerSlotCount(count) {
+  const n = Math.min(20, Math.max(10, Math.round(Number(count) || 16)));
+  applyFlyerLayoutChange(`smart_${n}`);
+}
+
+function stepSmartFlyerSlotCount(delta) {
+  const current = getActiveLayoutSpec().slotCount;
+  setSmartFlyerSlotCount(current + delta);
 }
 
 function applyFlyerVisualSettings() {
@@ -903,7 +1055,7 @@ async function renderFlyerBoard() {
   if (!board) return;
 
   const layoutSpec = getActiveLayoutSpec();
-  board.className = `sm-flyer-board${layoutSpec.isCompact5 ? " is-compact-5" : ""}`;
+  board.className = `sm-flyer-board${layoutSpec.isCompact5 ? " is-compact-5" : ""}${layoutSpec.isSpacious3 ? " is-spacious-3" : ""}`;
 
   board.innerHTML = layoutSpec.rows.map((row) => {
     const cellsHtml = row.slots
