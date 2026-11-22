@@ -176,10 +176,21 @@ const FLYER_LABEL_STYLES = {
   clean_minimal: "label-clean_minimal"
 };
 
+const FLYER_BADGE_STYLES = {
+  starburst:     "Bintang Ledakan",
+  rosette_seal:  "Segel Medali Pita",
+  price_tag:     "Hang Tag Diskon",
+  flash_shield:  "Perisai Petir Flash",
+  corner_ribbon: "Pita Bendera 3D",
+  neon_pill:     "Stiker Kapsul Pop",
+  auto_mix:      "Mix Otomatis (Variasi Dinamis)"
+};
+
 const DEFAULT_FLYER_CONFIG = {
   layoutMode: "bento_16",
   colorTheme: "classic",
   labelStyle: "classic_box",
+  badgeStyle: "starburst",
   headerHeight: 146,
   showGuide: false,
   showInfoStrip: true,
@@ -214,6 +225,18 @@ const FLYER_STARBURST_POINTS = (() => {
     const angle = (Math.PI * i) / spikes;
     const r = i % 2 === 0 ? 49 : 40;
     pts.push(`${(50 + r * Math.cos(angle)).toFixed(1)},${(50 + r * Math.sin(angle)).toFixed(1)}`);
+  }
+  return pts.join(" ");
+})();
+
+const FLYER_ROSETTE_POINTS = (() => {
+  const pts = [];
+  const steps = 96;
+  const lobes = 14;
+  for (let i = 0; i < steps; i++) {
+    const angle = (Math.PI * 2 * i) / steps;
+    const r = 41 + 3.8 * Math.cos(lobes * angle);
+    pts.push(`${(50 + r * Math.cos(angle)).toFixed(1)},${(44 + r * Math.sin(angle)).toFixed(1)}`);
   }
   return pts.join(" ");
 })();
@@ -428,6 +451,7 @@ function syncFlyerControlInputs() {
   setVal("flyerLayoutModeSelect", flyerConfig.layoutMode);
   setVal("flyerColorThemeSelect", flyerConfig.colorTheme);
   setVal("flyerLabelStyleSelect", flyerConfig.labelStyle || "classic_box");
+  setVal("flyerBadgeStyleSelect", flyerConfig.badgeStyle || "starburst");
   setVal("flyerHeaderHeightInput", flyerConfig.headerHeight);
   const hhLabel = document.getElementById("flyerHeaderHeightLabel");
   if (hhLabel) hhLabel.textContent = `${flyerConfig.headerHeight}px`;
@@ -447,6 +471,7 @@ function syncFlyerControlInputs() {
 
   updateFlyerLayoutButtonsActive();
   updateFlyerLabelButtonsActive();
+  updateFlyerBadgeButtonsActive();
 }
 
 function updateFlyerLabelButtonsActive() {
@@ -468,6 +493,29 @@ function setFlyerLabelStyle(styleKey) {
   updateFlyerLabelButtonsActive();
   saveFlyerConfigState();
   applyFlyerVisualSettings();
+}
+
+function updateFlyerBadgeButtonsActive() {
+  const activeBadge = flyerConfig.badgeStyle || "starburst";
+  document.querySelectorAll("[data-flyer-badge-style]").forEach((btn) => {
+    const key = btn.getAttribute("data-flyer-badge-style");
+    const active = key === activeBadge;
+    const isFullRow = key === "auto_mix";
+    const spanCls = isFullRow ? "col-span-2 justify-center " : "";
+    btn.className = active
+      ? `${spanCls}p-1.5 rounded-xl border-2 border-[#e043a5] bg-pink-50 text-[#e043a5] font-extrabold text-[10px] text-left transition flex items-center gap-2 shadow-sm`
+      : `${spanCls}p-1.5 rounded-xl border border-slate-200 bg-white hover:border-pink-300 text-slate-600 font-bold text-[10px] text-left transition flex items-center gap-2`;
+  });
+}
+
+function setFlyerBadgeStyle(styleKey) {
+  if (!Object.prototype.hasOwnProperty.call(FLYER_BADGE_STYLES, styleKey)) return;
+  flyerConfig.badgeStyle = styleKey;
+  const select = document.getElementById("flyerBadgeStyleSelect");
+  if (select) select.value = styleKey;
+  updateFlyerBadgeButtonsActive();
+  saveFlyerConfigState();
+  renderFlyerBoard();
 }
 
 function updateFlyerLayoutButtonsActive() {
@@ -616,10 +664,12 @@ function handleFlyerControlChange() {
   const prevClean = flyerConfig.cleanPhotoCaption;
   const prevTheme = flyerConfig.colorTheme;
   const prevLayout = flyerConfig.layoutMode;
+  const prevBadge = flyerConfig.badgeStyle;
 
   flyerConfig.layoutMode = getVal("flyerLayoutModeSelect", flyerConfig.layoutMode);
   flyerConfig.colorTheme = getVal("flyerColorThemeSelect", flyerConfig.colorTheme);
   flyerConfig.labelStyle = getVal("flyerLabelStyleSelect", flyerConfig.labelStyle || "classic_box");
+  flyerConfig.badgeStyle = getVal("flyerBadgeStyleSelect", flyerConfig.badgeStyle || "starburst");
   flyerConfig.headerHeight = Number(getVal("flyerHeaderHeightInput", 146)) || 146;
 
   const hhLabel = document.getElementById("flyerHeaderHeightLabel");
@@ -640,10 +690,11 @@ function handleFlyerControlChange() {
 
   updateFlyerLayoutButtonsActive();
   updateFlyerLabelButtonsActive();
+  updateFlyerBadgeButtonsActive();
   saveFlyerConfigState();
   applyFlyerVisualSettings();
 
-  if (prevClean !== flyerConfig.cleanPhotoCaption || prevTheme !== flyerConfig.colorTheme || prevLayout !== flyerConfig.layoutMode) {
+  if (prevClean !== flyerConfig.cleanPhotoCaption || prevTheme !== flyerConfig.colorTheme || prevLayout !== flyerConfig.layoutMode || prevBadge !== flyerConfig.badgeStyle) {
     renderFlyerBoard();
   }
 }
@@ -932,6 +983,22 @@ function formatFlyerPlainNumber(num) {
   return Math.round(Number(num) || 0).toLocaleString("id-ID");
 }
 
+function resolveFlyerSlotBadgeStyle(promoDetails, slotIndex) {
+  const chosen = flyerConfig.badgeStyle || "starburst";
+  if (chosen !== "auto_mix") {
+    return Object.prototype.hasOwnProperty.call(FLYER_BADGE_STYLES, chosen) ? chosen : "starburst";
+  }
+  const layoutSpec = getActiveLayoutSpec();
+  if (promoDetails && promoDetails.promoType === "b1g1") {
+    return slotIndex % 2 === 0 ? "rosette_seal" : "neon_pill";
+  }
+  if (layoutSpec && layoutSpec.wideSlots && layoutSpec.wideSlots.has(slotIndex)) {
+    return slotIndex % 2 === 0 ? "flash_shield" : "rosette_seal";
+  }
+  const cycle = ["starburst", "price_tag", "neon_pill", "flash_shield", "rosette_seal", "corner_ribbon"];
+  return cycle[slotIndex % cycle.length];
+}
+
 function buildFlyerStarburstHtml(promoDetails, slotIndex) {
   if (!promoDetails || !promoDetails.hasPromo) return "";
 
@@ -953,9 +1020,53 @@ function buildFlyerStarburstHtml(promoDetails, slotIndex) {
     textHtml = `<span class="sm-flyer-sb-top">HEMAT</span><span class="sm-flyer-sb-big">${pct}%</span>`;
   }
 
+  const badgeStyle = resolveFlyerSlotBadgeStyle(promoDetails, slotIndex);
   const gradId = `smFlyerGrad_${slotIndex}`;
+  let shapeSvgHtml = "";
+
+  if (badgeStyle === "rosette_seal") {
+    shapeSvgHtml = `
+      <path d="M 27 72 L 17 97 L 31 90 L 39 98 L 44 76 Z" fill="${fill2}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M 73 72 L 83 97 L 69 90 L 61 98 L 56 76 Z" fill="${fill2}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>
+      <polygon points="${FLYER_ROSETTE_POINTS}" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.6" stroke-linejoin="round"/>
+      <circle cx="50" cy="44" r="32.5" fill="none" stroke="${stroke}" stroke-width="1.6" stroke-dasharray="3.5 2.5" opacity="0.92"/>
+    `;
+  } else if (badgeStyle === "price_tag") {
+    shapeSvgHtml = `
+      <path d="M 32 8 L 68 8 L 88 27 L 88 87 Q 88 94 81 94 L 19 94 Q 12 94 12 87 L 12 27 Z" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+      <path d="M 35 14 L 65 14 L 82 30 L 82 86 L 18 86 L 18 30 Z" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-dasharray="3 2.2" opacity="0.72"/>
+      <circle cx="50" cy="21" r="6" fill="#ffffff" stroke="${fill2}" stroke-width="2.4"/>
+      <path d="M 50 3 C 54 3 56 12 50 17" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linecap="round"/>
+    `;
+  } else if (badgeStyle === "flash_shield") {
+    shapeSvgHtml = `
+      <path d="M 50 5 L 90 19 L 90 55 C 90 77 73 91 50 97 C 27 91 10 77 10 55 L 10 19 Z" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+      <path d="M 50 9 L 86 21 L 86 43 L 14 62 L 14 21 Z" fill="#ffffff" opacity="0.16"/>
+      <path d="M 50 11 L 84 23 L 84 54 C 84 72 70 84 50 90 C 30 84 16 72 16 54 L 16 23 Z" fill="none" stroke="${stroke}" stroke-width="1.2" opacity="0.55"/>
+      <polygon points="53,11 43,23 50,23 47,32 59,19 51,19" fill="${stroke}" stroke="${fill2}" stroke-width="0.8" stroke-linejoin="round"/>
+    `;
+  } else if (badgeStyle === "corner_ribbon") {
+    shapeSvgHtml = `
+      <polygon points="10,13 19,4 19,15" fill="#0f172a" opacity="0.45"/>
+      <path d="M 18 4 L 89 4 Q 94 4 94 9 L 94 94 L 56 77 L 18 94 Z" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M 24 10 L 88 10 L 88 83 L 56 69 L 24 83 Z" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.62"/>
+    `;
+  } else if (badgeStyle === "neon_pill") {
+    shapeSvgHtml = `
+      <rect x="11" y="18" width="82" height="68" rx="18" fill="#0f172a"/>
+      <rect x="6" y="13" width="82" height="68" rx="18" fill="url(#${gradId})" stroke="#ffffff" stroke-width="2.8"/>
+      <rect x="11" y="18" width="72" height="58" rx="14" fill="none" stroke="${stroke}" stroke-width="1.4" opacity="0.82"/>
+      <circle cx="17" cy="24" r="2.2" fill="#ffffff" opacity="0.85"/>
+      <circle cx="77" cy="24" r="2.2" fill="${stroke}"/>
+    `;
+  } else {
+    shapeSvgHtml = `
+      <polygon points="${FLYER_STARBURST_POINTS}" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.5" stroke-linejoin="round"/>
+    `;
+  }
+
   return `
-    <div class="sm-flyer-starburst">
+    <div class="sm-flyer-starburst badge-${badgeStyle}" style="--sb-pill-bg: ${stroke};">
       <svg viewBox="0 0 100 100" class="sm-flyer-sb-svg">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="1" y2="1">
@@ -963,7 +1074,7 @@ function buildFlyerStarburstHtml(promoDetails, slotIndex) {
             <stop offset="100%" stop-color="${fill2}"/>
           </linearGradient>
         </defs>
-        <polygon points="${FLYER_STARBURST_POINTS}" fill="url(#${gradId})" stroke="${stroke}" stroke-width="2.5" stroke-linejoin="round"/>
+        ${shapeSvgHtml}
       </svg>
       <div class="sm-flyer-sb-text">${textHtml}</div>
     </div>
