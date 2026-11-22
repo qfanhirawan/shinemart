@@ -609,7 +609,7 @@
   transform-origin: center 40%;
 }
 
-/* Starburst Badge */
+/* Starburst & Designer Promo Badges (6 Retail Pack Styles) */
 .sm-flyer-starburst {
   position: absolute;
   top: -2px;
@@ -621,14 +621,87 @@
   align-items: center;
   justify-content: center;
   transform: rotate(8deg);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.24));
   pointer-events: none;
+}
+
+.sm-flyer-card-wide .sm-flyer-starburst {
+  width: 60px;
+  height: 60px;
 }
 
 .sm-flyer-row-five .sm-flyer-starburst,
 .sm-flyer-board.is-compact-5 .sm-flyer-starburst {
-  width: 44px;
-  height: 44px;
+  width: 45px;
+  height: 45px;
+}
+
+.sm-flyer-starburst.badge-starburst {
+  transform: rotate(8deg);
+}
+
+.sm-flyer-starburst.badge-rosette_seal {
+  transform: rotate(-4deg);
+}
+
+.sm-flyer-starburst.badge-rosette_seal .sm-flyer-sb-text {
+  padding-bottom: 13%;
+}
+
+.sm-flyer-starburst.badge-price_tag {
+  transform: rotate(7deg);
+}
+
+.sm-flyer-starburst.badge-price_tag .sm-flyer-sb-text {
+  padding-top: 21%;
+}
+
+.sm-flyer-starburst.badge-flash_shield {
+  transform: rotate(0deg);
+}
+
+.sm-flyer-starburst.badge-flash_shield .sm-flyer-sb-text {
+  padding-top: 16%;
+}
+
+.sm-flyer-starburst.badge-corner_ribbon {
+  top: -3px;
+  right: 1px;
+  transform: rotate(0deg);
+}
+
+.sm-flyer-starburst.badge-corner_ribbon .sm-flyer-sb-text {
+  padding-bottom: 16%;
+  padding-left: 7%;
+}
+
+.sm-flyer-starburst.badge-neon_pill {
+  transform: rotate(-6deg);
+  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.18));
+}
+
+.sm-flyer-starburst.badge-neon_pill .sm-flyer-sb-text {
+  padding-right: 5%;
+  padding-bottom: 5%;
+}
+
+.sm-flyer-starburst.badge-neon_pill .sm-flyer-sb-top {
+  background: var(--sb-pill-bg, #ffe600);
+  color: #0f172a;
+  padding: 1px 5px;
+  border-radius: 999px;
+  border: 1.3px solid #0f172a;
+  font-size: 6.5px;
+  line-height: 1.05;
+  margin-bottom: 1px;
+  box-shadow: 0 1px 0 #0f172a;
+  text-shadow: none;
+}
+
+.sm-flyer-row-five .sm-flyer-starburst.badge-neon_pill .sm-flyer-sb-top,
+.sm-flyer-board.is-compact-5 .sm-flyer-starburst.badge-neon_pill .sm-flyer-sb-top {
+  font-size: 5.8px;
+  padding: 0.5px 4px;
 }
 
 .sm-flyer-sb-svg {
@@ -648,12 +721,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.38);
 }
 
 .sm-flyer-sb-top {
   font-size: 7.5px;
   font-weight: 900;
   text-transform: uppercase;
+  letter-spacing: 0.15px;
+}
+
+.sm-flyer-row-five .sm-flyer-sb-top,
+.sm-flyer-board.is-compact-5 .sm-flyer-sb-top {
+  font-size: 6.5px;
 }
 
 .sm-flyer-sb-big {
@@ -662,6 +742,11 @@
   margin-top: 1px;
 }
 
+.sm-flyer-card-wide .sm-flyer-sb-big {
+  font-size: 16.5px;
+}
+
+.sm-flyer-row-five .sm-flyer-sb-big,
 .sm-flyer-board.is-compact-5 .sm-flyer-sb-big {
   font-size: 12px;
 }
@@ -670,6 +755,11 @@
   font-size: 8.5px;
   font-weight: 900;
   margin-top: 1px;
+}
+
+.sm-flyer-row-five .sm-flyer-sb-big-sm,
+.sm-flyer-board.is-compact-5 .sm-flyer-sb-big-sm {
+  font-size: 7.4px;
 }
 
 /* Compact Snug Price Module (fit-content) */
@@ -1002,6 +1092,22 @@
 .sm-lbl-swatch.is-minimal { background: #fff; border: 1px solid #cbd5e1; border-left: 3.5px solid #0077d6; border-radius: 4px; padding: 2px 3px; }
 .sm-lbl-swatch.is-minimal .sm-lbl-swatch-top { background: #f1f5f9; color: #0077d6; height: 6px; width: 20px; border-radius: 2px; }
 .sm-lbl-swatch.is-minimal .sm-lbl-swatch-bot { background: transparent; color: #005fa8; height: 11px; padding: 0; }
+
+/* Miniature Promo Badge Swatches for Left Admin Selector */
+.sm-bdg-swatch {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.sm-bdg-swatch svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.2));
+}
 
 /* Empty Slot Placeholder */
 .sm-flyer-empty-slot {
